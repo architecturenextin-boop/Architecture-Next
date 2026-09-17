@@ -1,0 +1,16 @@
+# Logs
+logs
+*.log
+
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Uploads
+uploads/videos/
+uploads/documents/
+uploads/images/
