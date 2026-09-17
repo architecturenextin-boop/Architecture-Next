@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,6 +19,7 @@ function escapeSqlValue(val) {
   if (typeof val === "number") return val;
   if (val instanceof Date) return `'${val.toISOString()}'`;
   if (Array.isArray(val)) {
+    if (val.length === 0) return "ARRAY[]::TEXT[]";
     const arrayElements = val.map((v) => `"${String(v).replace(/"/g, '\\"')}"`).join(",");
     return `'{${arrayElements}}'`;
   }
@@ -103,29 +105,63 @@ async function exportAll() {
     fs.writeFileSync(jsonPath, JSON.stringify(dumpData, null, 2), "utf8");
     console.log(`✅ JSON export saved to: ${jsonPath}`);
 
-    // 2. Generate SQL dump for pgAdmin
-    let sqlContent = `-- ========================================================\n`;
-    sqlContent += `-- ArchitectureNext Database Export for pgAdmin / PostgreSQL\n`;
-    sqlContent += `-- Generated: ${dumpData.metadata.exported_at}\n`;
-    sqlContent += `-- ========================================================\n\n`;
-    sqlContent += `BEGIN;\n\n`;
+    // 2. Data-only SQL inserts
+    let dataSql = `-- ========================================================\n`;
+    dataSql += `-- ArchitectureNext Database Data-Only Export\n`;
+    dataSql += `-- Generated: ${dumpData.metadata.exported_at}\n`;
+    dataSql += `-- ========================================================\n\n`;
+    dataSql += `BEGIN;\n\n`;
+    dataSql += generateTableSql("users", users);
+    dataSql += generateTableSql("courses", courses);
+    dataSql += generateTableSql("course_modules", courseModules);
+    dataSql += generateTableSql("course_lessons", courseLessons);
+    dataSql += generateTableSql("payments", payments);
+    dataSql += generateTableSql("enrollments", enrollments);
+    dataSql += generateTableSql("lesson_progress", lessonProgress);
+    dataSql += generateTableSql("otps", otps);
+    dataSql += generateTableSql("password_reset_tokens", passwordResetTokens);
+    dataSql += generateTableSql("token_blacklist", tokenBlacklist);
+    dataSql += `COMMIT;\n`;
 
-    sqlContent += generateTableSql("users", users);
-    sqlContent += generateTableSql("courses", courses);
-    sqlContent += generateTableSql("course_modules", courseModules);
-    sqlContent += generateTableSql("course_lessons", courseLessons);
-    sqlContent += generateTableSql("payments", payments);
-    sqlContent += generateTableSql("enrollments", enrollments);
-    sqlContent += generateTableSql("lesson_progress", lessonProgress);
-    sqlContent += generateTableSql("otps", otps);
-    sqlContent += generateTableSql("password_reset_tokens", passwordResetTokens);
-    sqlContent += generateTableSql("token_blacklist", tokenBlacklist);
+    const dataSqlPath = path.join(backupDir, "export-data.sql");
+    fs.writeFileSync(dataSqlPath, dataSql, "utf8");
+    console.log(`✅ Data SQL export saved to: ${dataSqlPath}`);
 
-    sqlContent += `COMMIT;\n`;
+    // 3. Generate Complete All-in-One SQL for empty pgAdmin databases
+    let ddlSchema = "";
+    try {
+      ddlSchema = execSync("npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script", {
+        cwd: path.resolve(__dirname, ".."),
+        encoding: "utf8",
+      });
+    } catch (e) {
+      console.warn("Could not generate DDL dynamically:", e.message);
+    }
 
-    const sqlPath = path.join(backupDir, "export-data.sql");
-    fs.writeFileSync(sqlPath, sqlContent, "utf8");
-    console.log(`✅ SQL export for pgAdmin saved to: ${sqlPath}`);
+    let fullSql = `-- ========================================================\n`;
+    fullSql += `-- ArchitectureNext Complete Database Script (DDL + Data)\n`;
+    fullSql += `-- Generated: ${dumpData.metadata.exported_at}\n`;
+    fullSql += `-- Paste directly into pgAdmin on an EMPTY database & execute\n`;
+    fullSql += `-- ========================================================\n\n`;
+    fullSql += `BEGIN;\n\n`;
+    fullSql += `-- STEP 1: CREATE SCHEMA, TYPES & TABLES\n`;
+    fullSql += ddlSchema + `\n\n`;
+    fullSql += `-- STEP 2: INSERT ALL DATA\n\n`;
+    fullSql += generateTableSql("users", users);
+    fullSql += generateTableSql("courses", courses);
+    fullSql += generateTableSql("course_modules", courseModules);
+    fullSql += generateTableSql("course_lessons", courseLessons);
+    fullSql += generateTableSql("payments", payments);
+    fullSql += generateTableSql("enrollments", enrollments);
+    fullSql += generateTableSql("lesson_progress", lessonProgress);
+    fullSql += generateTableSql("otps", otps);
+    fullSql += generateTableSql("password_reset_tokens", passwordResetTokens);
+    fullSql += generateTableSql("token_blacklist", tokenBlacklist);
+    fullSql += `COMMIT;\n`;
+
+    const fullSqlPath = path.join(backupDir, "full-database-pgadmin.sql");
+    fs.writeFileSync(fullSqlPath, fullSql, "utf8");
+    console.log(`✅ All-in-one DDL + Data SQL for pgAdmin saved to: ${fullSqlPath}`);
 
     console.log("\n📊 Export Summary:");
     console.table(dumpData.metadata.counts);

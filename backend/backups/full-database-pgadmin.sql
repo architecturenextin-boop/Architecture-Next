@@ -1,9 +1,332 @@
 -- ========================================================
--- ArchitectureNext Database Data-Only Export
+-- ArchitectureNext Complete Database Script (DDL + Data)
 -- Generated: 2026-09-17T12:43:31.909Z
+-- Paste directly into pgAdmin on an EMPTY database & execute
 -- ========================================================
 
 BEGIN;
+
+-- STEP 1: CREATE SCHEMA, TYPES & TABLES
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('STUDENT', 'ADMIN');
+
+-- CreateEnum
+CREATE TYPE "CourseStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
+
+-- CreateEnum
+CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED');
+
+-- CreateEnum
+CREATE TYPE "EnrollmentStatus" AS ENUM ('ACTIVE', 'EXPIRED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "OtpPurpose" AS ENUM ('SIGNUP_VERIFY', 'PASSWORD_RESET');
+
+-- CreateTable
+CREATE TABLE "users" (
+    "id" UUID NOT NULL,
+    "email" TEXT NOT NULL,
+    "password_hash" TEXT NOT NULL,
+    "first_name" TEXT,
+    "last_name" TEXT,
+    "full_name" TEXT,
+    "username" TEXT,
+    "phone" TEXT,
+    "goal" TEXT,
+    "role" "Role" NOT NULL DEFAULT 'STUDENT',
+    "is_verified" BOOLEAN NOT NULL DEFAULT false,
+    "onboarded" BOOLEAN NOT NULL DEFAULT false,
+    "avatar_url" TEXT,
+    "reset_password_token" TEXT,
+    "reset_password_expires" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "courses" (
+    "id" UUID NOT NULL,
+    "slug" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "tagline" TEXT,
+    "description" TEXT,
+    "cover_url" TEXT,
+    "thumbnail_url" TEXT,
+    "price" INTEGER NOT NULL DEFAULT 0,
+    "original_price" INTEGER NOT NULL DEFAULT 0,
+    "currency" TEXT NOT NULL DEFAULT '₹',
+    "total_duration" TEXT,
+    "total_lessons" INTEGER NOT NULL DEFAULT 0,
+    "level" TEXT DEFAULT 'Beginner',
+    "language" TEXT DEFAULT 'Malayalam',
+    "rating" DOUBLE PRECISION DEFAULT 4.9,
+    "review_count" INTEGER NOT NULL DEFAULT 0,
+    "preview_video_url" TEXT,
+    "what_you_will_learn" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "tools_covered" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "highlights" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "requirements" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "target_audience" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "published" BOOLEAN NOT NULL DEFAULT false,
+    "status" "CourseStatus" NOT NULL DEFAULT 'DRAFT',
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "courses_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "course_modules" (
+    "id" UUID NOT NULL,
+    "course_id" UUID NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "sort_order" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "course_modules_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "course_lessons" (
+    "id" UUID NOT NULL,
+    "module_id" UUID NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "duration" TEXT DEFAULT '15:00',
+    "video_url" TEXT,
+    "video_path" TEXT,
+    "pdf_url" TEXT,
+    "pdf_path" TEXT,
+    "is_free" BOOLEAN NOT NULL DEFAULT false,
+    "sort_order" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "course_lessons_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "payments" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "course_id" UUID NOT NULL,
+    "amount" INTEGER NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'INR',
+    "gateway" TEXT DEFAULT 'razorpay',
+    "gateway_order_id" TEXT,
+    "gateway_payment_id" TEXT,
+    "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
+    "paid_at" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "enrollments" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "course_id" UUID NOT NULL,
+    "payment_id" UUID,
+    "status" "EnrollmentStatus" NOT NULL DEFAULT 'ACTIVE',
+    "enrolled_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expires_at" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "enrollments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "lesson_progress" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "course_id" UUID NOT NULL,
+    "lesson_id" UUID NOT NULL,
+    "progress_seconds" INTEGER NOT NULL DEFAULT 0,
+    "completed" BOOLEAN NOT NULL DEFAULT true,
+    "last_watched_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "lesson_progress_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "otps" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "otp_hash" TEXT NOT NULL,
+    "purpose" "OtpPurpose" NOT NULL,
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "expires_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "otps_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "password_reset_tokens" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "token_hash" TEXT NOT NULL,
+    "consumed" BOOLEAN NOT NULL DEFAULT false,
+    "expires_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "password_reset_tokens_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "token_blacklist" (
+    "id" UUID NOT NULL,
+    "token_hash" TEXT NOT NULL,
+    "expires_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "token_blacklist_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_username_key" ON "users"("username");
+
+-- CreateIndex
+CREATE INDEX "users_email_idx" ON "users"("email");
+
+-- CreateIndex
+CREATE INDEX "users_role_idx" ON "users"("role");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "courses_slug_key" ON "courses"("slug");
+
+-- CreateIndex
+CREATE INDEX "courses_slug_idx" ON "courses"("slug");
+
+-- CreateIndex
+CREATE INDEX "courses_status_idx" ON "courses"("status");
+
+-- CreateIndex
+CREATE INDEX "courses_published_idx" ON "courses"("published");
+
+-- CreateIndex
+CREATE INDEX "course_modules_course_id_idx" ON "course_modules"("course_id");
+
+-- CreateIndex
+CREATE INDEX "course_modules_sort_order_idx" ON "course_modules"("sort_order");
+
+-- CreateIndex
+CREATE INDEX "course_lessons_module_id_idx" ON "course_lessons"("module_id");
+
+-- CreateIndex
+CREATE INDEX "course_lessons_sort_order_idx" ON "course_lessons"("sort_order");
+
+-- CreateIndex
+CREATE INDEX "payments_user_id_idx" ON "payments"("user_id");
+
+-- CreateIndex
+CREATE INDEX "payments_course_id_idx" ON "payments"("course_id");
+
+-- CreateIndex
+CREATE INDEX "payments_status_idx" ON "payments"("status");
+
+-- CreateIndex
+CREATE INDEX "payments_gateway_order_id_idx" ON "payments"("gateway_order_id");
+
+-- CreateIndex
+CREATE INDEX "enrollments_user_id_idx" ON "enrollments"("user_id");
+
+-- CreateIndex
+CREATE INDEX "enrollments_course_id_idx" ON "enrollments"("course_id");
+
+-- CreateIndex
+CREATE INDEX "enrollments_status_idx" ON "enrollments"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "enrollments_user_id_course_id_key" ON "enrollments"("user_id", "course_id");
+
+-- CreateIndex
+CREATE INDEX "lesson_progress_user_id_idx" ON "lesson_progress"("user_id");
+
+-- CreateIndex
+CREATE INDEX "lesson_progress_course_id_idx" ON "lesson_progress"("course_id");
+
+-- CreateIndex
+CREATE INDEX "lesson_progress_lesson_id_idx" ON "lesson_progress"("lesson_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "lesson_progress_user_id_lesson_id_key" ON "lesson_progress"("user_id", "lesson_id");
+
+-- CreateIndex
+CREATE INDEX "otps_user_id_purpose_idx" ON "otps"("user_id", "purpose");
+
+-- CreateIndex
+CREATE INDEX "otps_expires_at_idx" ON "otps"("expires_at");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "password_reset_tokens_token_hash_key" ON "password_reset_tokens"("token_hash");
+
+-- CreateIndex
+CREATE INDEX "password_reset_tokens_user_id_idx" ON "password_reset_tokens"("user_id");
+
+-- CreateIndex
+CREATE INDEX "password_reset_tokens_expires_at_idx" ON "password_reset_tokens"("expires_at");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "token_blacklist_token_hash_key" ON "token_blacklist"("token_hash");
+
+-- CreateIndex
+CREATE INDEX "token_blacklist_expires_at_idx" ON "token_blacklist"("expires_at");
+
+-- AddForeignKey
+ALTER TABLE "course_modules" ADD CONSTRAINT "course_modules_course_id_fkey" FOREIGN KEY ("course_id") REFERENCES "courses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "course_lessons" ADD CONSTRAINT "course_lessons_module_id_fkey" FOREIGN KEY ("module_id") REFERENCES "course_modules"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payments" ADD CONSTRAINT "payments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payments" ADD CONSTRAINT "payments_course_id_fkey" FOREIGN KEY ("course_id") REFERENCES "courses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "enrollments" ADD CONSTRAINT "enrollments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "enrollments" ADD CONSTRAINT "enrollments_course_id_fkey" FOREIGN KEY ("course_id") REFERENCES "courses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "enrollments" ADD CONSTRAINT "enrollments_payment_id_fkey" FOREIGN KEY ("payment_id") REFERENCES "payments"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "lesson_progress" ADD CONSTRAINT "lesson_progress_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "lesson_progress" ADD CONSTRAINT "lesson_progress_course_id_fkey" FOREIGN KEY ("course_id") REFERENCES "courses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "lesson_progress" ADD CONSTRAINT "lesson_progress_lesson_id_fkey" FOREIGN KEY ("lesson_id") REFERENCES "course_lessons"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "otps" ADD CONSTRAINT "otps_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+
+-- STEP 2: INSERT ALL DATA
 
 -- Data for table: users (9 rows)
 INSERT INTO "users" ("id", "email", "password_hash", "first_name", "last_name", "full_name", "username", "phone", "goal", "role", "is_verified", "onboarded", "avatar_url", "reset_password_token", "reset_password_expires", "created_at", "updated_at") VALUES ('235c749c-dcba-48f9-adec-f6f8d06b23f6', 'admin@architecturenext.in', '$2b$10$CUjplxFZ2kVyiceG.sVmt.PCWntgh4A7dvWUTFg6Q0AZAPukJfPkG', 'admin', 'master', 'admin master', 'admin', '9895854244', NULL, 'ADMIN', TRUE, TRUE, NULL, NULL, NULL, '2026-08-17T06:26:27.408Z', '2026-09-17T06:30:53.518Z') ON CONFLICT DO NOTHING;
