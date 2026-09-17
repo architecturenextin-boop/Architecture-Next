@@ -1,6 +1,6 @@
 -- ========================================================
 -- ArchitectureNext Complete Database Script (DDL + Data)
--- Generated: 2026-09-17T12:43:31.909Z
+-- Generated: 2026-09-17T12:46:53.314Z
 -- Paste directly into pgAdmin on an EMPTY database & execute
 -- ========================================================
 
