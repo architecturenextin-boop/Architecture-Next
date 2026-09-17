@@ -9,6 +9,7 @@ import { apiLimiter } from "./middlewares/rate-limit.middleware.js";
 
 import path from "path";
 import fs from "fs";
+import os from "os";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,15 +18,21 @@ const __dirname = path.dirname(__filename);
 // Razorpay & SMTP configuration active
 const app = express();
 
-// Ensure upload directories exist
-const uploadDir = path.resolve(__dirname, "../uploads");
+// Ensure upload directories exist safely in both local and serverless environments
+const isVercel = Boolean(process.env.VERCEL);
+const uploadDir = isVercel 
+  ? path.join(os.tmpdir(), "uploads")
+  : path.resolve(__dirname, "../uploads");
 const videoUploadDir = path.join(uploadDir, "videos");
 const imageUploadDir = path.join(uploadDir, "images");
 const docUploadDir = path.join(uploadDir, "documents");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-if (!fs.existsSync(videoUploadDir)) fs.mkdirSync(videoUploadDir, { recursive: true });
-if (!fs.existsSync(imageUploadDir)) fs.mkdirSync(imageUploadDir, { recursive: true });
-if (!fs.existsSync(docUploadDir)) fs.mkdirSync(docUploadDir, { recursive: true });
+
+try {
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  if (!fs.existsSync(videoUploadDir)) fs.mkdirSync(videoUploadDir, { recursive: true });
+  if (!fs.existsSync(imageUploadDir)) fs.mkdirSync(imageUploadDir, { recursive: true });
+  if (!fs.existsSync(docUploadDir)) fs.mkdirSync(docUploadDir, { recursive: true });
+} catch (_) {}
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },

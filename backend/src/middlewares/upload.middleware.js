@@ -1,20 +1,29 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import os from "os";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const uploadBaseDir = path.resolve(__dirname, "../../uploads");
+
+const isVercel = Boolean(process.env.VERCEL);
+const uploadBaseDir = isVercel 
+  ? path.join(os.tmpdir(), "uploads")
+  : path.resolve(__dirname, "../../uploads");
+
 const videoDir = path.join(uploadBaseDir, "videos");
 const imageDir = path.join(uploadBaseDir, "images");
 const documentDir = path.join(uploadBaseDir, "documents");
 
-// Ensure directories exist
-if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
-if (!fs.existsSync(imageDir)) fs.mkdirSync(imageDir, { recursive: true });
-if (!fs.existsSync(documentDir)) fs.mkdirSync(documentDir, { recursive: true });
+// Ensure directories exist safely without throwing on read-only serverless environments
+try {
+  if (!fs.existsSync(uploadBaseDir)) fs.mkdirSync(uploadBaseDir, { recursive: true });
+  if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
+  if (!fs.existsSync(imageDir)) fs.mkdirSync(imageDir, { recursive: true });
+  if (!fs.existsSync(documentDir)) fs.mkdirSync(documentDir, { recursive: true });
+} catch (_) {}
 
 // Video Storage Engine
 const videoStorage = multer.diskStorage({

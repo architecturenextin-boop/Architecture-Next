@@ -1,11 +1,17 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { fileURLToPath } from "url";
 import { prisma } from "../config/db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const uploadBaseDir = path.resolve(__dirname, "../../uploads");
+
+const isVercel = Boolean(process.env.VERCEL);
+const uploadBaseDir = isVercel 
+  ? path.join(os.tmpdir(), "uploads")
+  : path.resolve(__dirname, "../../uploads");
+
 const videoDir = path.join(uploadBaseDir, "videos");
 const docDir = path.join(uploadBaseDir, "documents");
 
