@@ -75,8 +75,14 @@ app.use(cors({
     }
     const isDev = config.nodeEnv === "development";
     const isLocalhost = origin.includes("localhost") || origin.includes("127.0.0.1") || origin.startsWith("http://localhost:");
+    const isAllowedDomain = 
+      origin.includes("architecturenext.in") || 
+      origin.includes(".vercel.app") || 
+      origin === config.frontendUrl || 
+      origin === config.frontendUrl?.replace("https://", "https://www.") ||
+      origin === config.frontendUrl?.replace("https://www.", "https://");
     
-    if ((isDev && isLocalhost) || origin === config.frontendUrl) {
+    if (isDev || isLocalhost || isAllowedDomain) {
       callback(null, true);
     } else {
       callback(new Error(`Not allowed by CORS: Origin ${origin} is not allowed`));
