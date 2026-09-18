@@ -165,7 +165,12 @@ function LearnPage() {
   const [videoError, setVideoError] = useState<string | null>(null);
   const [playerReady, setPlayerReady] = useState(false);
 
-  // Fetch video URL whenever activeId changes
+  // PDF blob state for secure rendering without cross-origin CSP frame blocking
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  // Fetch video URL or PDF blob whenever activeId changes
   useEffect(() => {
     if (!activeId) return;
     let active = true;
@@ -175,6 +180,13 @@ function LearnPage() {
       setVideoLoading(true);
       setVideoError(null);
       setVideoUrl(null);
+      setPdfBlobUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setPdfLoading(false);
+      setPdfError(null);
+
       try {
         const currentLesson = flatLessons.find((l) => l.id === activeId);
 
@@ -200,9 +212,38 @@ function LearnPage() {
 
         const rawPdf = currentLesson.pdf_url || (currentLesson as any).pdf_path;
         if (rawPdf) {
-          if (active) {
-            setVideoUrl(null);
-            setPlayerReady(true);
+          const ext = rawPdf.split("?")[0].split(".").pop()?.toLowerCase() || "";
+          if (ext === "pdf") {
+            setPdfLoading(true);
+            try {
+              let resolvedPdf = getMediaUrl(rawPdf);
+              const token = tokenStorage.get();
+              const headers: Record<string, string> = {};
+              if (token) headers["Authorization"] = `Bearer ${token}`;
+
+              const res = await fetch(resolvedPdf, { headers });
+              if (!res.ok) {
+                throw new Error(`Failed to load PDF (${res.status} ${res.statusText})`);
+              }
+              const blob = await res.blob();
+              const blobUrl = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+              if (active) {
+                setPdfBlobUrl(blobUrl);
+                setPlayerReady(true);
+              }
+            } catch (pErr: any) {
+              if (active) {
+                setPdfError(pErr?.message || "Failed to load PDF file from server");
+                setPlayerReady(true);
+              }
+            } finally {
+              if (active) setPdfLoading(false);
+            }
+          } else {
+            if (active) {
+              setVideoUrl(null);
+              setPlayerReady(true);
+            }
           }
           return;
         }
@@ -579,16 +620,56 @@ function LearnPage() {
             isPdfLesson ? "w-full h-[650px] max-h-[80vh] min-h-[500px]" : "relative aspect-video w-full bg-black"
           }`}>
             {isPdfLesson ? (
-              activeLesson?.pdf_url ? (
+              (activeLesson?.pdf_url || (activeLesson as any)?.pdf_path) ? (
                 (() => {
-                  const filename = activeLesson.pdf_url.split("/").pop() || "Resource File";
-                  const ext = activeLesson.pdf_url.split(".").pop()?.toLowerCase() || "";
+                  const rawPdf = activeLesson?.pdf_url || (activeLesson as any)?.pdf_path || "";
+                  const filename = rawPdf.split("?")[0].split("/").pop() || "Resource File";
+                  const ext = rawPdf.split("?")[0].split(".").pop()?.toLowerCase() || "";
 
                   if (ext === "pdf") {
+                    if (pdfLoading) {
+                      return (
+                        <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-white p-6 text-center">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+                          <p className="text-sm font-semibold">Loading PDF Document...</p>
+                        </div>
+                      );
+                    }
+
+                    if (pdfError || !pdfBlobUrl) {
+                      return (
+                        <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-white p-6 text-center">
+                          <FileText className="h-12 w-12 text-destructive mb-3" />
+                          <h3 className="text-sm sm:text-base font-bold text-foreground mb-1">
+                            {pdfError ? "Failed to stream PDF directly" : "PDF preview unavailable"}
+                          </h3>
+                          <p className="text-xs text-muted-foreground max-w-sm mb-4">
+                            {pdfError || "Please download the document to view it on your device."}
+                          </p>
+                          <a
+                            href={(() => {
+                              let docUrl = getMediaUrl(rawPdf);
+                              const token = tokenStorage.get();
+                              if (token && docUrl.includes("/api/v1/media/") && !docUrl.includes("token=")) {
+                                docUrl = `${docUrl}${docUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+                              }
+                              return docUrl;
+                            })()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download
+                            className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-4 py-2 text-xs font-bold"
+                          >
+                            <Download className="h-4 w-4" /> Download PDF Document
+                          </a>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div className="w-full h-full bg-slate-900 flex flex-col relative">
                         <iframe
-                          src={`${getMediaUrl(activeLesson.pdf_url)}#toolbar=0&navpanes=0`}
+                          src={`${pdfBlobUrl}#toolbar=0&navpanes=0`}
                           className="w-full h-full border-none rounded-xl"
                           title="PDF Lesson Viewer"
                           allowFullScreen
@@ -601,7 +682,7 @@ function LearnPage() {
                     return (
                       <div className="w-full h-full bg-[#0B0B12] flex items-center justify-center p-4 relative">
                         <img
-                          src={getMediaUrl(activeLesson.pdf_url)}
+                          src={getMediaUrl(rawPdf)}
                           alt={activeLesson.title}
                           className="w-full h-full object-contain rounded-xl select-none"
                         />
