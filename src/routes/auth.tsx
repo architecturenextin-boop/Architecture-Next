@@ -41,7 +41,9 @@ function AuthPage() {
             navigate({ to: "/onboarding" });
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          tokenStorage.clear();
+        });
     }
     return () => {
       active = false;

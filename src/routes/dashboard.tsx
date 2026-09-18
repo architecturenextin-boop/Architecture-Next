@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, isRedirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { authService } from "@/lib/services/auth.service";
 import { tokenStorage } from "@/lib/api-client";
@@ -11,7 +11,9 @@ export const Route = createFileRoute("/dashboard")({
     try {
       const { user } = await authService.getMe();
       if (!user?.onboarded) throw redirect({ to: "/onboarding" });
-    } catch {
+    } catch (err: any) {
+      if (isRedirect(err)) throw err;
+      tokenStorage.clear();
       throw redirect({ to: "/auth" });
     }
   },

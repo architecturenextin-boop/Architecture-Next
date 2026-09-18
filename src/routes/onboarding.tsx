@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect, isRedirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,9 @@ export const Route = createFileRoute("/onboarding")({
     try {
       const { user } = await authService.getMe();
       if (user?.onboarded) throw redirect({ to: "/dashboard" });
-    } catch {
+    } catch (err: any) {
+      if (isRedirect(err)) throw err;
+      tokenStorage.clear();
       throw redirect({ to: "/auth" });
     }
   },

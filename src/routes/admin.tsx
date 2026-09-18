@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useRouterState, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState, redirect, isRedirect, useNavigate } from "@tanstack/react-router";
 import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { AdminHeader } from "@/components/admin-header";
@@ -16,7 +16,9 @@ export const Route = createFileRoute("/admin")({
       if (user?.role !== "admin") {
         throw redirect({ to: "/dashboard" });
       }
-    } catch {
+    } catch (err: any) {
+      if (isRedirect(err)) throw err;
+      tokenStorage.clear();
       throw redirect({ to: "/auth" });
     }
   },

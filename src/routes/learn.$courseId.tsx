@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, isRedirect } from "@tanstack/react-router";
 import { courseService } from "@/lib/services/course.service";
 import { tokenStorage } from "@/lib/api-client";
 
@@ -19,7 +19,9 @@ export const Route = createFileRoute("/learn/$courseId")({
         throw redirect({ to: "/checkout", search: { course: params.courseId } });
       }
     } catch (err: any) {
+      if (isRedirect(err)) throw err;
       if (err.statusCode === 401) {
+        tokenStorage.clear();
         throw redirect({ to: "/auth" });
       }
     }
