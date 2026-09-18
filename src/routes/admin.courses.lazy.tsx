@@ -856,8 +856,8 @@ function CourseForm({ initial, isPending, onSubmit }: { initial?: any; isPending
     setCoverUploading(true);
     try {
       const res = await adminService.uploadImage(file);
-      if (res?.imagePath || res?.imageUrl) {
-        setCoverUrl(res.imagePath || res.imageUrl);
+      if (res?.imageUrl || res?.imagePath) {
+        setCoverUrl(res.imageUrl || res.imagePath);
       }
       setCoverUploading(false);
     } catch (err: any) {
