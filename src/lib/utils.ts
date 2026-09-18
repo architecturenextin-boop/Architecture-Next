@@ -35,35 +35,51 @@ export function getMediaUrl(urlOrPath?: string | null): string {
 
   const apiBase = envApiUrl || `${serverBase}/api/v1`;
 
-  // External or absolute URLs
+  // Authenticated media stream route
+  if (trimmed.includes("/api/v1/media/")) {
+    const mediaPath = trimmed.slice(trimmed.indexOf("/api/v1/media/"));
+    return `${serverBase}${mediaPath}`;
+  }
+
+  // Private lesson videos -> route to authenticated media endpoint
+  if (
+    trimmed.includes("/uploads/videos/") ||
+    trimmed.includes("videos/") ||
+    trimmed.endsWith(".mp4") ||
+    trimmed.endsWith(".webm") ||
+    trimmed.endsWith(".mov") ||
+    trimmed.endsWith(".mkv")
+  ) {
+    const filename = trimmed.split("?")[0].split("/").pop() || "";
+    return `${apiBase}/media/video/${filename}`;
+  }
+
+  // Private lesson documents -> route to authenticated media endpoint
+  if (
+    trimmed.includes("/uploads/documents/") ||
+    trimmed.includes("documents/") ||
+    trimmed.endsWith(".pdf")
+  ) {
+    const filename = trimmed.split("?")[0].split("/").pop() || "";
+    return `${apiBase}/media/document/${filename}`;
+  }
+
+  // External or absolute URLs (YouTube, Vimeo, Cloudinary, S3, etc.)
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    if (trimmed.includes("localhost:5000") && typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+    if (
+      trimmed.includes("localhost:5000") &&
+      typeof window !== "undefined" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
       return trimmed.replace(/^http:\/\/localhost:5000/, serverBase || window.location.origin);
     }
     return trimmed;
   }
 
-  // Authenticated media stream route
-  if (trimmed.startsWith("/api/v1/media/")) {
-    return `${serverBase}${trimmed}`;
-  }
-
-  // Video path -> route to authenticated media endpoint
-  if (trimmed.includes("videos/")) {
-    const filename = trimmed.split("/").pop();
-    return `${apiBase}/media/video/${filename}`;
-  }
-
-  // Document path -> route to authenticated media endpoint
-  if (trimmed.includes("documents/")) {
-    const filename = trimmed.split("/").pop();
-    return `${apiBase}/media/document/${filename}`;
-  }
-
-  // Uploads directory (images, public files)
+  // Public uploads directory (images, covers, avatars)
   if (trimmed.startsWith("/uploads/")) {
-    const origin = serverBase || (typeof window !== "undefined" ? window.location.origin : "");
-    return origin ? `${origin}${trimmed}` : trimmed;
+    return `${serverBase}${trimmed}`;
   }
 
   // Static root assets in frontend public folder (e.g. /course-cover.jpeg, /hero-learner.jpeg)
@@ -71,6 +87,6 @@ export function getMediaUrl(urlOrPath?: string | null): string {
     return trimmed;
   }
 
-  const origin = serverBase || (typeof window !== "undefined" ? window.location.origin : "");
-  return origin ? `${origin}/${trimmed}` : `/${trimmed}`;
+  return `${serverBase}/${trimmed}`;
 }
+

@@ -144,7 +144,9 @@ function LearnPage() {
   }, [flatLessons, activeId]);
 
   const isPdfLesson = useMemo(() => {
-    return !!activeLesson?.pdf_url && !activeLesson?.video_url;
+    const hasPdf = !!(activeLesson?.pdf_url || (activeLesson as any)?.pdf_path);
+    const hasVideo = !!(activeLesson?.video_url || (activeLesson as any)?.video_path);
+    return hasPdf && !hasVideo;
   }, [activeLesson]);
 
   const currentIndex = useMemo(() => {
@@ -185,8 +187,9 @@ function LearnPage() {
           throw new Error("You must be actively enrolled to stream this lesson.");
         }
 
-        if (currentLesson.video_url) {
-          let resolved = getMediaUrl(currentLesson.video_url);
+        const rawVideo = currentLesson.video_url || (currentLesson as any).video_path;
+        if (rawVideo) {
+          let resolved = getMediaUrl(rawVideo);
           const token = tokenStorage.get();
           if (token && resolved.includes("/api/v1/media/") && !resolved.includes("token=")) {
             resolved = `${resolved}${resolved.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
@@ -195,7 +198,8 @@ function LearnPage() {
           return;
         }
 
-        if (currentLesson.pdf_url) {
+        const rawPdf = currentLesson.pdf_url || (currentLesson as any).pdf_path;
+        if (rawPdf) {
           if (active) {
             setVideoUrl(null);
             setPlayerReady(true);
