@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
+  ArrowLeft,
   ArrowRight,
   Award,
   BarChart3,
@@ -206,25 +207,24 @@ function CourseDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-20 text-foreground selection:bg-primary selection:text-primary-foreground lg:pb-0">
-      <SiteHeader
-        action={
-          <Button
-            onClick={handleAddToCart}
-            size="sm"
-            className="bg-gradient-primary px-4 font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 sm:px-5"
-          >
-            {cartAdded ? "View cart" : "Enroll Now"}
-          </Button>
-        }
-      />
+    <div className="min-h-screen bg-background pb-20 text-foreground selection:bg-primary selection:text-primary-foreground lg:pb-0">
+      <SiteHeader />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border/60 bg-gradient-hero">
-        <div className="pointer-events-none absolute -right-36 -top-48 h-[32rem] w-[32rem] rounded-full bg-brand-blue/15 blur-[120px]" />
-        <div className="pointer-events-none absolute -bottom-56 left-0 h-[30rem] w-[30rem] rounded-full bg-brand-purple/10 blur-[120px]" />
+      <section className="relative overflow-hidden border-b border-border bg-gradient-hero">
+        <div className="pointer-events-none absolute -top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-brand-blue/15 blur-[120px]" />
+        <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-purple/15 blur-[120px]" />
+        <div className="relative mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-12 lg:py-16">
+          <div className="mb-6">
+            <Link
+              to="/courses"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border/80 bg-background/80 px-4 py-2 text-xs sm:text-sm font-semibold text-muted-foreground backdrop-blur transition-all hover:border-primary/50 hover:bg-card hover:text-primary group shadow-xs"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+              <span>Back to Courses</span>
+            </Link>
+          </div>
 
-        <div className="relative mx-auto max-w-7xl px-5 py-12 md:px-8 md:py-16 lg:py-20">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14 xl:gap-16">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
@@ -285,7 +285,7 @@ function CourseDetailPage() {
               </div>
 
               {/* Dynamic Preview Media: YouTube iframe / Direct MP4 / Cover Image */}
-              <div className="mt-9 overflow-hidden rounded-[24px] border border-border/70 bg-black shadow-[0_24px_70px_-34px_rgba(15,23,42,0.42)]">
+              <div className="mt-9 overflow-hidden rounded-[24px] border border-border/70 bg-black shadow-elevated">
                 <div className="aspect-video w-full">
                   {isYouTube ? (
                     <iframe
@@ -525,28 +525,7 @@ function CourseDetailPage() {
                 </div>
               </ContentSection>
 
-              {/* Learning Outcomes Section */}
-              <ContentSection
-                eyebrow="Learning outcomes"
-                title="Skills you will build during the programme"
-              >
-                <div className="grid gap-x-10 gap-y-0 border-t border-border/70 md:grid-cols-2">
-                  {learningOutcomes.map((item, index) => (
-                    <article
-                      key={`${item}-${index}`}
-                      className="grid grid-cols-[44px_minmax(0,1fr)] gap-4 border-b border-border/70 py-5 items-center"
-                    >
-                      <span className="font-display text-sm font-extrabold text-primary">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <h3 className="font-display text-base font-bold text-foreground">
-                        {item}
-                      </h3>
-                    </article>
-                  ))}
-                </div>
-              </ContentSection>
-
+              {/* Curriculum Section */}
               <ContentSection
                 eyebrow="Curriculum"
                 title={`${courseModules.length} modules · ${totalLessons} guided lessons`}
@@ -624,8 +603,30 @@ function CourseDetailPage() {
                 </div>
               </ContentSection>
 
+              {/* Learning Outcomes Section */}
+              <ContentSection
+                eyebrow="Learning outcomes"
+                title="Skills you will build during the programme"
+              >
+                <div className="grid gap-x-10 gap-y-0 border-t border-border/70 md:grid-cols-2">
+                  {learningOutcomes.map((item, index) => (
+                    <article
+                      key={`${item}-${index}`}
+                      className="grid grid-cols-[44px_minmax(0,1fr)] gap-4 border-b border-border/70 py-5 items-center"
+                    >
+                      <span className="font-display text-sm font-extrabold text-primary">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <h3 className="font-display text-base font-bold text-foreground">
+                        {item}
+                      </h3>
+                    </article>
+                  ))}
+                </div>
+              </ContentSection>
+
               {/* Certificate Section */}
-              <section className="relative overflow-hidden rounded-[28px] border border-primary/15 bg-gradient-to-br from-primary/[0.07] via-white to-brand-blue/[0.08] p-7 sm:p-10 lg:p-12">
+              <section className="relative overflow-hidden rounded-[28px] border border-primary/15 bg-gradient-to-br from-primary/[0.07] via-white to-brand-blue/[0.08] p-7 sm:p-10 lg:p-12 shadow-elevated">
                 <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
 
                 <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">

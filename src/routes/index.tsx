@@ -89,7 +89,7 @@ function Landing() {
   const activeCourse = courses[0] || mainCourse || mainCourseFallback;
 
   return (
-    <div className="min-h-screen bg-background animate-fade-in">
+    <div className="min-h-screen bg-background animate-fade-in overflow-x-clip">
       <SiteHeader />
       <Hero />
       <TrustBar />
@@ -105,9 +105,9 @@ function Landing() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-hero">
-      <div className="pointer-events-none absolute -top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-brand-blue/20 blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-purple/20 blur-[120px]" />
+    <section className="relative overflow-hidden bg-gradient-hero border-b border-border">
+      <div className="pointer-events-none absolute -top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-brand-blue/15 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-purple/15 blur-[120px]" />
       <div className="relative mx-auto grid max-w-7xl gap-14 px-5 pt-16 pb-24 md:grid-cols-2 md:items-center md:px-8 md:pt-24 md:pb-32">
         <div className="space-y-7 animate-fade-up">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-primary shadow-soft backdrop-blur">
@@ -215,7 +215,7 @@ function TrustBar() {
 
 function Features() {
   return (
-    <section id="features" className="mx-auto max-w-7xl px-5 py-24 md:px-8 md:py-32">
+    <section id="features" className="scroll-mt-24 mx-auto max-w-7xl px-5 py-24 md:px-8 md:py-32">
       <div className="mx-auto max-w-3xl text-center">
         <span className="text-xs font-bold uppercase tracking-widest text-primary">
           The Program
@@ -238,7 +238,6 @@ function Features() {
               key={it.title}
               className="group relative overflow-hidden rounded-3xl border border-border bg-card p-7 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-elevated"
             >
-              <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gradient-primary opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-20" />
               <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft transition-transform duration-300 group-hover:scale-110">
                 <Icon className="h-5 w-5" />
               </div>
@@ -254,11 +253,10 @@ function Features() {
 
 function Instructor() {
   return (
-    <section id="instructor" className="border-y border-border bg-surface py-20 md:py-28">
+    <section id="instructor" className="scroll-mt-24 border-y border-border bg-surface py-20 md:py-28">
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 md:grid-cols-12 md:px-8">
         {/* Left Mentor Image Card (5 Cols) */}
         <div className="relative md:col-span-5">
-          <div className="pointer-events-none absolute -inset-4 rounded-[2.5rem] bg-gradient-accent opacity-25 blur-3xl" />
           <div className="relative overflow-hidden rounded-[2.25rem] border border-border/80 bg-card shadow-elevated transition-transform duration-500 hover:scale-[1.01]">
             <img
               src={instructor.image}
@@ -371,7 +369,7 @@ function Pricing({ course }: { course: any }) {
   }
 
   return (
-    <section id="pricing" className="bg-surface py-24 md:py-32">
+    <section id="pricing" className="scroll-mt-24 bg-surface py-24 md:py-32">
       <div className="mx-auto max-w-3xl px-5 md:px-8">
         <div className="text-center">
           <span className="text-xs font-bold uppercase tracking-widest text-primary">Pricing</span>
@@ -383,8 +381,6 @@ function Pricing({ course }: { course: any }) {
           </p>
         </div>
         <div className="relative mt-12 overflow-hidden rounded-[1.75rem] border border-border bg-card p-8 shadow-elevated md:p-12">
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-blue/15 blur-[100px]" />
-          <div className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-brand-purple/15 blur-[100px]" />
           <div className="relative">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-primary">
@@ -454,7 +450,7 @@ function Pricing({ course }: { course: any }) {
 function FAQ() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section id="faq" className="mx-auto max-w-3xl px-5 py-24 md:px-8 md:py-32">
+    <section id="faq" className="scroll-mt-24 mx-auto max-w-3xl px-5 py-24 md:px-8 md:py-32">
       <div className="text-center">
         <span className="text-xs font-bold uppercase tracking-widest text-primary">FAQ</span>
         <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight md:text-5xl">
@@ -505,7 +501,7 @@ function CoursesSection() {
     queryFn: () => courseService.getCourses(),
   });
   return (
-    <section id="courses" className="mx-auto max-w-7xl px-5 py-24 md:px-8 md:py-32">
+    <section id="courses" className="scroll-mt-24 mx-auto max-w-7xl px-5 py-24 md:px-8 md:py-32">
       <div className="mx-auto max-w-3xl text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-emerald-400 backdrop-blur-md mb-4">
           <Sparkles className="h-3.5 w-3.5 text-emerald-400" />

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Phone, Sparkles, User, Mail, Lock, Eye, EyeOff, CheckCircle2, AtSign } from "lucide-react";
+import { ArrowRight, ArrowLeft, Phone, Sparkles, User, Mail, Lock, Eye, EyeOff, CheckCircle2, AtSign } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,10 +142,16 @@ function SignupPage() {
       {/* Right Signup Form (7 Cols) */}
       <div className="md:col-span-7 flex flex-col items-center justify-center p-6 md:p-10 lg:p-12 relative overflow-y-auto">
         <div className="w-full max-w-lg space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between w-full">
             <div className="md:hidden">
               <BrandLogo size="sm" />
             </div>
+            <Link
+              to="/"
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary transition-colors ml-auto group"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Home
+            </Link>
           </div>
 
           <div>

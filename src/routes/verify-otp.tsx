@@ -252,9 +252,9 @@ function VerifyOtpPage() {
       </div>
 
       {/* Right Interaction Column */}
-      <div className="flex items-center justify-center p-6 sm:p-10 lg:p-14">
-        <div className="w-full max-w-md space-y-8">
-          <div className="md:hidden flex justify-center mb-6">
+      <div className="flex items-center justify-center p-3.5 sm:p-8 lg:p-14 overflow-x-hidden">
+        <div className="w-full max-w-md space-y-6 sm:space-y-8">
+          <div className="md:hidden flex justify-center mb-4 sm:mb-6">
             <BrandLogo size="md" />
           </div>
 
@@ -265,10 +265,10 @@ function VerifyOtpPage() {
                 <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
                   <Sparkles className="h-4 w-4" /> 6-Digit Verification
                 </div>
-                <h2 className="font-display text-3xl font-extrabold text-foreground tracking-tight">
+                <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
                   {purpose === "signup" ? "Check your email" : "Enter reset code"}
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   We've sent a 6-digit verification code to{" "}
                   <strong className="text-foreground">{email || "your email address"}</strong>.
                 </p>
@@ -289,7 +289,7 @@ function VerifyOtpPage() {
 
               <div className="space-y-6">
                 {/* 6 Digit Input Boxes */}
-                <div className="flex justify-between gap-2 sm:gap-3" onPaste={handlePaste}>
+                <div className="flex justify-between gap-1 sm:gap-2.5 md:gap-3" onPaste={handlePaste}>
                   {otp.map((digit, idx) => (
                     <input
                       key={idx}
@@ -303,7 +303,7 @@ function VerifyOtpPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(idx, e)}
-                      className="h-14 w-12 sm:h-16 sm:w-14 rounded-2xl border border-input bg-card text-center font-mono text-2xl font-extrabold text-foreground shadow-xs transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none"
+                      className="h-11 w-9 min-w-[36px] sm:h-14 sm:w-12 md:h-16 md:w-14 rounded-xl sm:rounded-2xl border border-input bg-card text-center font-mono text-xl sm:text-2xl font-extrabold text-foreground shadow-xs transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none"
                     />
                   ))}
                 </div>
@@ -312,24 +312,33 @@ function VerifyOtpPage() {
                   type="button"
                   onClick={() => submitOtp()}
                   disabled={isVerifying || otp.join("").length !== 6}
-                  className="h-12 w-full bg-gradient-primary text-base font-bold text-primary-foreground shadow-soft transition-all hover:brightness-110 rounded-xl"
+                  className="min-h-[48px] h-12 w-full bg-gradient-primary text-base font-bold text-primary-foreground shadow-soft transition-all hover:brightness-110 rounded-xl"
                 >
                   {isVerifying ? "Verifying code..." : "Verify Code"} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
 
                 {/* Resend Action */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-5">
+                <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-4">
                   <span>Didn't receive the code?</span>
                   <button
                     type="button"
                     onClick={handleResend}
                     disabled={resendCooldown > 0 || isResending}
-                    className="inline-flex items-center gap-1.5 font-bold text-primary hover:underline disabled:opacity-50 disabled:no-underline"
+                    className="inline-flex min-h-[44px] items-center gap-1.5 font-bold text-primary hover:underline disabled:opacity-50 disabled:no-underline"
                   >
                     <RefreshCw className={`h-3.5 w-3.5 ${isResending ? "animate-spin" : ""}`} />
                     {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
                   </button>
                 </div>
+              </div>
+
+              <div className="text-center pt-2">
+                <Link
+                  to="/auth"
+                  className="inline-flex min-h-[44px] items-center font-semibold text-xs text-primary hover:underline"
+                >
+                  ← Return to Sign In
+                </Link>
               </div>
             </>
           ) : (

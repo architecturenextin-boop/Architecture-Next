@@ -21,6 +21,7 @@ dist-ssr
 
 # Playwright & test artifacts
 .playwright-mcp/
+audit-screenshots/
 
 # Local uploaded media (Videos & Private Documents)
 backend/uploads/videos/

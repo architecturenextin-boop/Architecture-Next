@@ -154,21 +154,73 @@ function PaymentsPage() {
         </div>
       </div>
 
-      {/* Main Table */}
+      {/* Main Transactions List / Table */}
       {isLoading ? (
         <div className="flex h-[40vh] items-center justify-center bg-card rounded-2xl border border-border">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
+      ) : filteredPayments.length === 0 ? (
+        <div className="text-center p-12 text-sm text-muted-foreground bg-card rounded-2xl border border-border shadow-soft">
+          <CreditCard className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+          <p className="font-semibold text-foreground">No transactions found</p>
+          <p className="text-xs mt-1">Try adjusting your filters or search term.</p>
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-          <div className="overflow-x-auto">
-            {filteredPayments.length === 0 ? (
-              <div className="text-center p-12 text-sm text-muted-foreground">
-                <CreditCard className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
-                <p className="font-semibold text-foreground">No transactions found</p>
-                <p className="text-xs mt-1">Try adjusting your filters or search term.</p>
-              </div>
-            ) : (
+        <>
+          {/* Mobile Transaction Cards (< 640px) */}
+          <div className="space-y-3.5 sm:hidden">
+            {filteredPayments.map((r: any) => {
+              const date = r.created_at ? new Date(r.created_at).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "N/A";
+              return (
+                <article key={r.id} className="rounded-2xl border border-border bg-card p-4 shadow-soft space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="font-mono text-[11px] font-bold text-foreground block truncate">
+                        {r.orderId}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                        {r.gateway || "Razorpay"}
+                      </span>
+                    </div>
+
+                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                      r.status === "completed" 
+                        ? "bg-success/15 text-success" 
+                        : r.status === "pending" 
+                        ? "bg-amber-500/15 text-amber-600" 
+                        : "bg-destructive/15 text-destructive"
+                    }`}>
+                      {r.status}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 text-xs text-muted-foreground border-y border-border/60 py-2.5">
+                    <div className="font-semibold text-foreground">{r.studentName} ({r.studentEmail})</div>
+                    <div className="truncate font-medium text-foreground/80">{r.courseTitle}</div>
+                    <div className="text-[11px] pt-0.5">{date}</div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="font-display font-bold text-base text-foreground">
+                      {r.currency}{Number(r.amount).toLocaleString()}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedPayment(r)}
+                      className="min-h-[36px] text-xs font-semibold gap-1"
+                    >
+                      <Eye className="h-3.5 w-3.5" /> Inspect
+                    </Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          {/* Tablet & Desktop Table (>= 640px) */}
+          <div className="hidden sm:block overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
@@ -235,7 +287,7 @@ function PaymentsPage() {
                             onClick={() => setSelectedPayment(r)}
                             className="h-8 text-xs font-semibold gap-1"
                           >
-                            <Eye className="h-3.5 w-3.5" /> Details
+                            <Eye className="h-3.5 w-3.5" /> Inspect
                           </Button>
                         </td>
                       </tr>
@@ -243,9 +295,9 @@ function PaymentsPage() {
                   })}
                 </tbody>
               </table>
-            )}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Transaction Details Modal */}

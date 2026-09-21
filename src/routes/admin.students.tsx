@@ -187,21 +187,89 @@ function StudentsPage() {
         </div>
       </div>
 
-      {/* Main Students Table */}
+      {/* Main Students List / Table */}
       {profilesLoading ? (
         <div className="flex h-[40vh] items-center justify-center bg-card rounded-2xl border border-border">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
+      ) : filteredStudents.length === 0 ? (
+        <div className="text-center p-12 text-sm text-muted-foreground bg-card rounded-2xl border border-border shadow-soft">
+          <Users className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+          <p className="font-semibold text-foreground">No students or users found</p>
+          <p className="text-xs mt-1">Try adjusting your search query or filters.</p>
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-          <div className="overflow-x-auto">
-            {filteredStudents.length === 0 ? (
-              <div className="text-center p-12 text-sm text-muted-foreground">
-                <Users className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
-                <p className="font-semibold text-foreground">No students or users found</p>
-                <p className="text-xs mt-1">Try adjusting your search query or filters.</p>
-              </div>
-            ) : (
+        <>
+          {/* Mobile Student Cards (< 640px) */}
+          <div className="space-y-3.5 sm:hidden">
+            {filteredStudents.map((r: any) => {
+              const coursesCount = r.coursesCount || 0;
+              const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : "N/A";
+              const initial = (r.full_name || r.email || "L")[0].toUpperCase();
+
+              return (
+                <article key={r.id} className="rounded-2xl border border-border bg-card p-4 shadow-soft space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground">
+                        {initial}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-semibold text-foreground block truncate">
+                          {r.full_name || "Learner"}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground font-mono block">
+                          ID: {r.id.substring(0, 8)}...
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                      r.role === "admin" 
+                        ? "bg-purple-500/15 text-purple-600 border border-purple-500/20" 
+                        : "bg-emerald-500/15 text-emerald-600"
+                    }`}>
+                      {r.role || "student"}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 text-xs text-muted-foreground border-y border-border/60 py-2.5">
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate">{r.email || "No email"}</span>
+                    </div>
+                    {r.phone && (
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span>+91 {r.phone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                        coursesCount > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                      }`}>
+                        <BookOpen className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"}
+                      </span>
+                      <span className="text-[11px]">Joined {date}</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedStudent(r)}
+                    className="w-full min-h-[40px] text-xs font-semibold gap-1.5"
+                  >
+                    <Eye className="h-4 w-4" /> Manage Student Details
+                  </Button>
+                </article>
+              );
+            })}
+          </div>
+
+          {/* Tablet & Desktop Table (>= 640px) */}
+          <div className="hidden sm:block overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
@@ -312,9 +380,9 @@ function StudentsPage() {
                   })}
                 </tbody>
               </table>
-            )}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Student Details & Course Enrollment Modal */}

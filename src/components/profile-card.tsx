@@ -33,10 +33,10 @@ export function ProfileCard() {
     );
   }
 
-  // Not authenticated state: Show Sign In button area
+  // Not authenticated state: Show Sign In button area (hidden on small screens)
   if (!user) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="hidden md:flex items-center gap-2">
         <Button asChild variant="ghost" size="sm" className="font-semibold transition-colors hover:text-primary">
           <Link to="/auth">Sign in</Link>
         </Button>
@@ -58,12 +58,15 @@ export function ProfileCard() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Clickable Profile Card Area */}
+      {/* Clickable Profile Button: Compact 36x36px avatar on mobile, full pill on desktop */}
       <button
+        type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2.5 rounded-2xl border border-border/80 bg-card/65 p-1.5 pr-3 text-left shadow-soft backdrop-blur-md transition-all hover:border-primary/30 hover:bg-card/90"
+        aria-label="User profile menu"
+        aria-expanded={open}
+        className="flex items-center gap-2 rounded-xl sm:rounded-2xl border border-border/80 bg-card/65 p-1 sm:p-1.5 md:pr-3 text-left shadow-soft backdrop-blur-md transition-all hover:border-primary/30 hover:bg-card/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-primary text-sm font-bold text-primary-foreground shadow-soft">
+        <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-primary text-xs sm:text-sm font-bold text-primary-foreground shadow-soft shrink-0">
           {initial}
         </div>
         <div className="hidden max-w-[120px] text-xs md:block">
@@ -72,7 +75,7 @@ export function ProfileCard() {
             {profile?.role || "Student"}
           </div>
         </div>
-        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`hidden md:block h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {/* Structured Dropdown Menu */}

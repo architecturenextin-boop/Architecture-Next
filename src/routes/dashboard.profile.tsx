@@ -105,15 +105,15 @@ function ProfilePage() {
           <span className="text-sm font-medium">Email</span>
           <Input value={profile.email || ""} disabled className="mt-1.5" />
         </label>
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button
             type="submit"
             disabled={updateProfileMutation.isPending}
-            className="bg-gradient-primary text-primary-foreground"
+            className="min-h-[44px] bg-gradient-primary text-primary-foreground font-semibold"
           >
             {updateProfileMutation.isPending ? "Saving..." : "Save changes"}
           </Button>
-          <Button type="button" variant="outline" onClick={handleSignOut}>
+          <Button type="button" variant="outline" onClick={handleSignOut} className="min-h-[44px]">
             Sign out
           </Button>
         </div>

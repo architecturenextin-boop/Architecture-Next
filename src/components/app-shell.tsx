@@ -82,9 +82,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
           </nav>
         </aside>
-        <main>{children}</main>
+        <main className="min-w-0 pb-20 md:pb-0">{children}</main>
       </div>
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
+      <nav aria-label="Mobile Navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-4">
           {nav.map((n) => {
             const active = path === n.to || (n.to !== "/dashboard" && path.startsWith(n.to));
@@ -92,10 +92,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={n.to}
                 to={n.to}
-                className={`flex flex-col items-center gap-1 py-2.5 text-xs ${active ? "text-primary" : "text-muted-foreground"}`}
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 py-1.5 text-xs transition-colors ${active ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
               >
                 <n.icon className="h-5 w-5" />
-                <span className="text-[10px] font-medium">{n.label.split(" ")[0]}</span>
+                <span className="text-[10px] leading-tight">{n.label.split(" ")[0]}</span>
               </Link>
             );
           })}

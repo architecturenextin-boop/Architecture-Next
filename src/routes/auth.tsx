@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Mail, Lock, Sparkles, CheckCircle2, ShieldCheck, Eye, EyeOff, KeyRound } from "lucide-react";
+import { ArrowRight, ArrowLeft, Mail, Lock, Sparkles, CheckCircle2, ShieldCheck, Eye, EyeOff, KeyRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -157,10 +157,16 @@ function AuthPage() {
       {/* Right Sign-in Form */}
       <div className="flex flex-col items-center justify-center p-6 md:p-12 relative">
         <div className="w-full max-w-md space-y-8">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between w-full">
             <div className="md:hidden">
               <BrandLogo size="sm" />
             </div>
+            <Link
+              to="/"
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary transition-colors ml-auto group"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Home
+            </Link>
           </div>
 
           {!isForgotPassword ? (

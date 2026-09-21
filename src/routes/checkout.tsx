@@ -217,14 +217,24 @@ function CheckoutPage() {
         action={
           <Link
             to="/courses"
-            className="hidden items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+            className="inline-flex min-h-[44px] items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" /> Return to Courses
           </Link>
         }
       />
 
-      <main className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-14">
+      <main className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-12">
+        <div className="mb-6 sm:hidden">
+          <Link
+            to="/courses"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border/80 bg-background/80 px-4 py-2 text-xs font-semibold text-muted-foreground backdrop-blur transition-all hover:border-primary/50 hover:bg-card hover:text-primary group shadow-xs"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            <span>Return to Courses</span>
+          </Link>
+        </div>
+
         {/* Main Grid: Left (Billing & Order Details) | Right (Summary & Payment) */}
         <form onSubmit={handleCompletePayment} className="grid gap-10 lg:grid-cols-[1fr_420px]">
           {/* Left Column */}

@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Sparkles, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { Footer } from "@/components/footer";
 import { CourseCard } from "@/components/course-card";
@@ -34,28 +34,31 @@ function CoursesCatalogPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-clip">
       <SiteHeader />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-hero py-16 md:py-24 border-b border-border/60">
-        <div className="pointer-events-none absolute -top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-brand-blue/20 blur-[120px]" />
-        <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-purple/20 blur-[120px]" />
+      <section className="relative overflow-hidden bg-gradient-hero py-12 md:py-20 border-b border-border">
+        <div className="pointer-events-none absolute -top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-brand-blue/15 blur-[120px]" />
+        <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-purple/15 blur-[120px]" />
+        <div className="relative mx-auto max-w-7xl px-5 md:px-8">
+       
 
-        <div className="relative mx-auto max-w-7xl px-5 md:px-8 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary shadow-soft backdrop-blur mb-6">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            OUR COURSES
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary shadow-soft backdrop-blur mb-6">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              OUR COURSES
+            </div>
+
+            <h1 className="font-display text-4xl font-extrabold tracking-tight text-foreground md:text-6xl max-w-4xl mx-auto leading-tight">
+              Education for the <span className="text-gradient-brand">real world</span>
+            </h1>
+
+            <p className="mt-4 max-w-2xl mx-auto text-base text-muted-foreground md:text-lg">
+              Master industry-standard design tools, BIM workflows, AI spatial ideation, and project
+              execution with practical, project-based courses led by practising architects.
+            </p>
           </div>
-
-          <h1 className="font-display text-4xl font-extrabold tracking-tight text-foreground md:text-6xl max-w-4xl mx-auto leading-tight">
-            Education for the <span className="text-gradient-brand">real world</span>
-          </h1>
-
-          <p className="mt-4 max-w-2xl mx-auto text-base text-muted-foreground md:text-lg">
-            Master industry-standard design tools, BIM workflows, AI spatial ideation, and project
-            execution with practical, project-based courses led by practising architects.
-          </p>
         </div>
       </section>
 
@@ -167,5 +170,6 @@ function CoursesCatalogPage() {
 
       <Footer />
     </div>
+    
   );
 }

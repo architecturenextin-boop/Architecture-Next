@@ -1,56 +1,57 @@
 import { Link } from "@tanstack/react-router";
 import { brand } from "@/lib/brand";
 
-export function Footer() {
+export function Footer({ className = "" }: { className?: string }) {
   return (
-    <footer className="relative overflow-hidden border-t border-border bg-gradient-ink text-background mt-16">
-      <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-brand-purple/30 blur-[120px]" />
-      <div className="pointer-events-none absolute -left-32 -bottom-32 h-80 w-80 rounded-full bg-brand-blue/30 blur-[120px]" />
-      <div className="relative mx-auto grid max-w-7xl gap-12 px-5 py-16 md:grid-cols-4 md:px-8">
+    <footer className={`relative border-t border-border bg-[#F0EDE8] text-[#555555] ${className}`}>
+      <div className="relative mx-auto grid max-w-7xl gap-8 px-5 py-12 sm:py-16 md:grid-cols-4 md:gap-12 md:px-8">
         <div className="md:col-span-2">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-background p-2">
+            <div className="rounded-xl bg-white p-2 border border-border shadow-xs">
               <img src={brand.logoUrl} alt={brand.fullName} className="h-9 w-auto" />
             </div>
           </div>
-          <p className="mt-5 max-w-sm font-display text-lg font-bold tracking-tight text-background">
+          <p className="mt-5 max-w-sm font-display text-lg font-bold tracking-tight text-[#111111]">
             {brand.tagline}
           </p>
-          <p className="mt-2 max-w-md text-sm text-background/60">{brand.description}</p>
+          <p className="mt-2 max-w-md text-sm text-[#555555]">{brand.description}</p>
         </div>
         <div>
-          <div className="font-display text-sm font-bold uppercase tracking-wider text-background/80">
+          <div className="font-display text-sm font-bold uppercase tracking-wider text-[#111111]">
             Program
           </div>
-          <ul className="mt-4 space-y-2.5 text-sm text-background/60">
-            <li className="transition-colors hover:text-background">
-              <Link to="/">Curriculum</Link>
+          <ul className="mt-4 space-y-2.5 text-sm text-[#555555]">
+            <li className="transition-colors hover:text-primary">
+              <Link to="/courses">All Courses</Link>
             </li>
-            <li className="transition-colors hover:text-background">
-              <Link to="/">Mentor</Link>
+            <li className="transition-colors hover:text-primary">
+              <a href="/#courses">Curriculum</a>
             </li>
-            <li className="transition-colors hover:text-background">
-              <Link to="/">Pricing</Link>
+            <li className="transition-colors hover:text-primary">
+              <a href="/#instructor">Mentor</a>
             </li>
-            <li className="transition-colors hover:text-background">
-              <Link to="/">FAQ</Link>
+            <li className="transition-colors hover:text-primary">
+              <a href="/#pricing">Pricing</a>
+            </li>
+            <li className="transition-colors hover:text-primary">
+              <a href="/#faq">FAQ</a>
             </li>
           </ul>
         </div>
         <div>
-          <div className="font-display text-sm font-bold uppercase tracking-wider text-background/80">
+          <div className="font-display text-sm font-bold uppercase tracking-wider text-[#111111]">
             Contact
           </div>
-          <ul className="mt-4 space-y-2.5 text-sm text-background/60">
+          <ul className="mt-4 space-y-2.5 text-sm text-[#555555]">
             <li>{brand.contact.email}</li>
             <li>Phone: {brand.contact.phone}</li>
             <li className="leading-relaxed">{brand.contact.location}</li>
-            <li className="transition-colors hover:text-background">Privacy Policy</li>
-            <li className="transition-colors hover:text-background">Terms of Service</li>
+            <li className="transition-colors hover:text-primary">Privacy Policy</li>
+            <li className="transition-colors hover:text-primary">Terms of Service</li>
           </ul>
         </div>
       </div>
-      <div className="relative border-t border-background/10 py-6 text-center text-xs text-background/50">
+      <div className="relative border-t border-border py-6 text-center text-xs text-[#888888]">
         © {new Date().getFullYear()} {brand.fullName}. All rights reserved.
       </div>
     </footer>

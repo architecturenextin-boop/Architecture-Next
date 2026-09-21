@@ -12,13 +12,23 @@ export function dispatchAuthChange() {
   }
 }
 
+// In-memory module cache to prevent flickering/buffering on route navigation
+let memoryProfile: Profile | null = null;
+let memoryLoaded = false;
+
 export function useAuth() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(memoryProfile);
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    if (memoryLoaded) return false;
+    const token = typeof window !== "undefined" ? tokenStorage.get() : null;
+    return Boolean(token);
+  });
 
   const fetchUser = useCallback(async () => {
     const token = tokenStorage.get();
     if (!token) {
+      memoryProfile = null;
+      memoryLoaded = true;
       setProfile(null);
       setIsLoading(false);
       return;
@@ -26,9 +36,14 @@ export function useAuth() {
 
     try {
       const data = await authService.getMe();
-      setProfile(data.profile || data.user || null);
+      const userProfile = data.profile || data.user || null;
+      memoryProfile = userProfile;
+      memoryLoaded = true;
+      setProfile(userProfile);
     } catch (err) {
       tokenStorage.clear();
+      memoryProfile = null;
+      memoryLoaded = true;
       setProfile(null);
     } finally {
       setIsLoading(false);
@@ -53,6 +68,8 @@ export function useAuth() {
 
   const signOut = async () => {
     await authService.logout();
+    memoryProfile = null;
+    memoryLoaded = true;
     setProfile(null);
     dispatchAuthChange();
   };
