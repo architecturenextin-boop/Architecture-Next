@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, PlayCircle, Sparkles, TrendingUp, Loader2 } from "lucide-react";
+import { ArrowRight, PlayCircle, Sparkles, TrendingUp, Loader2, BookOpen, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { dashboardService } from "@/lib/services/dashboard.service";
@@ -45,14 +45,102 @@ function DashboardHome() {
     );
   }
 
+  const completedLessonsTotal = owned.reduce(
+    (acc, c) => acc + (Number(c.progress_count) || 0),
+    0
+  );
+
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-3xl bg-gradient-primary p-6 text-primary-foreground shadow-elevated md:p-8">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider opacity-90">
-          <Sparkles className="h-3.5 w-3.5" /> Welcome back
+      {/* Redesigned Student Dashboard Upper Banner */}
+      <section className="relative overflow-hidden rounded-[28px] border border-[#294398]/30 bg-gradient-to-br from-[#294398] via-[#223B86] to-[#192A64] p-6 sm:p-8 md:p-10 text-white shadow-elevated">
+        {/* Ambient Decorative Lighting */}
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[#4E68B8]/30 blur-3xl" />
+
+        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3 max-w-xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-xs">
+              <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+              <span>Student Dashboard</span>
+            </div>
+
+            <h1 className="font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl md:text-4xl">
+              Welcome back, {profile?.full_name ?? "Learner"}
+            </h1>
+
+            <p className="text-sm leading-relaxed text-white/85 sm:text-base">
+              {owned.length > 0
+                ? "Track your lessons, master architectural software workflows, and earn verifiable certificates."
+                : "Your professional learning journey starts here. Explore our industry-led architecture courses below."}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              {owned.length > 0 ? (
+                <>
+                  <Button
+                    asChild
+                    size="lg"
+                    className="h-11 rounded-xl bg-white px-6 font-bold text-[#294398] shadow-soft transition-all hover:bg-white/95 hover:scale-[1.02] hover:shadow-elevated"
+                  >
+                    <Link
+                      to="/learn/$courseId"
+                      params={{ courseId: owned[0].slug || owned[0].course_id }}
+                      search={
+                        owned[0].last_watched_lesson_id
+                          ? { lessonId: owned[0].last_watched_lesson_id }
+                          : undefined
+                      }
+                    >
+                      <PlayCircle className="mr-2 h-4 w-4" /> Resume Learning
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="lg"
+                    className="h-11 rounded-xl border-white/25 bg-white/10 px-5 font-semibold text-white backdrop-blur transition hover:bg-white/20 hover:text-white"
+                  >
+                    <Link to="/dashboard/courses">
+                      <BookOpen className="mr-2 h-4 w-4" /> My Courses ({owned.length})
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  asChild
+                  size="lg"
+                  className="h-11 rounded-xl bg-white px-7 font-bold text-[#294398] shadow-soft transition-all hover:bg-white/95 hover:scale-[1.02] hover:shadow-elevated"
+                >
+                  <Link to="/courses">
+                    Explore Courses <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Metrics Badges Card */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:w-64 shrink-0">
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4.5 backdrop-blur-md shadow-xs">
+              <div className="text-3xl font-black text-white font-display">
+                {owned.length}
+              </div>
+              <div className="mt-1 text-xs font-semibold text-white/75">
+                Enrolled Courses
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4.5 backdrop-blur-md shadow-xs">
+              <div className="text-3xl font-black text-white font-display">
+                {completedLessonsTotal}
+              </div>
+              <div className="mt-1 text-xs font-semibold text-white/75">
+                Completed Lessons
+              </div>
+            </div>
+          </div>
         </div>
-        <h1 className="mt-2 font-display text-2xl font-bold md:text-3xl">Hey {profile?.full_name ?? "Learner"} 👋</h1>
-        <p className="mt-1 max-w-xl opacity-90">{owned.length ? "Pick up where you left off — consistency is your edge." : "Your learning journey starts here. Explore our courses below."}</p>
       </section>
 
       <section>

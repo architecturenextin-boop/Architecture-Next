@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-surface-soft">
+    <div className="min-h-screen bg-background">
       <SiteHeader />
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:grid-cols-[240px_1fr] md:px-6">
         <aside className="hidden md:block">
