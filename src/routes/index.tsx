@@ -514,21 +514,22 @@ function CoursesSection() {
         </p>
       </div>
 
-      <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-14 flex flex-wrap justify-center gap-8">
         {allCourses.map((c: any, idx: number) => (
-          <CourseCard
-            key={c.id}
-            course={c}
-            badge={
-              idx === 0
-                ? "3 POWERFUL COURSES"
-                : idx === 1
-                  ? "BIM MASTERCLASS"
-                  : idx === 2
-                    ? "3D RENDERING SUITE"
-                    : "AI DESIGN WORKFLOW"
-            }
-          />
+          <div key={c.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)] max-w-[380px]">
+            <CourseCard
+              course={c}
+              badge={
+                idx === 0
+                  ? "3 POWERFUL COURSES"
+                  : idx === 1
+                    ? "BIM MASTERCLASS"
+                    : idx === 2
+                      ? "3D RENDERING SUITE"
+                      : "AI DESIGN WORKFLOW"
+              }
+            />
+          </div>
         ))}
       </div>
 

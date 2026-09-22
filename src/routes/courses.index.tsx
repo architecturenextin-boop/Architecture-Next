@@ -102,21 +102,22 @@ function CoursesCatalogPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-wrap justify-center gap-8">
             {allCourses.map((course, idx) => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                badge={
-                  idx === 0
-                    ? "3 POWERFUL COURSES"
-                    : idx === 1
-                      ? "BIM MASTERCLASS"
-                      : idx === 2
-                        ? "3D RENDERING SUITE"
-                        : "AI DESIGN WORKFLOW"
-                }
-              />
+              <div key={course.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)] max-w-[380px]">
+                <CourseCard
+                  course={course}
+                  badge={
+                    idx === 0
+                      ? "3 POWERFUL COURSES"
+                      : idx === 1
+                        ? "BIM MASTERCLASS"
+                        : idx === 2
+                          ? "3D RENDERING SUITE"
+                          : "AI DESIGN WORKFLOW"
+                  }
+                />
+              </div>
             ))}
           </div>
         )}
