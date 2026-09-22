@@ -17,7 +17,6 @@ import {
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/footer";
-import { CourseCard } from "@/components/course-card";
 import { SiteHeader } from "@/components/site-header";
 import { brand } from "@/lib/brand";
 import {
@@ -94,7 +93,6 @@ function Landing() {
       <Hero />
       <TrustBar />
       <Features />
-      <CoursesSection />
       <Instructor />
       <Testimonials />
       <Pricing course={activeCourse} />
@@ -493,57 +491,3 @@ function FAQ() {
   );
 }
 
-function CoursesSection() {
-  const { data: allCourses = [] } = useQuery({
-    queryKey: ["public-courses"],
-    queryFn: () => courseService.getCourses(),
-  });
-  return (
-    <section id="courses" className="scroll-mt-24 mx-auto max-w-7xl px-5 py-24 md:px-8 md:py-32">
-      <div className="mx-auto max-w-3xl text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary shadow-soft backdrop-blur mb-6">
-          <Sparkles className="h-3.5 w-3.5 text-primary" />
-          OUR COURSES
-        </div>
-        <h2 className="font-display text-3xl font-extrabold tracking-tight md:text-5xl">
-          Education for the <span className="text-gradient-brand">real world</span>
-        </h2>
-        <p className="mt-4 text-base text-muted-foreground md:text-lg">
-          Master industry-standard software, BIM workflows, AI spatial ideation, and project
-          execution with live courses led by practising architects.
-        </p>
-      </div>
-
-      <div className="mt-14 flex flex-wrap justify-center gap-8">
-        {allCourses.map((c: any, idx: number) => (
-          <div key={c.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)] max-w-[380px]">
-            <CourseCard
-              course={c}
-              badge={
-                idx === 0
-                  ? "3 POWERFUL COURSES"
-                  : idx === 1
-                    ? "BIM MASTERCLASS"
-                    : idx === 2
-                      ? "3D RENDERING SUITE"
-                      : "AI DESIGN WORKFLOW"
-              }
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-12 text-center">
-        <Button
-          asChild
-          size="lg"
-          className="h-12 rounded-xl bg-gradient-primary px-8 font-bold text-primary-foreground shadow-soft transition-all hover:scale-[1.02] hover:brightness-110 hover:shadow-elevated"
-        >
-          <Link to="/courses">
-            Explore All Courses <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
-    </section>
-  );
-}
