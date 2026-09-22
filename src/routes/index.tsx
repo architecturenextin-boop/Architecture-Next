@@ -25,10 +25,10 @@ import {
   heroStats,
   instructor,
   pricingFeatures,
-  testimonials,
 } from "@/lib/static-data";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/lib/services/course.service";
+import { testimonialService } from "@/lib/services/testimonial.service";
 import heroImg from "@/assets/hero-learner.jpeg";
 
 export const Route = createFileRoute("/")({
@@ -307,6 +307,11 @@ function Instructor() {
 }
 
 function Testimonials() {
+  const { data: testimonials = [], isLoading } = useQuery({
+    queryKey: ["public-testimonials"],
+    queryFn: () => testimonialService.getPublicTestimonials(),
+  });
+
   return (
     <section className="mx-auto max-w-7xl px-5 py-24 md:px-8 md:py-32">
       <div className="mx-auto max-w-2xl text-center">
@@ -316,33 +321,78 @@ function Testimonials() {
         <h2 className="mt-3 type-h1 text-foreground tracking-tight">
           Architects in the making.
         </h2>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Hear from students and junior architects transforming their practice with ArchitectureNext.
+        </p>
       </div>
-      <div className="mt-14 grid gap-6 md:grid-cols-3">
-        {testimonials.map((t) => (
-          <figure
-            key={t.name}
-            className="flex flex-col rounded-3xl border border-border bg-card p-7 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated"
-          >
-            <div className="flex gap-0.5 text-accent">
-              {Array.from({ length: t.rating }).map((_, i) => (
-                <Star key={i} className="h-4 w-4 fill-current" />
-              ))}
+
+      {isLoading ? (
+        <div className="mt-14 grid gap-6 md:grid-cols-3">
+          {[1, 2, 3].map((n) => (
+            <div
+              key={n}
+              className="flex flex-col rounded-3xl border border-border bg-card p-7 shadow-soft animate-pulse"
+            >
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <div key={s} className="h-4 w-4 rounded-full bg-muted" />
+                ))}
+              </div>
+              <div className="mt-4 space-y-2 flex-1">
+                <div className="h-4 w-full rounded bg-muted" />
+                <div className="h-4 w-5/6 rounded bg-muted" />
+                <div className="h-4 w-4/6 rounded bg-muted" />
+              </div>
+              <div className="mt-6 flex items-center gap-3 border-t border-border pt-5">
+                <div className="h-11 w-11 rounded-full bg-muted" />
+                <div className="space-y-1.5 flex-1">
+                  <div className="h-3.5 w-24 rounded bg-muted" />
+                  <div className="h-3 w-16 rounded bg-muted" />
+                </div>
+              </div>
             </div>
-            <blockquote className="mt-4 flex-1 type-body leading-relaxed text-foreground/90">
-              "{t.quote}"
-            </blockquote>
-            <figcaption className="mt-6 flex items-center gap-3 border-t border-border pt-5">
-              <div className="grid h-11 w-11 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground">
-                {t.name[0]}
+          ))}
+        </div>
+      ) : testimonials.length === 0 ? (
+        <div className="mt-14 text-center rounded-3xl border border-dashed border-border p-12 bg-card/50">
+          <p className="text-sm font-medium text-muted-foreground">
+            Student testimonials are being reviewed and will appear here shortly.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-14 grid gap-6 md:grid-cols-3">
+          {testimonials.map((t) => (
+            <figure
+              key={t.id}
+              className="flex flex-col rounded-3xl border border-border bg-card p-7 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated"
+            >
+              <div className="flex gap-0.5 text-accent">
+                {Array.from({ length: t.rating }).map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-current text-amber-400" />
+                ))}
               </div>
-              <div>
-                <div className="type-small font-bold text-foreground">{t.name}</div>
-                <div className="type-small text-xs text-muted-foreground">{t.role}</div>
-              </div>
-            </figcaption>
-          </figure>
-        ))}
-      </div>
+              <blockquote className="mt-4 flex-1 type-body leading-relaxed text-foreground/90 text-[15px]">
+                "{t.quote}"
+              </blockquote>
+              <figcaption className="mt-6 flex items-center gap-3 border-t border-border pt-5">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground overflow-hidden">
+                  {t.avatar ? (
+                    <img src={t.avatar} alt={t.name} className="h-full w-full object-cover" />
+                  ) : (
+                    t.name[0]
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="type-small font-bold text-foreground truncate">{t.name}</div>
+                  <div className="type-small text-xs text-muted-foreground truncate">
+                    {t.course ? t.course : t.role || "Architecture Learner"}
+                  </div>
+                </div>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

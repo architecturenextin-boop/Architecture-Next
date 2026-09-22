@@ -521,3 +521,64 @@ export type CourseWithContent = Course & {
     lessons_safe: LessonSafe[]
   })[]
 }
+
+export type TestimonialStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export interface PublicTestimonial {
+  id: string
+  name: string
+  role: string
+  quote: string
+  rating: number
+  course: string | null
+  courseSlug: string | null
+  avatarUrl?: string | null
+  createdAt: string
+}
+
+export interface StudentTestimonial {
+  id: string
+  quote: string
+  rating: number
+  status: TestimonialStatus
+  adminNote?: string | null
+  courseId?: string | null
+  courseTitle?: string | null
+  courseSlug?: string | null
+  createdAt: string
+  approvedAt?: string | null
+  rejectedAt?: string | null
+}
+
+export interface AdminTestimonialItem {
+  id: string
+  quote: string
+  rating: number
+  status: TestimonialStatus
+  adminNote?: string | null
+  createdAt: string
+  approvedAt?: string | null
+  rejectedAt?: string | null
+  user: {
+    id: string
+    name: string
+    email: string
+    avatarUrl?: string | null
+  }
+  course: {
+    id: string
+    title: string
+    slug: string
+  } | null
+}
+
+export interface AdminTestimonialsResponse {
+  items: AdminTestimonialItem[]
+  counts: {
+    all: number
+    pending: number
+    approved: number
+    rejected: number
+  }
+}
+

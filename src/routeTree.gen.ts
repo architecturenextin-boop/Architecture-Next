@@ -22,10 +22,12 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as LearnCourseIdRouteImport } from './routes/learn.$courseId'
+import { Route as DashboardTestimonialsRouteImport } from './routes/dashboard.testimonials'
 import { Route as DashboardPurchasesRouteImport } from './routes/dashboard.purchases'
 import { Route as DashboardProfileRouteImport } from './routes/dashboard.profile'
 import { Route as DashboardCoursesRouteImport } from './routes/dashboard.courses'
 import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
+import { Route as AdminTestimonialsRouteImport } from './routes/admin.testimonials'
 import { Route as AdminStudentsRouteImport } from './routes/admin.students'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminCoursesRouteImport } from './routes/admin.courses'
@@ -97,6 +99,11 @@ const LearnCourseIdRoute = LearnCourseIdRouteImport.update({
 } as any).lazy(() =>
   import('./routes/learn.$courseId.lazy').then((d) => d.Route),
 )
+const DashboardTestimonialsRoute = DashboardTestimonialsRouteImport.update({
+  id: '/testimonials',
+  path: '/testimonials',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardPurchasesRoute = DashboardPurchasesRouteImport.update({
   id: '/purchases',
   path: '/purchases',
@@ -116,6 +123,11 @@ const CoursesCourseIdRoute = CoursesCourseIdRouteImport.update({
   id: '/courses/$courseId',
   path: '/courses/$courseId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTestimonialsRoute = AdminTestimonialsRouteImport.update({
+  id: '/testimonials',
+  path: '/testimonials',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminStudentsRoute = AdminStudentsRouteImport.update({
   id: '/students',
@@ -146,10 +158,12 @@ export interface FileRoutesByFullPath {
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRoute
+  '/admin/testimonials': typeof AdminTestimonialsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/dashboard/courses': typeof DashboardCoursesRoute
   '/dashboard/profile': typeof DashboardProfileRoute
   '/dashboard/purchases': typeof DashboardPurchasesRoute
+  '/dashboard/testimonials': typeof DashboardTestimonialsRoute
   '/learn/$courseId': typeof LearnCourseIdRoute
   '/admin/': typeof AdminIndexRoute
   '/courses/': typeof CoursesIndexRoute
@@ -166,10 +180,12 @@ export interface FileRoutesByTo {
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRoute
+  '/admin/testimonials': typeof AdminTestimonialsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/dashboard/courses': typeof DashboardCoursesRoute
   '/dashboard/profile': typeof DashboardProfileRoute
   '/dashboard/purchases': typeof DashboardPurchasesRoute
+  '/dashboard/testimonials': typeof DashboardTestimonialsRoute
   '/learn/$courseId': typeof LearnCourseIdRoute
   '/admin': typeof AdminIndexRoute
   '/courses': typeof CoursesIndexRoute
@@ -189,10 +205,12 @@ export interface FileRoutesById {
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRoute
+  '/admin/testimonials': typeof AdminTestimonialsRoute
   '/courses/$courseId': typeof CoursesCourseIdRoute
   '/dashboard/courses': typeof DashboardCoursesRoute
   '/dashboard/profile': typeof DashboardProfileRoute
   '/dashboard/purchases': typeof DashboardPurchasesRoute
+  '/dashboard/testimonials': typeof DashboardTestimonialsRoute
   '/learn/$courseId': typeof LearnCourseIdRoute
   '/admin/': typeof AdminIndexRoute
   '/courses/': typeof CoursesIndexRoute
@@ -213,10 +231,12 @@ export interface FileRouteTypes {
     | '/admin/courses'
     | '/admin/payments'
     | '/admin/students'
+    | '/admin/testimonials'
     | '/courses/$courseId'
     | '/dashboard/courses'
     | '/dashboard/profile'
     | '/dashboard/purchases'
+    | '/dashboard/testimonials'
     | '/learn/$courseId'
     | '/admin/'
     | '/courses/'
@@ -233,10 +253,12 @@ export interface FileRouteTypes {
     | '/admin/courses'
     | '/admin/payments'
     | '/admin/students'
+    | '/admin/testimonials'
     | '/courses/$courseId'
     | '/dashboard/courses'
     | '/dashboard/profile'
     | '/dashboard/purchases'
+    | '/dashboard/testimonials'
     | '/learn/$courseId'
     | '/admin'
     | '/courses'
@@ -255,10 +277,12 @@ export interface FileRouteTypes {
     | '/admin/courses'
     | '/admin/payments'
     | '/admin/students'
+    | '/admin/testimonials'
     | '/courses/$courseId'
     | '/dashboard/courses'
     | '/dashboard/profile'
     | '/dashboard/purchases'
+    | '/dashboard/testimonials'
     | '/learn/$courseId'
     | '/admin/'
     | '/courses/'
@@ -373,6 +397,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LearnCourseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/testimonials': {
+      id: '/dashboard/testimonials'
+      path: '/testimonials'
+      fullPath: '/dashboard/testimonials'
+      preLoaderRoute: typeof DashboardTestimonialsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/purchases': {
       id: '/dashboard/purchases'
       path: '/purchases'
@@ -400,6 +431,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/courses/$courseId'
       preLoaderRoute: typeof CoursesCourseIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/testimonials': {
+      id: '/admin/testimonials'
+      path: '/testimonials'
+      fullPath: '/admin/testimonials'
+      preLoaderRoute: typeof AdminTestimonialsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/students': {
       id: '/admin/students'
@@ -429,6 +467,7 @@ interface AdminRouteChildren {
   AdminCoursesRoute: typeof AdminCoursesRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
+  AdminTestimonialsRoute: typeof AdminTestimonialsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -436,6 +475,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCoursesRoute: AdminCoursesRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminStudentsRoute: AdminStudentsRoute,
+  AdminTestimonialsRoute: AdminTestimonialsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -445,6 +485,7 @@ interface DashboardRouteChildren {
   DashboardCoursesRoute: typeof DashboardCoursesRoute
   DashboardProfileRoute: typeof DashboardProfileRoute
   DashboardPurchasesRoute: typeof DashboardPurchasesRoute
+  DashboardTestimonialsRoute: typeof DashboardTestimonialsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
@@ -452,6 +493,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardCoursesRoute: DashboardCoursesRoute,
   DashboardProfileRoute: DashboardProfileRoute,
   DashboardPurchasesRoute: DashboardPurchasesRoute,
+  DashboardTestimonialsRoute: DashboardTestimonialsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 

@@ -8,6 +8,7 @@ import {
   User,
   Loader2,
   Globe,
+  MessageSquareQuote,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
@@ -29,6 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/dashboard/courses", label: "My Courses", icon: BookOpen },
     { to: "/dashboard/purchases", label: "Purchases", icon: Receipt },
+    { to: "/dashboard/testimonials", label: "Testimonials", icon: MessageSquareQuote },
     { to: "/dashboard/profile", label: "Profile", icon: User },
   ];
 
@@ -85,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="min-w-0 pb-20 md:pb-0">{children}</main>
       </div>
       <nav aria-label="Mobile Navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-4">
+        <div className="mx-auto grid max-w-md grid-cols-5">
           {nav.map((n) => {
             const active = path === n.to || (n.to !== "/dashboard" && path.startsWith(n.to));
             return (

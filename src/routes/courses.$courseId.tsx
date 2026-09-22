@@ -26,9 +26,10 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site-header";
 import { Footer } from "@/components/footer";
-import { instructor, testimonials } from "@/lib/static-data";
+import { instructor } from "@/lib/static-data";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/lib/services/course.service";
+import { testimonialService } from "@/lib/services/testimonial.service";
 import type { CourseWithContent } from "@/lib/database.types";
 import certificateImg from "@/assets/certificate.png";
 import certificateWebp from "@/assets/certificate.webp";
@@ -90,6 +91,18 @@ function CourseDetailPage() {
       }
     },
     enabled: !!user && !!courseId,
+  });
+
+  const { data: testimonials = [], isLoading: testimonialsLoading } = useQuery({
+    queryKey: ["course-testimonials", course?.id || courseId],
+    queryFn: async () => {
+      const list = await testimonialService.getPublicTestimonials(course?.id || courseId);
+      if (list.length === 0) {
+        return testimonialService.getPublicTestimonials();
+      }
+      return list;
+    },
+    enabled: !!courseId,
   });
 
   const enrollment = learningData?.isEnrolled ? { status: "active" } : null;
@@ -722,39 +735,88 @@ function CourseDetailPage() {
               </div>
             </div>
 
-            <div className="grid gap-6 pt-8 md:grid-cols-2">
-              {testimonials.map((testimonial) => (
-                <figure
-                  key={testimonial.name}
-                  className="flex flex-col justify-between rounded-2xl border border-border/70 bg-white p-6 shadow-soft transition hover:-translate-y-1 hover:shadow-elevated"
-                >
-                  <div>
-                    <div className="flex text-amber-400">
-                      {Array.from({ length: testimonial.rating }).map(
-                        (_, starIndex) => (
-                          <Star
-                            key={starIndex}
-                            className="h-4 w-4 fill-amber-400 text-amber-400"
-                          />
-                        ),
-                      )}
+            {testimonialsLoading ? (
+              <div className="grid gap-6 pt-8 md:grid-cols-2">
+                {[1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col justify-between rounded-2xl border border-border/70 bg-card p-6 shadow-soft animate-pulse"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <div key={s} className="h-4 w-4 rounded-full bg-muted" />
+                        ))}
+                      </div>
+                      <div className="h-4 w-full rounded bg-muted" />
+                      <div className="h-4 w-4/5 rounded bg-muted" />
                     </div>
-                    <blockquote className="mt-5 text-base leading-8 text-foreground/85">
-                      “{testimonial.quote}”
-                    </blockquote>
+                    <div className="mt-7 border-t border-border/70 pt-5 flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-muted" />
+                      <div className="space-y-1">
+                        <div className="h-3.5 w-24 rounded bg-muted" />
+                        <div className="h-3 w-16 rounded bg-muted" />
+                      </div>
+                    </div>
                   </div>
+                ))}
+              </div>
+            ) : testimonials.length === 0 ? (
+              <div className="pt-8 text-center">
+                <div className="rounded-2xl border border-dashed border-border/80 bg-card/50 p-10">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    No student reviews published for this course yet.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-6 pt-8 md:grid-cols-2">
+                {testimonials.map((testimonial) => (
+                  <figure
+                    key={testimonial.id}
+                    className="flex flex-col justify-between rounded-2xl border border-border/70 bg-card p-6 shadow-soft transition hover:-translate-y-1 hover:shadow-elevated"
+                  >
+                    <div>
+                      <div className="flex text-amber-400">
+                        {Array.from({ length: testimonial.rating }).map(
+                          (_, starIndex) => (
+                            <Star
+                              key={starIndex}
+                              className="h-4 w-4 fill-amber-400 text-amber-400"
+                            />
+                          ),
+                        )}
+                      </div>
+                      <blockquote className="mt-5 text-base leading-8 text-foreground/85 italic">
+                        “{testimonial.quote}”
+                      </blockquote>
+                    </div>
 
-                  <figcaption className="mt-7 border-t border-border/70 pt-5">
-                    <p className="font-display text-sm font-extrabold text-foreground">
-                      {testimonial.name}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {testimonial.role}
-                    </p>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
+                    <figcaption className="mt-7 border-t border-border/70 pt-5 flex items-center gap-3">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground overflow-hidden">
+                        {testimonial.avatar ? (
+                          <img
+                            src={testimonial.avatar}
+                            alt={testimonial.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          testimonial.name[0]
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-display text-sm font-extrabold text-foreground">
+                          {testimonial.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {testimonial.course || testimonial.role || "Architecture Learner"}
+                        </p>
+                      </div>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            )}
           </section>
         )}
       </main>

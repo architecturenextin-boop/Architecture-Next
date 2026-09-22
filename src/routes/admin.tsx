@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState, redirect, isRedirect, useNavigate } from "@tanstack/react-router";
-import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2 } from "lucide-react";
+import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2, MessageSquareQuote } from "lucide-react";
 import type { ReactNode } from "react";
 import { AdminHeader } from "@/components/admin-header";
 import { authService } from "@/lib/services/auth.service";
@@ -47,13 +47,14 @@ function AdminShell({ children }: { children: ReactNode }) {
     { to: "/admin/students", label: "Students", icon: Users },
     { to: "/admin/payments", label: "Payments", icon: CreditCard },
     { to: "/admin/courses", label: "Courses", icon: BookOpen },
+    { to: "/admin/testimonials", label: "Testimonials", icon: MessageSquareQuote },
   ];
   
   return (
     <div className="min-h-screen bg-surface-soft">
       <AdminHeader />
       <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-10">{children}</div>
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-background/95 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-background/95 backdrop-blur md:hidden">
         {nav.map((n) => {
           const active = n.to === "/admin" ? path === "/admin" : path.startsWith(n.to);
           return (
