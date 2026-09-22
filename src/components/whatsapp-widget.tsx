@@ -1,5 +1,5 @@
 import { useRouterState } from "@tanstack/react-router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { brand } from "@/lib/brand";
 
 /**
@@ -11,10 +11,11 @@ function formatSlugToTitle(slug: string): string {
   return slug
     .split("-")
     .map((word) => {
-      if (word.toLowerCase() === "ai") return "AI";
-      if (word.toLowerCase() === "bim") return "BIM";
-      if (word.toLowerCase() === "3d") return "3D";
-      if (word.toLowerCase() === "cad") return "CAD";
+      const lower = word.toLowerCase();
+      if (lower === "ai") return "AI";
+      if (lower === "bim") return "BIM";
+      if (lower === "3d") return "3D";
+      if (lower === "cad") return "CAD";
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
     .join(" ");
@@ -26,22 +27,7 @@ function formatSlugToTitle(slug: string): string {
  */
 export function WhatsAppWidget() {
   const [isHovered, setIsHovered] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   const path = useRouterState({ select: (s) => s.location.pathname });
-
-  // Hide on admin routes
-  if (!isMounted || path.startsWith("/admin")) {
-    return null;
-  }
-
-  // Determine phone number (strips all non-digit characters)
-  const rawPhone = brand.contact.whatsapp || brand.contact.phone || "918891091894";
-  const cleanPhone = rawPhone.replace(/\D/g, "");
 
   // Generate dynamic prefilled message based on current page context
   const prefilledMessage = useMemo(() => {
@@ -76,6 +62,9 @@ export function WhatsAppWidget() {
     return "Hi ArchitectureNext team! I would like to know more about your architecture courses & internship program.";
   }, [path]);
 
+  // Determine phone number (strips all non-digit characters)
+  const rawPhone = brand.contact.whatsapp || brand.contact.phone || "918891091894";
+  const cleanPhone = rawPhone.replace(/\D/g, "");
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(prefilledMessage)}`;
 
   // Mobile position offset: on dashboard/course detail pages with sticky bottom bars, raise button above them
@@ -87,6 +76,11 @@ export function WhatsAppWidget() {
   const bottomPositionClass = hasBottomBar
     ? "bottom-20 right-4 sm:bottom-6 sm:right-6"
     : "bottom-6 right-4 sm:bottom-6 sm:right-6";
+
+  // Hide on admin routes (placed AFTER all hooks to adhere to React Rules of Hooks)
+  if (path.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <aside
