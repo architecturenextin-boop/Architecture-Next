@@ -501,8 +501,8 @@ function CoursesSection() {
   return (
     <section id="courses" className="scroll-mt-24 mx-auto max-w-7xl px-5 py-24 md:px-8 md:py-32">
       <div className="mx-auto max-w-3xl text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-emerald-400 backdrop-blur-md mb-4">
-          <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary shadow-soft backdrop-blur mb-6">
+          <Sparkles className="h-3.5 w-3.5 text-primary" />
           OUR COURSES
         </div>
         <h2 className="font-display text-3xl font-extrabold tracking-tight md:text-5xl">
@@ -536,8 +536,7 @@ function CoursesSection() {
         <Button
           asChild
           size="lg"
-          variant="outline"
-          className="h-12 border-foreground/15 bg-surface/70 px-8 font-semibold backdrop-blur transition-all hover:bg-surface"
+          className="h-12 rounded-xl bg-gradient-primary px-8 font-bold text-primary-foreground shadow-soft transition-all hover:scale-[1.02] hover:brightness-110 hover:shadow-elevated"
         >
           <Link to="/courses">
             Explore All Courses <ArrowRight className="ml-2 h-4 w-4" />
