@@ -126,7 +126,86 @@
   --gradient-primary: linear-gradient(135deg, #294398 0%, #1F3375 100%);
   --gradient-accent: linear-gradient(135deg, #294398 0%, #1F3375 100%);
   --gradient-ink: linear-gradient(180deg, #F0EDE8 0%, #E8E4DD 100%);
+
+  /* Typography System Custom Properties */
+  --font-display-size: clamp(56px, 8vw, 96px);
+  --font-display-weight: 800;
+  --font-display-tracking: -0.04em;
+  --font-display-leading: 1.05;
+
+  --font-h1-size: clamp(40px, 5vw, 64px);
+  --font-h1-weight: 700;
+  --font-h1-tracking: -0.02em;
+
+  --font-h2-size: clamp(28px, 3.5vw, 44px);
+  --font-h2-weight: 600;
+
+  --font-h3-size: 24px;
+  --font-h3-weight: 600;
+
+  --font-body-size: 17px;
+  --font-body-weight: 400;
+  --font-body-leading: 1.7;
+
+  --font-small-size: 14px;
+  --font-small-weight: 400;
+  --font-small-color: var(--muted-foreground);
+
+  /* Shorthand / Composite Typography Tokens */
+  --font-display: var(--font-display-weight) var(--font-display-size)/var(--font-display-leading) "Sora", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-h1: var(--font-h1-weight) var(--font-h1-size)/1.1 "Sora", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-h2: var(--font-h2-weight) var(--font-h2-size)/1.2 "Sora", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-h3: var(--font-h3-weight) var(--font-h3-size)/1.3 "Sora", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-body-weight) var(--font-body-size)/var(--font-body-leading) "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-small: var(--font-small-weight) var(--font-small-size)/1.5 "Inter", ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Typography Hierarchy Scale Utilities */
+.type-display {
+  font-family: var(--font-display, "Sora", "Plus Jakarta Sans", sans-serif);
+  font-size: var(--font-display-size);
+  font-weight: var(--font-display-weight);
+  letter-spacing: var(--font-display-tracking);
+  line-height: var(--font-display-leading);
+}
+
+.type-h1 {
+  font-family: var(--font-display, "Sora", "Plus Jakarta Sans", sans-serif);
+  font-size: var(--font-h1-size);
+  font-weight: var(--font-h1-weight);
+  letter-spacing: var(--font-h1-tracking);
+  line-height: 1.1;
+}
+
+.type-h2 {
+  font-family: var(--font-display, "Sora", "Plus Jakarta Sans", sans-serif);
+  font-size: var(--font-h2-size);
+  font-weight: var(--font-h2-weight);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.type-h3 {
+  font-family: var(--font-display, "Sora", "Plus Jakarta Sans", sans-serif);
+  font-size: var(--font-h3-size);
+  font-weight: var(--font-h3-weight);
+  line-height: 1.3;
+}
+
+.type-body {
+  font-family: var(--font-sans, "Inter", sans-serif);
+  font-size: var(--font-body-size);
+  font-weight: var(--font-body-weight);
+  line-height: var(--font-body-leading);
+}
+
+.type-small {
+  font-family: var(--font-sans, "Inter", sans-serif);
+  font-size: var(--font-small-size);
+  font-weight: var(--font-small-weight);
+  color: var(--font-small-color);
+}
+
 
 .dark {
   --background: #111111;

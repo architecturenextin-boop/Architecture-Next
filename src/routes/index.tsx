@@ -113,11 +113,11 @@ function Hero() {
             <span className="h-1.5 w-1.5 rounded-full bg-gradient-primary" />
             New cohort enrolling now
           </span>
-          <h1 className="font-display text-[2.6rem] font-extrabold leading-[1.05] tracking-tight text-foreground md:text-6xl">
+          <h1 className="type-display text-foreground">
             Accelerate Your Architecture Career with{" "}
             <span className="text-gradient-brand">Real Experience</span>
           </h1>
-          <p className="max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
+          <p className="type-body max-w-xl text-muted-foreground">
             Join Architecture Next to master industry-standard architecture software,{" "}
             <strong className="font-bold text-foreground">AI-powered workflows</strong>, and real
             project execution through flexible online and classroom training designed for future
@@ -147,10 +147,10 @@ function Hero() {
           <dl className="grid max-w-xl grid-cols-2 gap-4 pt-6 sm:grid-cols-4">
             {heroStats.map((s) => (
               <div key={s.label} className="border-l-2 border-primary/20 pl-3">
-                <dt className="font-display text-xl font-extrabold text-foreground md:text-2xl">
+                <dt className="type-h3 font-extrabold text-foreground">
                   {s.value}
                 </dt>
-                <dd className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <dd className="mt-0.5 type-small text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {s.label}
                 </dd>
               </div>
@@ -173,8 +173,8 @@ function Hero() {
               <Award className="h-5 w-5" />
             </div>
             <div className="text-sm">
-              <div className="font-display font-bold">Internship Certificate</div>
-              <div className="text-xs text-muted-foreground">Verifiable & industry-mentored</div>
+              <div className="type-small font-bold text-foreground">Internship Certificate</div>
+              <div className="type-small text-xs text-muted-foreground">Verifiable & industry-mentored</div>
             </div>
           </div>
         </div>
@@ -195,7 +195,7 @@ function TrustBar() {
 
   return (
     <div className="border-y border-border bg-surface/60 py-6">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-6 gap-y-3 px-5 text-xs font-semibold uppercase tracking-widest text-muted-foreground sm:text-sm md:gap-x-10 md:px-8">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-6 gap-y-3 px-5 type-small font-semibold uppercase tracking-widest text-muted-foreground sm:text-sm md:gap-x-10 md:px-8">
         {items.map((item, index) => (
           <div key={item} className="flex items-center gap-x-6 md:gap-x-10">
             <span className="opacity-75 transition-opacity hover:opacity-100">{item}</span>
@@ -216,11 +216,11 @@ function Features() {
         <span className="text-xs font-bold uppercase tracking-widest text-primary">
           The Program
         </span>
-        <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight md:text-5xl">
+        <h2 className="mt-3 type-h1 text-foreground tracking-tight">
           Learn beyond the classroom, <br className="hidden sm:block" />
           <span className="text-gradient-brand">design for the real world.</span>
         </h2>
-        <p className="mt-4 text-base text-muted-foreground md:text-lg">
+        <p className="mt-4 type-body text-muted-foreground">
           Master architecture with affordable online courses designed by industry professionals.
           Learn at your own pace through practical projects, expert mentorship, and real-world
           workflows that prepare you for a successful career.
@@ -237,8 +237,8 @@ function Features() {
               <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft transition-transform duration-300 group-hover:scale-110">
                 <Icon className="h-5 w-5" />
               </div>
-              <h3 className="mt-5 font-display text-lg font-bold tracking-tight">{it.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{it.body}</p>
+              <h3 className="mt-5 type-h3 text-foreground tracking-tight">{it.title}</h3>
+              <p className="mt-2 type-small leading-relaxed text-muted-foreground">{it.body}</p>
             </div>
           );
         })}
@@ -271,15 +271,15 @@ function Instructor() {
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
               Your Mentor
             </span>
-            <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+            <h2 className="mt-2 type-h1 text-foreground tracking-tight">
               {instructor.name}
             </h2>
-            <p className="mt-2 text-sm sm:text-base font-semibold text-muted-foreground">
+            <p className="mt-2 type-body font-semibold text-muted-foreground">
               {instructor.title} · {instructor.experience}
             </p>
           </div>
 
-          <div className="space-y-4 text-sm sm:text-base leading-relaxed text-muted-foreground">
+          <div className="space-y-4 type-body leading-relaxed text-muted-foreground">
             {instructor.bio.split("\n\n").map((paragraph, idx) => (
               <p key={idx}>{paragraph}</p>
             ))}
@@ -291,10 +291,10 @@ function Instructor() {
                 key={s.label}
                 className="rounded-2xl border border-border/80 bg-card/80 p-4 text-center shadow-soft backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-elevated"
               >
-                <div className="font-display text-2xl font-black text-foreground sm:text-3xl">
+                <div className="type-h2 font-black text-foreground">
                   {s.value}
                 </div>
-                <div className="mt-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="mt-1 type-small text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   {s.label}
                 </div>
               </div>
@@ -313,7 +313,7 @@ function Testimonials() {
         <span className="text-xs font-bold uppercase tracking-widest text-primary">
           Alumni Stories
         </span>
-        <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight md:text-5xl">
+        <h2 className="mt-3 type-h1 text-foreground tracking-tight">
           Architects in the making.
         </h2>
       </div>
@@ -328,7 +328,7 @@ function Testimonials() {
                 <Star key={i} className="h-4 w-4 fill-current" />
               ))}
             </div>
-            <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-foreground/90">
+            <blockquote className="mt-4 flex-1 type-body leading-relaxed text-foreground/90">
               "{t.quote}"
             </blockquote>
             <figcaption className="mt-6 flex items-center gap-3 border-t border-border pt-5">
@@ -336,8 +336,8 @@ function Testimonials() {
                 {t.name[0]}
               </div>
               <div>
-                <div className="font-display text-sm font-bold">{t.name}</div>
-                <div className="text-xs text-muted-foreground">{t.role}</div>
+                <div className="type-small font-bold text-foreground">{t.name}</div>
+                <div className="type-small text-xs text-muted-foreground">{t.role}</div>
               </div>
             </figcaption>
           </figure>
@@ -369,10 +369,10 @@ function Pricing({ course }: { course: any }) {
       <div className="mx-auto max-w-3xl px-5 md:px-8">
         <div className="text-center">
           <span className="text-xs font-bold uppercase tracking-widest text-primary">Pricing</span>
-          <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight md:text-5xl">
+          <h2 className="mt-3 type-h1 text-foreground tracking-tight">
             One enrolment. <span className="text-gradient-brand">Lifetime access.</span>
           </h2>
-          <p className="mt-4 text-base text-muted-foreground md:text-lg">
+          <p className="mt-4 type-body text-muted-foreground">
             {course.tagline || course.description || "Transparent pricing. No subscriptions. Yours forever."}
           </p>
         </div>
@@ -389,12 +389,12 @@ function Pricing({ course }: { course: any }) {
               )}
             </div>
 
-            <h3 className="mt-3 max-w-2xl font-display text-2xl font-black leading-tight tracking-[-0.025em] text-foreground sm:text-3xl md:text-4xl">
+            <h3 className="mt-3 max-w-2xl type-h2 text-foreground tracking-tight">
               {course.title || "Architecture Plan Presentation & Animation"}
             </h3>
 
             {(course.total_duration || course.total_lessons) && (
-              <div className="mt-3 flex items-center gap-4 text-xs font-semibold text-muted-foreground">
+              <div className="mt-3 flex items-center gap-4 type-small text-xs font-semibold text-muted-foreground">
                 {course.total_duration && <span>⏱ {course.total_duration}</span>}
                 {course.total_lessons && <span>📚 {course.total_lessons} Lessons</span>}
                 {course.rating && <span>⭐ {course.rating} ({course.review_count || 100}+ reviews)</span>}
@@ -402,7 +402,7 @@ function Pricing({ course }: { course: any }) {
             )}
 
             <div className="mt-6 flex flex-wrap items-end gap-4">
-              <span className="font-display text-5xl font-black tracking-[-0.04em] text-foreground md:text-6xl">
+              <span className="type-display text-foreground">
                 {currency}
                 {price.toLocaleString()}
               </span>
@@ -416,7 +416,7 @@ function Pricing({ course }: { course: any }) {
             </div>
             <ul className="mt-10 grid gap-3.5 sm:grid-cols-2">
               {featuresList.slice(0, 6).map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-sm font-medium">
+                <li key={f} className="flex items-start gap-2.5 type-body text-sm font-medium">
                   <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gradient-primary text-primary-foreground">
                     <Check className="h-3 w-3" />
                   </span>
@@ -433,7 +433,7 @@ function Pricing({ course }: { course: any }) {
                 Enroll Now <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
-            <p className="mt-4 text-center text-xs text-muted-foreground">
+            <p className="mt-4 text-center type-small text-xs text-muted-foreground">
               7-day refund · Internship certificate · Lifetime updates
             </p>
           </div>
@@ -449,7 +449,7 @@ function FAQ() {
     <section id="faq" className="scroll-mt-24 mx-auto max-w-3xl px-5 py-24 md:px-8 md:py-32">
       <div className="text-center">
         <span className="text-xs font-bold uppercase tracking-widest text-primary">FAQ</span>
-        <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight md:text-5xl">
+        <h2 className="mt-3 type-h1 text-foreground tracking-tight">
           Questions, answered.
         </h2>
       </div>
@@ -467,7 +467,7 @@ function FAQ() {
                 onClick={() => setOpen(active ? null : i)}
                 className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
               >
-                <span className="font-display font-bold tracking-tight">{f.q}</span>
+                <span className="type-h3 text-base sm:text-lg font-bold tracking-tight text-foreground">{f.q}</span>
                 <ChevronDown
                   className={`h-5 w-5 shrink-0 text-primary transition-transform duration-300 ${
                     active ? "rotate-180" : ""
@@ -480,7 +480,7 @@ function FAQ() {
                 }`}
               >
                 <div className="overflow-hidden">
-                  <p className="px-6 pb-6 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+                  <p className="px-6 pb-6 type-body text-sm leading-relaxed text-muted-foreground">{f.a}</p>
                 </div>
               </div>
             </div>
@@ -490,4 +490,5 @@ function FAQ() {
     </section>
   );
 }
+
 
