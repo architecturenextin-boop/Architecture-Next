@@ -100,6 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 import { Toaster } from "sonner";
+import { WhatsAppWidget } from "@/components/whatsapp-widget";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -108,6 +109,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <HeadContent />
       <Outlet />
+      <WhatsAppWidget />
       <Toaster position="top-right" richColors />
     </QueryClientProvider>
   );
