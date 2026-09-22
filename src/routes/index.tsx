@@ -94,6 +94,7 @@ function Landing() {
       <Hero />
       <TrustBar />
       <Features />
+      <CoursesSection />
       <Instructor />
       <Testimonials />
       <Pricing course={activeCourse} />
@@ -130,10 +131,7 @@ function Hero() {
               size="lg"
               className="h-12 bg-gradient-primary px-7 font-semibold text-primary-foreground shadow-glow transition-all hover:scale-[1.02] hover:brightness-110"
             >
-              <Link
-                to="/courses/$courseId"
-                params={{ courseId: "professional-internship-program" }}
-              >
+              <Link to="/courses">
                 Enroll Now <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
