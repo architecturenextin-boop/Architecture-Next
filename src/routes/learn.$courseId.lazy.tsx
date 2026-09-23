@@ -640,11 +640,11 @@ function LearnPage() {
       </header>
 
       {/* Main Grid: Video Player + Lessons Sidebar */}
-      <div className="mx-auto sm:mx-0 grid max-w-7xl gap-4 sm:gap-5 px-2 sm:px-6 py-3 sm:py-6 lg:grid-cols-[1fr_340px]">
+      <div className="mx-auto w-full max-w-7xl grid gap-4 sm:gap-5 px-2 sm:px-6 py-3 sm:py-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-3 sm:space-y-5">
-          {/* Video / PDF Container: Cinema Reel & Centered Framing */}
-          <div className={`overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-gradient-to-b from-[#0e0e1a] via-[#07070f] to-[#0e0e1a] shadow-elevated transition-all duration-300 flex items-center justify-center ${
-            isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative w-full aspect-video min-h-[240px] sm:min-h-[380px] md:min-h-[480px]"
+          {/* Video / PDF Container */}
+          <div className={`overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl border border-border/80 bg-black shadow-elevated transition-all duration-300 flex items-center justify-center ${
+            isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative w-full aspect-video"
           }`}>
             {isPdfLesson ? (
               (activeLesson?.pdf_url || (activeLesson as any)?.pdf_path) ? (
