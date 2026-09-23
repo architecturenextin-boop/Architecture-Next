@@ -411,6 +411,12 @@ function LearnPage() {
 
       videoEl.oncanplay = handleReady;
       videoEl.onloadeddata = handleReady;
+      videoEl.onerror = () => {
+        if (active) {
+          setVideoError("Unable to load video stream. If this is a private lesson, ensure your enrollment is active or that the video is uploaded to Cloudflare R2.");
+          setPlayerReady(true);
+        }
+      };
       videoEl.onended = () => {
         try {
           triggerAutoCompletion(Math.floor(videoEl.currentTime || 0));

@@ -35,6 +35,19 @@ export function getMediaUrl(urlOrPath?: string | null): string {
 
   const apiBase = envApiUrl || `${serverBase}/api/v1`;
 
+  // External or absolute URLs (YouTube, Cloudflare R2, Vimeo, Cloudinary, S3, etc.)
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    if (
+      trimmed.includes("localhost:5000") &&
+      typeof window !== "undefined" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
+      return trimmed.replace(/^http:\/\/localhost:5000/, serverBase || window.location.origin);
+    }
+    return trimmed;
+  }
+
   // Authenticated media stream route
   if (trimmed.includes("/api/v1/media/")) {
     const mediaPath = trimmed.slice(trimmed.indexOf("/api/v1/media/"));
@@ -43,8 +56,9 @@ export function getMediaUrl(urlOrPath?: string | null): string {
 
   // Private lesson videos -> route to authenticated media endpoint
   if (
-    trimmed.includes("/uploads/videos/") ||
-    trimmed.includes("videos/") ||
+    trimmed.startsWith("/uploads/videos/") ||
+    trimmed.startsWith("videos/") ||
+    trimmed.startsWith("lesson-video-") ||
     trimmed.endsWith(".mp4") ||
     trimmed.endsWith(".webm") ||
     trimmed.endsWith(".mov") ||
@@ -56,25 +70,13 @@ export function getMediaUrl(urlOrPath?: string | null): string {
 
   // Private lesson documents -> route to authenticated media endpoint
   if (
-    trimmed.includes("/uploads/documents/") ||
-    trimmed.includes("documents/") ||
+    trimmed.startsWith("/uploads/documents/") ||
+    trimmed.startsWith("documents/") ||
+    trimmed.startsWith("doc-") ||
     trimmed.endsWith(".pdf")
   ) {
     const filename = trimmed.split("?")[0].split("/").pop() || "";
     return `${apiBase}/media/document/${filename}`;
-  }
-
-  // External or absolute URLs (YouTube, Vimeo, Cloudinary, S3, etc.)
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    if (
-      trimmed.includes("localhost:5000") &&
-      typeof window !== "undefined" &&
-      window.location.hostname !== "localhost" &&
-      window.location.hostname !== "127.0.0.1"
-    ) {
-      return trimmed.replace(/^http:\/\/localhost:5000/, serverBase || window.location.origin);
-    }
-    return trimmed;
   }
 
   // Public uploads directory (images, covers, avatars)
@@ -89,4 +91,5 @@ export function getMediaUrl(urlOrPath?: string | null): string {
 
   return `${serverBase}/${trimmed}`;
 }
+
 

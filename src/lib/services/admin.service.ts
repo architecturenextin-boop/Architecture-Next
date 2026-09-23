@@ -113,10 +113,73 @@ export const adminService = {
     return apiClient<AdminPaymentItem[]>("/admin/payments");
   },
 
+  getPresignedUploadUrl: async (payload: { filename: string; contentType?: string; folder?: string }) => {
+    return apiClient<{
+      uploadUrl: string;
+      key: string;
+      filename: string;
+      publicUrl: string | null;
+      mediaUrl: string;
+      videoUrl: string;
+      videoPath: string;
+    }>("/admin/r2/presigned-url", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
   uploadVideo: async (
     file: File,
     onProgress?: (percent: number) => void
   ): Promise<{ filename: string; originalName: string; size: number; videoUrl: string; videoPath: string }> => {
+    // 1. Try direct Cloudflare R2 Presigned Upload if configured
+    try {
+      const presigned = await adminService.getPresignedUploadUrl({
+        filename: file.name,
+        contentType: file.type || "video/mp4",
+        folder: "videos",
+      });
+
+      if (presigned && presigned.uploadUrl) {
+        return await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", presigned.uploadUrl);
+          xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
+
+          if (xhr.upload && onProgress) {
+            xhr.upload.onprogress = (event) => {
+              if (event.lengthComputable) {
+                const percent = Math.round((event.loaded / event.total) * 100);
+                onProgress(percent);
+              }
+            };
+          }
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve({
+                filename: presigned.filename,
+                originalName: file.name,
+                size: file.size,
+                videoUrl: presigned.videoUrl,
+                videoPath: presigned.videoPath,
+              });
+            } else {
+              reject(new Error(`Direct R2 upload failed with status ${xhr.status}`));
+            }
+          };
+
+          xhr.onerror = () => {
+            reject(new Error("Network error during direct Cloudflare R2 upload"));
+          };
+
+          xhr.send(file);
+        });
+      }
+    } catch (_) {
+      // Fallback to standard multipart upload
+    }
+
     const formData = new FormData();
     formData.append("video", file);
 

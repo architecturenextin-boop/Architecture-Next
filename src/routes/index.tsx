@@ -313,79 +313,119 @@ function Testimonials() {
   });
 
   return (
-    <section className="mx-auto max-w-7xl px-5 py-24 md:px-8 md:py-32">
-      <div className="mx-auto max-w-2xl text-center">
-        <span className="text-xs font-bold uppercase tracking-widest text-primary">
-          Alumni Stories
-        </span>
-        <h2 className="mt-3 type-h1 text-foreground tracking-tight">
-          Architects in the making.
+    <section id="testimonials" className="scroll-mt-24 mx-auto max-w-7xl px-4 sm:px-6 md:px-8 py-16 sm:py-24 md:py-28">
+      {/* Section Header */}
+      <div className="mx-auto max-w-2xl text-center space-y-3">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary shadow-xs">
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>Verified Alumni Stories</span>
+        </div>
+        <h2 className="type-h1 text-foreground tracking-tight">
+          Architects in the making. <span className="text-gradient-brand">Real Results.</span>
         </h2>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Hear from students and junior architects transforming their practice with ArchitectureNext.
+        <p className="text-xs sm:text-sm md:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
+          Hear from students and junior architects who transformed their presentation workflows, BIM coordination, and portfolio quality with ArchitectureNext.
         </p>
+
+        {/* Social Proof Badges */}
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-[11px] sm:text-xs font-semibold text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full bg-card border border-border px-3 py-1 shadow-xs">
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <span className="text-foreground font-bold">4.9/5</span> Average Rating
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-card border border-border px-3 py-1 shadow-xs">
+            <Users className="h-3.5 w-3.5 text-primary" />
+            <span className="text-foreground font-bold">200+</span> Active Learners
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-card border border-border px-3 py-1 shadow-xs">
+            <Award className="h-3.5 w-3.5 text-emerald-500" />
+            <span className="text-foreground font-bold">100%</span> Practical Projects
+          </span>
+        </div>
       </div>
 
       {isLoading ? (
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
+        <div className="mt-10 sm:mt-12 grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((n) => (
             <div
               key={n}
-              className="flex flex-col rounded-3xl border border-border bg-card p-7 shadow-soft animate-pulse"
+              className="flex flex-col justify-between rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-soft animate-pulse"
             >
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <div key={s} className="h-4 w-4 rounded-full bg-muted" />
-                ))}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <div key={s} className="h-3.5 w-3.5 rounded-full bg-muted" />
+                    ))}
+                  </div>
+                  <div className="h-4 w-16 rounded-full bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-full rounded bg-muted" />
+                  <div className="h-4 w-5/6 rounded bg-muted" />
+                  <div className="h-4 w-4/6 rounded bg-muted" />
+                </div>
               </div>
-              <div className="mt-4 space-y-2 flex-1">
-                <div className="h-4 w-full rounded bg-muted" />
-                <div className="h-4 w-5/6 rounded bg-muted" />
-                <div className="h-4 w-4/6 rounded bg-muted" />
-              </div>
-              <div className="mt-6 flex items-center gap-3 border-t border-border pt-5">
-                <div className="h-11 w-11 rounded-full bg-muted" />
+              <div className="mt-6 flex items-center gap-3 border-t border-border pt-4">
+                <div className="h-10 w-10 rounded-full bg-muted" />
                 <div className="space-y-1.5 flex-1">
                   <div className="h-3.5 w-24 rounded bg-muted" />
-                  <div className="h-3 w-16 rounded bg-muted" />
+                  <div className="h-3 w-32 rounded bg-muted" />
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : testimonials.length === 0 ? (
-        <div className="mt-14 text-center rounded-3xl border border-dashed border-border p-12 bg-card/50">
-          <p className="text-sm font-medium text-muted-foreground">
+        <div className="mt-10 sm:mt-12 text-center rounded-2xl sm:rounded-3xl border border-dashed border-border p-8 sm:p-12 bg-card/60">
+          <p className="text-xs sm:text-sm font-medium text-muted-foreground">
             Student testimonials are being reviewed and will appear here shortly.
           </p>
         </div>
       ) : (
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
+        <div className="mt-10 sm:mt-12 grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((t) => (
             <figure
               key={t.id}
-              className="flex flex-col rounded-3xl border border-border bg-card p-7 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated"
+              className="group relative flex flex-col justify-between rounded-2xl sm:rounded-3xl border border-border/80 bg-card/90 p-5 sm:p-7 shadow-soft backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
             >
-              <div className="flex gap-0.5 text-accent">
-                {Array.from({ length: t.rating }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current text-amber-400" />
-                ))}
+              <div className="space-y-3.5">
+                {/* Rating & Verified Badge */}
+                <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex text-amber-400">
+                      {Array.from({ length: t.rating || 5 }).map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                    <span className="text-[11px] font-bold text-foreground">
+                      {(t.rating || 5).toFixed(1)}
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <Check className="h-2.5 w-2.5" /> Verified Learner
+                  </span>
+                </div>
+
+                {/* Testimonial Quote */}
+                <blockquote className="type-body leading-relaxed text-foreground/90 text-xs sm:text-sm italic">
+                  "{t.quote}"
+                </blockquote>
               </div>
-              <blockquote className="mt-4 flex-1 type-body leading-relaxed text-foreground/90 text-[15px]">
-                "{t.quote}"
-              </blockquote>
-              <figcaption className="mt-6 flex items-center gap-3 border-t border-border pt-5">
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground overflow-hidden">
+
+              {/* Student Bio / Footer */}
+              <figcaption className="mt-5 flex items-center gap-3 border-t border-border/60 pt-4">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-xs font-bold text-primary-foreground shadow-xs overflow-hidden">
                   {t.avatarUrl || (t as any).avatar ? (
                     <img src={t.avatarUrl || (t as any).avatar} alt={t.name} className="h-full w-full object-cover" />
                   ) : (
                     (t.name || "A")[0]?.toUpperCase() || "A"
                   )}
                 </div>
-                <div className="min-w-0">
-                  <div className="type-small font-bold text-foreground truncate">{t.name || "Student"}</div>
-                  <div className="type-small text-xs text-muted-foreground truncate">
-                    {t.course ? t.course : t.role || "Architecture Learner"}
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs sm:text-sm font-bold text-foreground truncate">{t.name || "Architecture Student"}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    {t.course ? t.course : t.role || "ArchitectureNext Alumni"}
                   </div>
                 </div>
               </figcaption>
@@ -393,6 +433,26 @@ function Testimonials() {
           ))}
         </div>
       )}
+
+      {/* Share Story Banner */}
+      <div className="mt-10 sm:mt-12 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-transparent p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-xs sm:text-sm font-bold text-foreground">Are you an enrolled student?</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground">Share your project journey and review directly from your dashboard.</p>
+          </div>
+        </div>
+        <Link
+          to="/dashboard/testimonials"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-card border border-border px-3.5 py-1.5 text-xs font-bold text-primary shadow-xs hover:border-primary/50 transition hover:bg-muted shrink-0"
+        >
+          <span>Share Your Story</span>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
     </section>
   );
 }
