@@ -54,7 +54,7 @@ function LearnPage() {
   const { courseId } = Route.useParams();
   const { lessonId } = Route.useSearch();
   const { user, profile, isLoading: authLoading } = useAuth();
-  const isAdmin = profile?.role === "admin";
+  const isAdmin = profile?.role?.toUpperCase() === "ADMIN" || user?.role?.toUpperCase() === "ADMIN";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -399,6 +399,8 @@ function LearnPage() {
       videoEl.className = "plyr w-full h-full";
       videoEl.playsInline = true;
       videoEl.controls = true;
+      videoEl.crossOrigin = "anonymous";
+      videoEl.preload = "metadata";
       videoEl.src = videoUrl;
       container.appendChild(videoEl);
 
@@ -411,7 +413,8 @@ function LearnPage() {
 
       videoEl.oncanplay = handleReady;
       videoEl.onloadeddata = handleReady;
-      videoEl.onerror = () => {
+      videoEl.onerror = (e) => {
+        console.error("HTML5 Video Error Event:", e, "MediaError code:", videoEl.error?.code, videoEl.error?.message, "Source URL:", videoUrl);
         if (active) {
           setVideoError("Unable to load video stream. If this is a private lesson, ensure your enrollment is active or that the video is uploaded to Cloudflare R2.");
           setPlayerReady(true);
