@@ -53,7 +53,7 @@ export function ProfileCard() {
 
   const name = profile?.full_name || "Learner";
   const email = profile?.email || user.email || "";
-  const isAdmin = profile?.role === "admin";
+  const isAdmin = profile?.role?.toUpperCase() === "ADMIN" || user?.role?.toUpperCase() === "ADMIN";
   const initial = name[0].toUpperCase();
 
   return (

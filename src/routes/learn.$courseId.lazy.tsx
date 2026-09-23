@@ -591,51 +591,69 @@ function LearnPage() {
   return (
     <div className="min-h-screen bg-surface-soft">
       {/* Sticky Top Header */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 md:h-[72px] max-w-7xl items-center justify-between gap-3 px-3 sm:px-6 md:px-8">
-          <div className="flex items-center gap-3 min-w-0">
-            <BrandLogo size="sm" className="hidden md:inline-flex" />
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-xl shadow-xs">
+        <div className="mx-auto flex h-14 sm:h-16 md:h-[72px] max-w-7xl items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 md:px-8">
+          {/* Left: Back button + Course Title & Progress Subtitle */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-1">
+            <BrandLogo size="sm" className="hidden md:inline-flex shrink-0" />
             <div className="hidden md:block h-4 w-px bg-border/80 shrink-0" />
-            <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground shrink-0">
-              <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Dashboard</span>
+            
+            {/* Back Button */}
+            <Link
+              to="/dashboard"
+              aria-label="Back to Dashboard"
+              className="inline-flex h-8 w-8 sm:h-9 sm:w-auto sm:px-2.5 items-center justify-center gap-1.5 rounded-xl border border-border/70 bg-card/80 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 shadow-xs transition"
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline font-semibold">Dashboard</span>
             </Link>
-            <div className="h-4 w-px bg-border/80 shrink-0" />
-            <h2 className="truncate text-xs sm:text-sm font-semibold text-foreground">{course.title}</h2>
+
+            <div className="h-4 w-px bg-border/80 shrink-0 hidden sm:block" />
+
+            {/* Course Title and Mobile Progress */}
+            <div className="flex flex-col min-w-0 flex-1 justify-center">
+              <h2 className="truncate text-xs sm:text-sm font-bold text-foreground leading-tight tracking-tight">
+                {course.title}
+              </h2>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium sm:hidden mt-0.5">
+                <span className="text-primary font-bold">{pct}% completed</span>
+                <span>•</span>
+                <span>{flatLessons.length} lessons</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Right: Progress bar (Desktop) + Modules Drawer Button + Profile */}
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Desktop progress bar */}
             <div className="hidden sm:flex items-center gap-2">
-              <div className="h-2 w-28 overflow-hidden rounded-full bg-muted">
+              <div className="h-2 w-24 md:w-28 overflow-hidden rounded-full bg-muted">
                 <div className="h-full bg-gradient-primary transition-all duration-500" style={{ width: `${pct}%` }} />
               </div>
-              <span className="text-xs font-semibold text-primary">{pct}%</span>
+              <span className="text-xs font-bold text-primary font-mono">{pct}%</span>
             </div>
-
-            {/* Mobile Progress Pill */}
-            <span className="sm:hidden text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
-              {pct}%
-            </span>
 
             {/* Mobile Modules Drawer Toggle Button */}
             <button 
               onClick={() => setSidebarOpen((v) => !v)} 
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted lg:hidden shadow-xs"
+              className="inline-flex items-center gap-1 sm:gap-1.5 rounded-xl border border-border/80 bg-card/90 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted lg:hidden shadow-xs transition active:scale-95 shrink-0"
+              aria-label="Open course modules"
             >
-              <BookOpen className="h-3.5 w-3.5 text-primary" />
-              <span>{sidebarOpen ? "Close" : "Modules"}</span>
+              <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="text-xs font-semibold">{sidebarOpen ? "Close" : "Modules"}</span>
             </button>
+
             <ProfileCard />
           </div>
         </div>
       </header>
 
       {/* Main Grid: Video Player + Lessons Sidebar */}
-      <div className="mx-auto grid max-w-7xl gap-5 px-3 py-4 sm:px-6 sm:py-6 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-4 sm:space-y-5">
+      <div className="mx-auto grid max-w-7xl gap-4 sm:gap-5 px-3 py-3 sm:px-6 sm:py-6 lg:grid-cols-[1fr_340px]">
+        <div className="space-y-3 sm:space-y-5">
           {/* Video / PDF Container */}
           <div className={`overflow-hidden rounded-xl sm:rounded-2xl border border-border bg-black shadow-elevated transition-all duration-300 ${
-            isPdfLesson ? "w-full h-[650px] max-h-[80vh] min-h-[500px]" : "relative aspect-video w-full bg-black"
+            isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative aspect-video w-full bg-black"
           }`}>
             {isPdfLesson ? (
               (activeLesson?.pdf_url || (activeLesson as any)?.pdf_path) ? (
