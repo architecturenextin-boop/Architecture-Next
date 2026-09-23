@@ -77,8 +77,8 @@ export function WhatsAppWidget() {
     ? "bottom-20 right-4 sm:bottom-6 sm:right-6"
     : "bottom-6 right-4 sm:bottom-6 sm:right-6";
 
-  // Hide on admin routes (placed AFTER all hooks to adhere to React Rules of Hooks)
-  if (path.startsWith("/admin")) {
+  // Hide on admin routes and learning classroom routes to prevent overlaying lesson navigation arrows
+  if (path.startsWith("/admin") || path.startsWith("/learn")) {
     return null;
   }
 
