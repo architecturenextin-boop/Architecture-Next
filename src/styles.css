@@ -388,8 +388,7 @@
   max-height: 100% !important;
   background: #000 !important;
   overflow: hidden !important;
-  border-radius: 12px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 0 !important;
 }
 
 .plyr__video-embed iframe {
@@ -399,6 +398,7 @@
   width: 100% !important;
   height: 100% !important;
   border: 0 !important;
+  border-radius: 0 !important;
 }
 
 .plyr video {
@@ -407,8 +407,21 @@
   height: auto !important;
   max-height: 100% !important;
   aspect-ratio: 16 / 9 !important;
-  border-radius: 12px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 0 !important;
+}
+
+/* Fullscreen mode: zero border-radius across all elements */
+.plyr--fullscreen-active,
+.plyr--fullscreen-active .plyr,
+.plyr--fullscreen-active .plyr__video-wrapper,
+.plyr--fullscreen-active .plyr__video-embed,
+.plyr--fullscreen-active video,
+.plyr--fullscreen-active iframe,
+:fullscreen,
+:-webkit-full-screen,
+:-moz-full-screen,
+:-ms-fullscreen {
+  border-radius: 0 !important;
 }
 
 /* Ensure controls bar, progress bar, and buttons are clean, spaced, and non-overlapping */

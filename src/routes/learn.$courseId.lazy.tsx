@@ -643,7 +643,7 @@ function LearnPage() {
       <div className="mx-auto w-full max-w-7xl grid gap-4 sm:gap-5 px-3 sm:px-6 py-5 sm:py-7 lg:py-8 lg:grid-cols-[1fr_340px]">
         <div className="space-y-4 sm:space-y-5">
           {/* Video / PDF Container: Tall Reel Background with Centered Landscape Video */}
-          <div className={`overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-gradient-to-b from-[#0e0e18] via-[#05050a] to-[#0e0e18] shadow-elevated transition-all duration-300 flex items-center justify-center p-2 sm:p-4 ${
+          <div className={`overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-gradient-to-b from-[#0e0e18] via-[#05050a] to-[#0e0e18] shadow-elevated transition-all duration-300 flex items-center justify-center ${
             isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative w-full min-h-[360px] sm:min-h-[440px] md:min-h-[480px] lg:min-h-[520px] max-h-[75vh]"
           }`}>
             {isPdfLesson ? (
