@@ -434,24 +434,21 @@ function Testimonials() {
         </div>
       )}
 
-      {/* Share Story Banner */}
-      <div className="mt-10 sm:mt-12 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-transparent p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary">
-            <Sparkles className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="text-xs sm:text-sm font-bold text-foreground">Are you an enrolled student?</p>
-            <p className="text-[11px] sm:text-xs text-muted-foreground">Share your project journey and review directly from your dashboard.</p>
-          </div>
+      {/* Minimal Share Story Link */}
+      <div className="mt-8 sm:mt-10 flex justify-center">
+        <div className="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 rounded-full border border-border/80 bg-card/80 px-4 py-2 text-center backdrop-blur-sm shadow-xs transition hover:border-primary/40">
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+            Enrolled in ArchitectureNext?
+          </span>
+          <Link
+            to="/dashboard/testimonials"
+            className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline transition-colors"
+          >
+            <span>Share your review</span>
+            <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
-        <Link
-          to="/dashboard/testimonials"
-          className="inline-flex items-center gap-1.5 rounded-xl bg-card border border-border px-3.5 py-1.5 text-xs font-bold text-primary shadow-xs hover:border-primary/50 transition hover:bg-muted shrink-0"
-        >
-          <span>Share Your Story</span>
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
       </div>
     </section>
   );
