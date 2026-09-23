@@ -399,7 +399,6 @@ function LearnPage() {
       videoEl.className = "plyr w-full h-full";
       videoEl.playsInline = true;
       videoEl.controls = true;
-      videoEl.crossOrigin = "anonymous";
       videoEl.preload = "metadata";
       videoEl.src = videoUrl;
       container.appendChild(videoEl);
