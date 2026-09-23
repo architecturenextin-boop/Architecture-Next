@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, RotateCw } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -583,6 +583,54 @@ function LearnPage() {
     if (next && next.id) handleSelectLesson(next.id);
   };
 
+  const handleRotateScreen = async () => {
+    try {
+      if (playerRef.current?.fullscreen) {
+        if (playerRef.current.fullscreen.active) {
+          playerRef.current.fullscreen.exit();
+          if ("orientation" in screen && "unlock" in (screen.orientation as any)) {
+            try {
+              (screen.orientation as any).unlock();
+            } catch (_) {}
+          }
+          return;
+        }
+        await playerRef.current.fullscreen.enter();
+        if ("orientation" in screen && "lock" in (screen.orientation as any)) {
+          try {
+            await (screen.orientation as any).lock("landscape");
+          } catch (_) {}
+        }
+        return;
+      }
+
+      const container = playerContainerRef.current;
+      if (!document.fullscreenElement && container) {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          await (container as any).webkitRequestFullscreen();
+        }
+        if ("orientation" in screen && "lock" in (screen.orientation as any)) {
+          try {
+            await (screen.orientation as any).lock("landscape");
+          } catch (_) {}
+        }
+      } else if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+        if ("orientation" in screen && "unlock" in (screen.orientation as any)) {
+          try {
+            (screen.orientation as any).unlock();
+          } catch (_) {}
+        }
+      }
+    } catch (err) {
+      console.warn("Screen rotate error:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-surface-soft">
       {/* Sticky Top Header */}
@@ -875,17 +923,33 @@ function LearnPage() {
                 )}
               </div>
 
-              {isPdfLesson && activeLesson?.pdf_url && (
-                <a
-                  href={getMediaUrl(activeLesson.pdf_url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold shadow-xs transition"
-                >
-                  <Download className="h-3.5 w-3.5" /> Download PDF File
-                </a>
-              )}
+              <div className="flex items-center gap-2">
+                {/* Rotate Screen Option */}
+                {!isPdfLesson && (
+                  <button
+                    type="button"
+                    onClick={handleRotateScreen}
+                    title="Rotate Screen to Landscape / Fullscreen"
+                    aria-label="Rotate Screen to Landscape"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card/90 px-3 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40 hover:bg-muted shadow-xs transition active:scale-95"
+                  >
+                    <RotateCw className="h-3.5 w-3.5 text-primary" />
+                    <span>Rotate Screen</span>
+                  </button>
+                )}
+
+                {isPdfLesson && activeLesson?.pdf_url && (
+                  <a
+                    href={getMediaUrl(activeLesson.pdf_url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold shadow-xs transition"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download PDF File
+                  </a>
+                )}
+              </div>
             </div>
 
             <h1 className="mt-2.5 font-display text-base sm:text-xl md:text-2xl font-bold tracking-tight text-foreground">
