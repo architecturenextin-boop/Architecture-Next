@@ -642,9 +642,9 @@ function LearnPage() {
       {/* Main Grid: Video Player + Lessons Sidebar */}
       <div className="mx-auto w-full max-w-7xl grid gap-4 sm:gap-5 px-3 sm:px-6 py-5 sm:py-7 lg:py-8 lg:grid-cols-[1fr_340px]">
         <div className="space-y-4 sm:space-y-5">
-          {/* Video / PDF Container */}
-          <div className={`overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl border border-border/80 bg-black shadow-elevated transition-all duration-300 flex items-center justify-center ${
-            isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative w-full aspect-video"
+          {/* Video / PDF Container: Tall Reel Background with Centered Landscape Video */}
+          <div className={`overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-gradient-to-b from-[#0e0e18] via-[#05050a] to-[#0e0e18] shadow-elevated transition-all duration-300 flex items-center justify-center p-2 sm:p-4 ${
+            isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative w-full min-h-[360px] sm:min-h-[440px] md:min-h-[480px] lg:min-h-[520px] max-h-[75vh]"
           }`}>
             {isPdfLesson ? (
               (activeLesson?.pdf_url || (activeLesson as any)?.pdf_path) ? (
@@ -807,7 +807,7 @@ function LearnPage() {
                 </div>
               )
             ) : (
-              <div className="relative aspect-video w-full h-full flex items-center justify-center">
+              <div className="relative w-full h-full flex items-center justify-center">
                 {/* Premium Smooth Loading State */}
                 {(videoLoading || !playerReady) && !videoError && (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-[#0B0B12] via-[#14141F] to-[#1A1A2A] text-white transition-opacity duration-300">
@@ -851,7 +851,7 @@ function LearnPage() {
                 {/* Video Player Container */}
                 <div
                   ref={playerContainerRef}
-                  className={`w-full h-full transition-opacity duration-300 ${
+                  className={`w-full h-full flex items-center justify-center transition-opacity duration-300 ${
                     playerReady && !videoLoading && !videoError && videoUrl
                       ? "opacity-100"
                       : "opacity-0 pointer-events-none"
