@@ -48,10 +48,25 @@ export function getMediaUrl(urlOrPath?: string | null): string {
     return trimmed;
   }
 
+  // Helper to append auth token for media streaming & downloads
+  const withAuthToken = (url: string): string => {
+    if (typeof window === "undefined" || url.includes("token=")) return url;
+    try {
+      const token =
+        localStorage.getItem("skillspring_auth_token") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("auth_token");
+      if (token) {
+        return `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+      }
+    } catch (_) {}
+    return url;
+  };
+
   // Authenticated media stream route
   if (trimmed.includes("/api/v1/media/")) {
     const mediaPath = trimmed.slice(trimmed.indexOf("/api/v1/media/"));
-    return `${serverBase}${mediaPath}`;
+    return withAuthToken(`${serverBase}${mediaPath}`);
   }
 
   // Private lesson videos -> route to authenticated media endpoint
@@ -65,7 +80,7 @@ export function getMediaUrl(urlOrPath?: string | null): string {
     trimmed.endsWith(".mkv")
   ) {
     const filename = trimmed.split("?")[0].split("/").pop() || "";
-    return `${apiBase}/media/video/${filename}`;
+    return withAuthToken(`${apiBase}/media/video/${filename}`);
   }
 
   // Private lesson documents -> route to authenticated media endpoint
@@ -73,10 +88,15 @@ export function getMediaUrl(urlOrPath?: string | null): string {
     trimmed.startsWith("/uploads/documents/") ||
     trimmed.startsWith("documents/") ||
     trimmed.startsWith("doc-") ||
-    trimmed.endsWith(".pdf")
+    trimmed.endsWith(".pdf") ||
+    trimmed.endsWith(".psd") ||
+    trimmed.endsWith(".dwg") ||
+    trimmed.endsWith(".mp3") ||
+    trimmed.endsWith(".zip") ||
+    trimmed.endsWith(".rar")
   ) {
     const filename = trimmed.split("?")[0].split("/").pop() || "";
-    return `${apiBase}/media/document/${filename}`;
+    return withAuthToken(`${apiBase}/media/document/${filename}`);
   }
 
   // Public uploads directory (images, covers, avatars)
