@@ -47,17 +47,40 @@ function AdminTestimonialsPage() {
     queryFn: () => testimonialService.getAdminTestimonials({ status: statusFilter }),
   });
 
-  const testimonials = data?.testimonials || [];
-  const counts = data?.counts || { total: 0, pending: 0, approved: 0, rejected: 0 };
+  const testimonials: any[] = useMemo(() => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.items)) return data.items;
+    if (Array.isArray((data as any).testimonials)) return (data as any).testimonials;
+    return [];
+  }, [data]);
+
+  const rawCounts = (data as any)?.counts;
+  const counts = useMemo(() => {
+    if (rawCounts && typeof rawCounts === "object") {
+      return {
+        total: rawCounts.all ?? rawCounts.total ?? rawCounts.count ?? testimonials.length,
+        pending: rawCounts.pending ?? testimonials.filter((t: any) => t.status === "PENDING").length,
+        approved: rawCounts.approved ?? testimonials.filter((t: any) => t.status === "APPROVED").length,
+        rejected: rawCounts.rejected ?? testimonials.filter((t: any) => t.status === "REJECTED").length,
+      };
+    }
+    return {
+      total: testimonials.length,
+      pending: testimonials.filter((t: any) => t.status === "PENDING").length,
+      approved: testimonials.filter((t: any) => t.status === "APPROVED").length,
+      rejected: testimonials.filter((t: any) => t.status === "REJECTED").length,
+    };
+  }, [rawCounts, testimonials]);
 
   // Filter client-side by search
   const filteredTestimonials = useMemo(() => {
     if (!search.trim()) return testimonials;
     const query = search.toLowerCase();
-    return testimonials.filter((t) => {
-      const studentName = (t.student_name || "").toLowerCase();
-      const studentEmail = (t.student_email || "").toLowerCase();
-      const courseTitle = (t.course_title || "").toLowerCase();
+    return testimonials.filter((t: any) => {
+      const studentName = (t.user?.name || t.student_name || t.studentName || t.name || "").toLowerCase();
+      const studentEmail = (t.user?.email || t.student_email || t.studentEmail || t.email || "").toLowerCase();
+      const courseTitle = (t.course?.title || t.course_title || t.courseTitle || "").toLowerCase();
       const quote = (t.quote || "").toLowerCase();
       return (
         studentName.includes(query) ||
@@ -71,28 +94,28 @@ function AdminTestimonialsPage() {
   // Mutations
   const approveMutation = useMutation({
     mutationFn: (id: string) => testimonialService.approveTestimonial(id),
-    onSuccess: (updated) => {
-      toast.success(`Testimonial by ${updated.student_name} approved and published live!`);
+    onSuccess: () => {
+      toast.success("Testimonial approved and published live!");
       queryClient.invalidateQueries({ queryKey: ["admin-testimonials"] });
       queryClient.invalidateQueries({ queryKey: ["public-testimonials"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Failed to approve testimonial");
+      toast.error(err.response?.data?.message || err.message || "Failed to approve testimonial");
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: ({ id, note }: { id: string; note?: string }) =>
       testimonialService.rejectTestimonial(id, note),
-    onSuccess: (updated) => {
-      toast.info(`Testimonial by ${updated.student_name} marked as rejected.`);
+    onSuccess: () => {
+      toast.info("Testimonial marked as rejected.");
       queryClient.invalidateQueries({ queryKey: ["admin-testimonials"] });
       queryClient.invalidateQueries({ queryKey: ["public-testimonials"] });
       setRejectModalItem(null);
       setRejectNote("");
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Failed to reject testimonial");
+      toast.error(err.response?.data?.message || err.message || "Failed to reject testimonial");
     },
   });
 
@@ -105,13 +128,13 @@ function AdminTestimonialsPage() {
       if (selectedItem) setSelectedItem(null);
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Failed to delete testimonial");
+      toast.error(err.response?.data?.message || err.message || "Failed to delete testimonial");
     },
   });
 
-  const handleOpenRejectModal = (item: AdminTestimonialItem) => {
+  const handleOpenRejectModal = (item: any) => {
     setRejectModalItem(item);
-    setRejectNote(item.admin_note || "");
+    setRejectNote(item.adminNote || item.admin_note || "");
   };
 
   const handleConfirmReject = () => {
@@ -255,218 +278,425 @@ function AdminTestimonialsPage() {
         </div>
       </div>
 
-      {/* Testimonials List / Table */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="mt-3 text-sm text-muted-foreground">Loading testimonials...</p>
+      {/* Testimonials Table & Mobile Cards */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card py-20 shadow-soft">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="mt-3 text-sm text-muted-foreground">Loading testimonials...</p>
+        </div>
+      ) : filteredTestimonials.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card py-20 text-center px-4 shadow-soft">
+          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-muted/60 text-muted-foreground">
+            <MessageSquareQuote className="h-7 w-7 opacity-50" />
           </div>
-        ) : filteredTestimonials.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-muted/60 text-muted-foreground">
-              <MessageSquareQuote className="h-7 w-7 opacity-50" />
-            </div>
-            <h3 className="mt-4 text-base font-semibold text-foreground">No testimonials found</h3>
-            <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-              {search
-                ? `No submissions matched "${search}". Try clearing your query.`
-                : `There are currently no ${statusFilter !== "ALL" ? statusFilter.toLowerCase() : ""} testimonials.`}
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {/* Desktop Table Header */}
-            <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-3.5 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              <div className="col-span-3">Student</div>
-              <div className="col-span-2">Course / Program</div>
-              <div className="col-span-1">Rating</div>
-              <div className="col-span-3">Testimonial Quote</div>
-              <div className="col-span-1">Status</div>
-              <div className="col-span-2 text-right">Actions</div>
-            </div>
-
-            {/* Testimonial Rows */}
-            {filteredTestimonials.map((item) => {
+          <h3 className="mt-4 text-base font-semibold text-foreground">No testimonials found</h3>
+          <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+            {search
+              ? `No submissions matched "${search}". Try clearing your query.`
+              : `There are currently no ${statusFilter !== "ALL" ? statusFilter.toLowerCase() : ""} testimonials.`}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Mobile Cards (< 640px) */}
+          <div className="space-y-3 sm:hidden">
+            {filteredTestimonials.map((item: any) => {
               const isPending = item.status === "PENDING";
               const isApproved = item.status === "APPROVED";
               const isRejected = item.status === "REJECTED";
+              const studentName = item.user?.name || item.student_name || item.studentName || item.name || "Student";
+              const studentEmail = item.user?.email || item.student_email || item.studentEmail || item.email || "";
+              const courseTitle = item.course?.title || item.course_title || item.courseTitle;
+              const createdAt = item.createdAt || item.created_at;
+              const initial = (studentName || "S")[0].toUpperCase();
 
               return (
                 <div
                   key={item.id}
-                  className="flex flex-col gap-4 p-5 lg:grid lg:grid-cols-12 lg:items-center lg:gap-4 lg:px-6 lg:py-4 transition-colors hover:bg-muted/20"
+                  className="rounded-xl border border-border bg-card p-4 shadow-soft space-y-3"
                 >
-                  {/* Student Info */}
-                  <div className="flex items-center gap-3 lg:col-span-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 text-primary font-bold text-sm border border-primary/20 overflow-hidden">
-                      {item.student_avatar ? (
-                        <img
-                          src={item.student_avatar}
-                          alt={item.student_name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        item.student_name.slice(0, 2).toUpperCase()
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-sm text-foreground truncate">
-                        {item.student_name}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary font-bold text-xs">
+                        {initial}
                       </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {item.student_email || "Student Account"}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground/80 flex items-center gap-1 mt-0.5">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(item.created_at).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs text-foreground truncate">{studentName}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">{studentEmail}</div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Course */}
-                  <div className="lg:col-span-2 text-xs">
-                    {item.course_title ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 border border-primary/10 px-2.5 py-1 font-medium text-primary line-clamp-1">
-                        <BookOpen className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{item.course_title}</span>
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground italic">General / Platform</span>
-                    )}
-                  </div>
-
-                  {/* Rating */}
-                  <div className="lg:col-span-1">
-                    <div className="flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star
-                          key={s}
-                          className={`h-3.5 w-3.5 ${
-                            s <= item.rating
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-muted-foreground/30"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Testimonial Quote */}
-                  <div className="lg:col-span-3">
-                    <p className="text-xs text-foreground/90 italic line-clamp-3 leading-relaxed">
-                      "{item.quote}"
-                    </p>
-                    {item.admin_note && (
-                      <div className="mt-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 text-[11px] text-rose-600 dark:text-rose-400">
-                        <span className="font-semibold">Rejection Note:</span> {item.admin_note}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Status Badge */}
-                  <div className="lg:col-span-1">
+                    {/* Status Pill */}
                     {isApproved && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle2 className="h-3 w-3" />
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                         Approved
                       </span>
                     )}
                     {isPending && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                        <Clock className="h-3 w-3" />
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
                         Pending
                       </span>
                     )}
                     {isRejected && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-semibold text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                        <XCircle className="h-3 w-3" />
+                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
                         Rejected
                       </span>
                     )}
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center justify-end gap-2 lg:col-span-2">
+                  {/* Rating + Course */}
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                    <div className="flex items-center gap-1 text-amber-500 font-bold text-[11px]">
+                      <span>★</span>
+                      <span>{item.rating}.0 / 5.0</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+                      {courseTitle || "General Review"}
+                    </span>
+                  </div>
+
+                  {/* Quote */}
+                  <p
+                    onClick={() => setSelectedItem(item)}
+                    className="text-xs text-foreground/90 italic line-clamp-2 bg-muted/30 p-2 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                  >
+                    "{item.quote}"
+                  </p>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-1.5 pt-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs px-2 text-muted-foreground"
+                      onClick={() => setSelectedItem(item)}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" /> View
+                    </Button>
                     {isPending && (
                       <>
                         <Button
                           size="sm"
-                          variant="default"
-                          className="h-8 gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 shadow-none"
+                          className="h-7 text-xs px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                           onClick={() => approveMutation.mutate(item.id)}
-                          disabled={approveMutation.isPending}
                         >
-                          <ThumbsUp className="h-3.5 w-3.5" />
                           Approve
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 gap-1 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-900/50 dark:text-rose-400 text-xs px-3"
+                          className="h-7 text-xs px-2.5 text-rose-600 border-rose-200"
                           onClick={() => handleOpenRejectModal(item)}
                         >
-                          <ThumbsDown className="h-3.5 w-3.5" />
                           Reject
                         </Button>
                       </>
                     )}
-
                     {isApproved && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 gap-1 rounded-xl text-xs text-muted-foreground hover:text-rose-600"
-                          onClick={() => handleOpenRejectModal(item)}
-                        >
-                          <ThumbsDown className="h-3.5 w-3.5" />
-                          Unpublish
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-600 rounded-xl"
-                          onClick={() => handleDelete(item.id, item.student_name)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs px-2 text-muted-foreground hover:text-rose-600"
+                        onClick={() => handleOpenRejectModal(item)}
+                      >
+                        Unpublish
+                      </Button>
                     )}
-
                     {isRejected && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 gap-1 rounded-xl border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs px-3"
-                          onClick={() => approveMutation.mutate(item.id)}
-                          disabled={approveMutation.isPending}
-                        >
-                          <ThumbsUp className="h-3.5 w-3.5" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-600 rounded-xl"
-                          onClick={() => handleDelete(item.id, item.student_name)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs px-2 text-emerald-600 border-emerald-200"
+                        onClick={() => approveMutation.mutate(item.id)}
+                      >
+                        Approve
+                      </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-600"
+                      onClick={() => handleDelete(item.id, studentName)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
               );
             })}
           </div>
-        )}
-      </div>
+
+          {/* Desktop & Tablet Minimal Table (>= 640px) */}
+          <div className="hidden sm:block overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-muted/40 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <tr>
+                    <th className="px-4 py-3">Student</th>
+                    <th className="px-3 py-3 w-24">Rating</th>
+                    <th className="px-4 py-3 max-w-[200px]">Program</th>
+                    <th className="px-4 py-3">Testimonial Review</th>
+                    <th className="px-3 py-3 w-28">Status</th>
+                    <th className="px-4 py-3 text-right w-44">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredTestimonials.map((item: any) => {
+                    const isPending = item.status === "PENDING";
+                    const isApproved = item.status === "APPROVED";
+                    const isRejected = item.status === "REJECTED";
+                    const studentName = item.user?.name || item.student_name || item.studentName || item.name || "Student";
+                    const studentEmail = item.user?.email || item.student_email || item.studentEmail || item.email || "";
+                    const courseTitle = item.course?.title || item.course_title || item.courseTitle;
+                    const createdAt = item.createdAt || item.created_at;
+                    const initial = (studentName || "S")[0].toUpperCase();
+
+                    return (
+                      <tr key={item.id} className="hover:bg-muted/20 transition-colors group">
+                        {/* Student */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary font-bold text-xs">
+                              {initial}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-foreground text-xs truncate max-w-[150px]">
+                                {studentName}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground truncate max-w-[150px]">
+                                {studentEmail}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Rating */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1 font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md text-[11px]">
+                            <span>★</span>
+                            <span>{item.rating}.0</span>
+                          </div>
+                        </td>
+
+                        {/* Course */}
+                        <td className="px-4 py-3">
+                          {courseTitle ? (
+                            <span className="inline-flex items-center gap-1 text-primary text-xs font-medium truncate max-w-[180px] bg-primary/5 px-2 py-0.5 rounded border border-primary/10" title={courseTitle}>
+                              <BookOpen className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{courseTitle}</span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs italic">Platform Review</span>
+                          )}
+                        </td>
+
+                        {/* Review Quote */}
+                        <td className="px-4 py-3">
+                          <div
+                            onClick={() => setSelectedItem(item)}
+                            className="cursor-pointer group/quote max-w-sm"
+                            title="Click to view full testimonial"
+                          >
+                            <p className="text-xs text-foreground/85 italic line-clamp-2 leading-relaxed group-hover/quote:text-primary transition-colors">
+                              "{item.quote}"
+                            </p>
+                            {item.adminNote && (
+                              <div className="text-[10px] text-rose-600 mt-0.5 truncate">
+                                Note: {item.adminNote}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {isApproved && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 className="h-3 w-3" /> Approved
+                            </span>
+                          )}
+                          {isPending && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                              <Clock className="h-3 w-3" /> Pending
+                            </span>
+                          )}
+                          {isRejected && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                              <XCircle className="h-3 w-3" /> Rejected
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground rounded-lg"
+                              onClick={() => setSelectedItem(item)}
+                              title="View full review"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+
+                            {isPending && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg"
+                                  onClick={() => approveMutation.mutate(item.id)}
+                                  disabled={approveMutation.isPending}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs px-2 text-rose-600 border-rose-200 hover:bg-rose-50 rounded-lg"
+                                  onClick={() => handleOpenRejectModal(item)}
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+
+                            {isApproved && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[11px] px-2 text-muted-foreground hover:text-rose-600 rounded-lg"
+                                onClick={() => handleOpenRejectModal(item)}
+                              >
+                                Unpublish
+                              </Button>
+                            )}
+
+                            {isRejected && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[11px] px-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50 rounded-lg"
+                                onClick={() => approveMutation.mutate(item.id)}
+                              >
+                                Approve
+                              </Button>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-600 rounded-lg"
+                              onClick={() => handleDelete(item.id, studentName)}
+                              title="Delete permanently"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Full Testimonial Modal */}
+      {selectedItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary font-bold text-sm">
+                  {((selectedItem.user?.name || selectedItem.student_name || "S")[0]).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground text-sm">
+                    {selectedItem.user?.name || selectedItem.student_name || "Student"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedItem.user?.email || selectedItem.student_email || "Student Account"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedItem(null)}
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Rating & Course info */}
+            <div className="flex items-center justify-between text-xs bg-muted/30 p-3 rounded-xl">
+              <div className="flex items-center gap-1 text-amber-500 font-bold">
+                <span>★</span>
+                <span>{selectedItem.rating}.0 / 5.0 Rating</span>
+              </div>
+              <span className="text-muted-foreground font-medium">
+                {selectedItem.course?.title || selectedItem.course_title || "General Platform Review"}
+              </span>
+            </div>
+
+            {/* Full Quote */}
+            <div className="rounded-xl border border-border/60 bg-muted/20 p-4 text-xs italic leading-relaxed text-foreground">
+              "{selectedItem.quote}"
+            </div>
+
+            {/* Admin Note if any */}
+            {(selectedItem.adminNote || selectedItem.admin_note) && (
+              <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-600 dark:text-rose-400">
+                <span className="font-bold">Rejection Note: </span>
+                <span>{selectedItem.adminNote || selectedItem.admin_note}</span>
+              </div>
+            )}
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="text-[11px] text-muted-foreground">
+                Submitted on {new Date(selectedItem.createdAt || selectedItem.created_at).toLocaleDateString()}
+              </div>
+              <div className="flex items-center gap-2">
+                {selectedItem.status === "PENDING" && (
+                  <>
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
+                      onClick={() => {
+                        approveMutation.mutate(selectedItem.id);
+                        setSelectedItem(null);
+                      }}
+                    >
+                      Approve & Publish
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-rose-600 border-rose-200 text-xs h-8"
+                      onClick={() => {
+                        handleOpenRejectModal(selectedItem);
+                        setSelectedItem(null);
+                      }}
+                    >
+                      Reject
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-8"
+                  onClick={() => setSelectedItem(null)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reject Modal Dialog */}
       {rejectModalItem && (
@@ -482,7 +712,7 @@ function AdminTestimonialsPage() {
                     Reject Testimonial Submission
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    by {rejectModalItem.student_name}
+                    by {(rejectModalItem as any).user?.name || (rejectModalItem as any).student_name || "Student"}
                   </p>
                 </div>
               </div>

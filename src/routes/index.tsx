@@ -376,14 +376,14 @@ function Testimonials() {
               </blockquote>
               <figcaption className="mt-6 flex items-center gap-3 border-t border-border pt-5">
                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground overflow-hidden">
-                  {t.avatar ? (
-                    <img src={t.avatar} alt={t.name} className="h-full w-full object-cover" />
+                  {t.avatarUrl || (t as any).avatar ? (
+                    <img src={t.avatarUrl || (t as any).avatar} alt={t.name} className="h-full w-full object-cover" />
                   ) : (
-                    t.name[0]
+                    (t.name || "A")[0]?.toUpperCase() || "A"
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="type-small font-bold text-foreground truncate">{t.name}</div>
+                  <div className="type-small font-bold text-foreground truncate">{t.name || "Student"}</div>
                   <div className="type-small text-xs text-muted-foreground truncate">
                     {t.course ? t.course : t.role || "Architecture Learner"}
                   </div>
