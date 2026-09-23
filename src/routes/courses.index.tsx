@@ -123,44 +123,41 @@ function CoursesCatalogPage() {
       </section>
 
       {/* Trust & Guarantee Banner */}
-      <section className="bg-surface py-16 border-t border-border/60">
-        <div className="mx-auto max-w-7xl px-5 md:px-8">
-          <div className="grid gap-8 md:grid-cols-3 text-center md:text-left">
-            <div className="flex items-start gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft">
-                <CheckCircle2 className="h-6 w-6" />
+      <section className="bg-surface py-12 md:py-16 border-t border-border/60">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+          <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3.5 sm:gap-4 p-4 rounded-2xl bg-card/50 border border-border/60 shadow-xs">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft">
+                <CheckCircle2 className="h-5 w-5" />
               </div>
               <div>
                 <h4 className="font-display font-bold text-foreground">Lifetime Access</h4>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Enroll once and keep lifetime access to all video modules, templates, and future
-                  updates.
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Enroll once and keep lifetime access to all video modules, templates, and future updates.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft">
-                <Sparkles className="h-6 w-6" />
+            <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3.5 sm:gap-4 p-4 rounded-2xl bg-card/50 border border-border/60 shadow-xs">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft">
+                <Sparkles className="h-5 w-5" />
               </div>
               <div>
                 <h4 className="font-display font-bold text-foreground">Verifiable Certificates</h4>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Earn industry-recognized course & internship certificates signed by practicing
-                  architects.
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Earn industry-recognized course & internship certificates signed by practicing architects.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft">
-                <ArrowRight className="h-6 w-6" />
+            <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3.5 sm:gap-4 p-4 rounded-2xl bg-card/50 border border-border/60 shadow-xs">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft">
+                <ArrowRight className="h-5 w-5" />
               </div>
               <div>
                 <h4 className="font-display font-bold text-foreground">Portfolio Support</h4>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Build real-world client case studies and receive 1-on-1 portfolio reviews from top
-                  mentors.
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Build real-world client case studies and receive 1-on-1 portfolio reviews from top mentors.
                 </p>
               </div>
             </div>

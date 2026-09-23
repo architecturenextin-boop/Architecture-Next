@@ -264,11 +264,11 @@ function CourseDetailPage() {
                   {course.level || "Professional"} Online Programme
                 </div>
 
-                <h1 className="font-display text-4xl font-extrabold leading-[1.06] tracking-[-0.045em] text-foreground sm:text-5xl lg:text-[3.6rem]">
+                <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold leading-[1.15] tracking-[-0.03em] text-foreground">
                   {course.title}
                 </h1>
 
-                <p className="mt-6 max-w-4xl text-base leading-8 text-muted-foreground sm:text-lg">
+                <p className="mt-4 sm:mt-6 max-w-4xl text-sm sm:text-base lg:text-lg leading-relaxed text-muted-foreground">
                   {course.tagline || course.description || "Master industry-standard architectural workflows through practical structured lessons."}
                 </p>
               </div>
@@ -584,26 +584,26 @@ function CourseDetailPage() {
                         </button>
 
                         {isOpen && (
-                          <div className="border-t border-border/60 bg-muted/20 px-5 py-3 sm:px-6">
+                          <div className="border-t border-border/60 bg-muted/20 px-3.5 py-2.5 sm:px-6">
                             {(module.lessons_safe || []).map((lesson, lessonIndex) => (
                               <div
                                 key={lesson.id}
-                                className="flex items-center justify-between gap-4 border-b border-border/60 py-3.5 pl-[58px] last:border-b-0"
+                                className="flex items-center justify-between gap-3 border-b border-border/60 py-3 sm:pl-[58px] last:border-b-0"
                               >
-                                <div className="flex min-w-0 items-center gap-3">
-                                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-                                    <Play className="h-3 w-3 fill-current" />
+                                <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                                  <span className="grid h-6 w-6 sm:h-7 sm:w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                                    <Play className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-current" />
                                   </span>
-                                  <span className="truncate text-sm font-medium text-foreground">
+                                  <span className="truncate text-xs sm:text-sm font-medium text-foreground">
                                     {lessonIndex + 1}. {lesson.title}
                                   </span>
                                   {lesson.is_free && (
-                                    <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-bold">
+                                    <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-bold shrink-0">
                                       Free Preview
                                     </span>
                                   )}
                                 </div>
-                                <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                                <span className="shrink-0 text-[11px] sm:text-xs font-semibold text-muted-foreground">
                                   {lesson.duration}
                                 </span>
                               </div>

@@ -224,38 +224,37 @@ function CheckoutPage() {
         }
       />
 
-      <main className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-12">
-        <div className="mb-6 sm:hidden">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-12">
+        <div className="mb-4 sm:hidden">
           <Link
             to="/courses"
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border/80 bg-background/80 px-4 py-2 text-xs font-semibold text-muted-foreground backdrop-blur transition-all hover:border-primary/50 hover:bg-card hover:text-primary group shadow-xs"
+            className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-border/80 bg-background/80 px-3.5 py-1.5 text-xs font-semibold text-muted-foreground backdrop-blur transition-all hover:border-primary/50 hover:bg-card hover:text-primary group shadow-xs"
           >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
             <span>Return to Courses</span>
           </Link>
         </div>
 
         {/* Main Grid: Left (Billing & Order Details) | Right (Summary & Payment) */}
-        <form onSubmit={handleCompletePayment} className="grid gap-10 lg:grid-cols-[1fr_420px]">
+        <form onSubmit={handleCompletePayment} className="grid gap-6 sm:gap-8 lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px]">
           {/* Left Column */}
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8 min-w-0">
             <div>
-              <h1 className="font-display text-3xl font-extrabold tracking-tight text-foreground">
+              <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                 Checkout
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Enter your billing info to complete enrollment and access your course dashboard
-                immediately.
+              <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+                Enter your billing info to complete enrollment and access your course dashboard immediately.
               </p>
             </div>
 
             {/* Section 1: Billing Details */}
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft md:p-8 space-y-5">
-              <h2 className="font-display text-xl font-bold tracking-tight text-foreground border-b border-border/60 pb-4">
+            <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5 shadow-soft">
+              <h2 className="font-display text-lg sm:text-xl font-bold tracking-tight text-foreground border-b border-border/60 pb-3 sm:pb-4">
                 Billing details
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-3.5 sm:space-y-4">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
                     First name <span className="text-destructive">*</span>
@@ -265,7 +264,7 @@ function CheckoutPage() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="Enter your name"
-                    className="h-12 rounded-xl bg-background"
+                    className="h-11 sm:h-12 rounded-xl bg-background text-sm"
                     required
                   />
                 </div>
@@ -279,7 +278,7 @@ function CheckoutPage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+91 98765 43210"
-                    className="h-12 rounded-xl bg-background"
+                    className="h-11 sm:h-12 rounded-xl bg-background text-sm"
                     required
                   />
                 </div>
@@ -293,7 +292,7 @@ function CheckoutPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="h-12 rounded-xl bg-background"
+                    className="h-11 sm:h-12 rounded-xl bg-background text-sm"
                     required
                     disabled
                   />
@@ -302,8 +301,8 @@ function CheckoutPage() {
             </div>
 
             {/* Section 2: Additional Information */}
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft md:p-8 space-y-4">
-              <h2 className="font-display text-xl font-bold tracking-tight text-foreground border-b border-border/60 pb-4">
+            <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 space-y-3.5 sm:space-y-4 shadow-soft">
+              <h2 className="font-display text-lg sm:text-xl font-bold tracking-tight text-foreground border-b border-border/60 pb-3 sm:pb-4">
                 Additional information
               </h2>
               <div>
@@ -314,35 +313,35 @@ function CheckoutPage() {
                   rows={3}
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
-                  placeholder="Notes about your order, e.g. special requests or query for mentors."
-                  className="w-full rounded-xl border border-border bg-background p-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="Notes about your order, e.g. special requests or queries."
+                  className="w-full rounded-xl border border-border bg-background p-3 text-xs sm:text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
 
             {/* Section 3: Order Details Card */}
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft md:p-8 space-y-5">
-              <h2 className="font-display text-xl font-bold tracking-tight text-foreground border-b border-border/60 pb-4">
+            <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5 shadow-soft">
+              <h2 className="font-display text-lg sm:text-xl font-bold tracking-tight text-foreground border-b border-border/60 pb-3 sm:pb-4">
                 Order Details
               </h2>
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-border/70 bg-surface/50 p-4">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 rounded-2xl border border-border/70 bg-surface/50 p-3.5 sm:p-4">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <img
                     src={getMediaUrl(course.cover_url)}
                     alt={course.title}
-                    className="h-16 w-24 rounded-xl object-cover border border-border/60 shrink-0"
+                    className="h-14 w-20 sm:h-16 sm:w-24 rounded-xl object-cover border border-border/60 shrink-0"
                   />
-                  <div>
-                    <h4 className="font-display text-base font-bold text-foreground leading-snug line-clamp-2">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-display text-sm sm:text-base font-bold text-foreground leading-snug line-clamp-2">
                       {course.title}
                     </h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
                       {course.level} · {course.total_duration}
                     </p>
                   </div>
                 </div>
-                <div className="font-display text-lg font-extrabold text-foreground shrink-0 sm:text-right">
+                <div className="font-display text-base sm:text-lg font-extrabold text-foreground shrink-0 self-end sm:self-center">
                   {course.currency}
                   {course.price.toLocaleString()}
                 </div>
@@ -351,9 +350,9 @@ function CheckoutPage() {
           </div>
 
           {/* Right Column: Order Summary & Payment Box */}
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-elevated md:p-8 space-y-6">
-              <h2 className="font-display text-2xl font-extrabold tracking-tight text-foreground border-b border-border/60 pb-4">
+          <div className="space-y-6 min-w-0">
+            <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 shadow-elevated">
+              <h2 className="font-display text-xl sm:text-2xl font-extrabold tracking-tight text-foreground border-b border-border/60 pb-3 sm:pb-4">
                 Summary
               </h2>
 
