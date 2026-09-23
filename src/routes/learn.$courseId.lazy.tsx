@@ -327,28 +327,21 @@ function LearnPage() {
       }
     };
 
-    const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
-
     const playerOptions: Plyr.Options = {
       controls: [
         "play-large",
         "play",
-        "rewind",
-        "fast-forward",
         "progress",
         "current-time",
-        "duration",
         "mute",
-        "volume",
         "settings",
-        "pip",
         "fullscreen"
       ],
       seekTime: 10,
       invertTime: false,
       tooltips: { controls: true, seek: true },
-      settings: ["speed", "loop"],
-      speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+      settings: ["speed"],
+      speed: { selected: 1, options: [0.75, 1, 1.25, 1.5, 2] },
       keyboard: { global: true, focused: true },
       youtube: {
         noCookie: false,
@@ -591,56 +584,52 @@ function LearnPage() {
   return (
     <div className="min-h-screen bg-surface-soft">
       {/* Sticky Top Header */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-xl shadow-xs">
-        <div className="mx-auto flex h-14 sm:h-16 md:h-[72px] max-w-7xl items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 md:px-8">
-          {/* Left: Back button + Course Title & Progress Subtitle */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-1">
-            <BrandLogo size="sm" className="hidden md:inline-flex shrink-0" />
-            <div className="hidden md:block h-4 w-px bg-border/80 shrink-0" />
-            
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur-xl shadow-xs">
+        <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6">
+          {/* Left: Back button + Course Title */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             {/* Back Button */}
             <Link
               to="/dashboard"
               aria-label="Back to Dashboard"
-              className="inline-flex h-8 w-8 sm:h-9 sm:w-auto sm:px-2.5 items-center justify-center gap-1.5 rounded-xl border border-border/70 bg-card/80 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 shadow-xs transition"
+              className="inline-flex h-9 w-9 sm:w-auto sm:px-3 items-center justify-center gap-1.5 rounded-xl border border-border/70 bg-card/80 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 shadow-xs transition"
             >
               <ArrowLeft className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline font-semibold">Dashboard</span>
+              <span className="hidden sm:inline">Dashboard</span>
             </Link>
 
-            <div className="h-4 w-px bg-border/80 shrink-0 hidden sm:block" />
+            <div className="hidden sm:block h-4 w-px bg-border/80 shrink-0" />
 
-            {/* Course Title and Mobile Progress */}
-            <div className="flex flex-col min-w-0 flex-1 justify-center">
-              <h2 className="truncate text-xs sm:text-sm font-bold text-foreground leading-tight tracking-tight">
+            {/* Course Title and Progress Pill */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <h2 className="truncate text-xs sm:text-sm font-bold text-foreground leading-snug">
                 {course.title}
               </h2>
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium sm:hidden mt-0.5">
-                <span className="text-primary font-bold">{pct}% completed</span>
-                <span>•</span>
-                <span>{flatLessons.length} lessons</span>
-              </div>
+              <span className="hidden sm:inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary shrink-0">
+                {pct}%
+              </span>
             </div>
           </div>
 
-          {/* Right: Progress bar (Desktop) + Modules Drawer Button + Profile */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          {/* Right: Modules Drawer Button + Profile */}
+          <div className="flex items-center gap-2 shrink-0">
             {/* Desktop progress bar */}
-            <div className="hidden sm:flex items-center gap-2">
-              <div className="h-2 w-24 md:w-28 overflow-hidden rounded-full bg-muted">
+            <div className="hidden md:flex items-center gap-2 mr-1">
+              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
                 <div className="h-full bg-gradient-primary transition-all duration-500" style={{ width: `${pct}%` }} />
               </div>
               <span className="text-xs font-bold text-primary font-mono">{pct}%</span>
             </div>
 
-            {/* Mobile Modules Drawer Toggle Button */}
+            {/* Mobile / Tablet Modules Drawer Toggle Button */}
             <button 
               onClick={() => setSidebarOpen((v) => !v)} 
-              className="inline-flex items-center gap-1 sm:gap-1.5 rounded-xl border border-border/80 bg-card/90 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted lg:hidden shadow-xs transition active:scale-95 shrink-0"
-              aria-label="Open course modules"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border/80 bg-card px-2.5 sm:px-3 h-9 text-xs font-semibold text-foreground hover:bg-muted lg:hidden shadow-xs transition active:scale-95 shrink-0"
+              aria-label="Toggle course modules drawer"
             >
-              <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span className="text-xs font-semibold">{sidebarOpen ? "Close" : "Modules"}</span>
+              <BookOpen className="h-4 w-4 text-primary shrink-0" />
+              <span className="hidden sm:inline">{sidebarOpen ? "Close" : "Modules"}</span>
+              <span className="inline-flex sm:hidden font-bold text-primary text-[11px]">{pct}%</span>
             </button>
 
             <ProfileCard />
@@ -649,11 +638,11 @@ function LearnPage() {
       </header>
 
       {/* Main Grid: Video Player + Lessons Sidebar */}
-      <div className="mx-auto grid max-w-7xl gap-4 sm:gap-5 px-3 py-3 sm:px-6 sm:py-6 lg:grid-cols-[1fr_340px]">
+      <div className="mx-auto sm:mx-0 grid max-w-7xl gap-4 sm:gap-5 px-2 sm:px-6 py-3 sm:py-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-3 sm:space-y-5">
-          {/* Video / PDF Container */}
-          <div className={`overflow-hidden rounded-xl sm:rounded-2xl border border-border bg-black shadow-elevated transition-all duration-300 ${
-            isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative aspect-video w-full bg-black"
+          {/* Video / PDF Container: Cinema Reel & Centered Framing */}
+          <div className={`overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-gradient-to-b from-[#0e0e1a] via-[#07070f] to-[#0e0e1a] shadow-elevated transition-all duration-300 flex items-center justify-center ${
+            isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative w-full aspect-video min-h-[240px] sm:min-h-[380px] md:min-h-[480px]"
           }`}>
             {isPdfLesson ? (
               (activeLesson?.pdf_url || (activeLesson as any)?.pdf_path) ? (
@@ -871,7 +860,7 @@ function LearnPage() {
           </div>
 
           {/* Now Playing Details & Action Bar */}
-          <div className="rounded-xl sm:rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-soft">
+          <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-soft">
              <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-md">
@@ -908,39 +897,44 @@ function LearnPage() {
             )}
 
             {/* Action Buttons Row */}
-            <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3 pt-3 border-t border-border/50">
+            <div className="mt-4 sm:mt-5 flex items-center justify-between gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-border/50">
               {/* Single-Tick Complete Button */}
               <Button 
                 onClick={() => toggleProgressMutation.mutate(activeId)} 
                 disabled={toggleProgressMutation.isPending}
                 variant={isDone ? "outline" : "default"} 
-                className={`w-full sm:w-auto font-semibold transition-all duration-200 ${
+                className={`h-10 sm:h-11 px-3 sm:px-5 font-semibold transition-all duration-200 text-xs sm:text-sm ${
                   isDone 
-                    ? "border-success/40 bg-success/10 text-success hover:bg-success/20 hover:text-success" 
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20" 
                     : "bg-gradient-primary text-primary-foreground shadow-soft hover:opacity-95"
                 }`}
               >
-                <Check className="mr-1.5 h-4 w-4" /> {isDone ? "Completed" : "Mark as Complete"}
+                <Check className="mr-1.5 h-4 w-4 shrink-0" />
+                <span>{isDone ? "Completed" : "Mark as Complete"}</span>
               </Button>
 
-              {/* Navigation Controls */}
-              <div className="grid grid-cols-2 sm:flex gap-2 sm:ml-auto w-full sm:w-auto">
+              {/* Navigation Controls: Clean Symbols + Responsive Labels */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={() => go(-1)} 
                   disabled={activeIdx === 0}
-                  className="w-full sm:w-auto"
+                  className="h-10 sm:h-11 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold border-border/80 hover:bg-muted disabled:opacity-40"
+                  aria-label="Previous Lesson"
                 >
-                  <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+                  <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Previous</span>
                 </Button>
                 <Button 
                   size="sm" 
-                  className="w-full sm:w-auto bg-gradient-primary text-primary-foreground hover:opacity-95 font-medium" 
+                  className="h-10 sm:h-11 px-3.5 sm:px-5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-primary text-primary-foreground hover:opacity-95 shadow-soft disabled:opacity-40" 
                   onClick={() => go(1)} 
                   disabled={activeIdx === flatLessons.length - 1}
+                  aria-label="Next Lesson"
                 >
-                  Next <ChevronRight className="ml-1 h-4 w-4" />
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="h-4 w-4 sm:ml-1" />
                 </Button>
               </div>
             </div>

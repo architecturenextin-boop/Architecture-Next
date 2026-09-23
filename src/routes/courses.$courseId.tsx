@@ -821,25 +821,63 @@ function CourseDetailPage() {
         )}
       </main>
 
-      {/* Mobile sticky purchase bar */}
+      {/* Mobile sticky purchase / continue learning bar */}
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white/95 px-4 py-3 shadow-elevated backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              Course price
-            </p>
-            <p className="font-display text-xl font-extrabold text-foreground">
-              {course.currency || "₹"}
-              {course.price.toLocaleString()}
-            </p>
-          </div>
+          {enrollment ? (
+            <>
+              <div className="min-w-0 flex-1">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Enrolled
+                </span>
+                <p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground">
+                  Lifetime access unlocked
+                </p>
+              </div>
 
-          <Button
-            onClick={handleAddToCart}
-            className="h-11 bg-gradient-primary px-6 font-bold text-primary-foreground hover:brightness-110"
-          >
-            {cartAdded ? "Checkout" : "Enroll now"}
-          </Button>
+              <Button
+                onClick={() => {
+                  if (progress && progress.length > 0) {
+                    const latest = [...progress].sort(
+                      (a, b) => new Date(b.last_watched_at).getTime() - new Date(a.last_watched_at).getTime()
+                    )[0];
+                    navigate({
+                      to: "/learn/$courseId",
+                      params: { courseId: course.slug || course.id },
+                      search: { lessonId: latest.lesson_id },
+                    });
+                  } else {
+                    navigate({
+                      to: "/learn/$courseId",
+                      params: { courseId: course.slug || course.id },
+                    });
+                  }
+                }}
+                className="h-11 bg-gradient-primary px-6 font-bold text-primary-foreground shadow-glow hover:brightness-110"
+              >
+                {progress && progress.length > 0 ? "Continue Learning" : "Start Learning"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                  Course price
+                </p>
+                <p className="font-display text-xl font-extrabold text-foreground">
+                  {course.currency || "₹"}
+                  {course.price.toLocaleString()}
+                </p>
+              </div>
+
+              <Button
+                onClick={handleAddToCart}
+                className="h-11 bg-gradient-primary px-6 font-bold text-primary-foreground hover:brightness-110"
+              >
+                {cartAdded ? "Checkout" : "Enroll now"}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

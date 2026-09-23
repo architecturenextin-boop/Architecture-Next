@@ -342,9 +342,9 @@
 :root {
   --plyr-color-main: #294398;
   --plyr-video-background: #000000;
-  --plyr-control-radius: 8px;
+  --plyr-control-radius: 10px;
   --plyr-range-thumb-background: #ffffff;
-  --plyr-range-track-height: 6px;
+  --plyr-range-track-height: 5px;
   --plyr-range-thumb-height: 14px;
 }
 
@@ -368,6 +368,9 @@
 .plyr__video-wrapper {
   height: 100% !important;
   background: #000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .plyr__video-embed {
@@ -388,9 +391,10 @@
   object-fit: contain !important;
   width: 100% !important;
   height: 100% !important;
+  max-height: 100% !important;
 }
 
-/* Ensure controls bar, progress bar, volume, and skip buttons are always visible and positioned */
+/* Ensure controls bar, progress bar, and buttons are clean, spaced, and non-overlapping */
 .plyr__controls {
   position: absolute !important;
   bottom: 0 !important;
@@ -398,9 +402,11 @@
   right: 0 !important;
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
-  padding: 14px 16px 10px !important;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%) !important;
+  gap: 8px !important;
+  padding: 16px 14px 12px !important;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   z-index: 50 !important;
   opacity: 1 !important;
   visibility: visible !important;
@@ -427,28 +433,57 @@
 
 .plyr__controls .plyr__control {
   color: #ffffff !important;
-  background: transparent !important;
-  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-radius: 10px !important;
   padding: 7px !important;
   transition: all 0.15s ease !important;
   cursor: pointer !important;
-}
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+} 
 
 .plyr__controls .plyr__control:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
   color: #ffffff !important;
+  transform: scale(1.05);
 }
 
 .plyr__controls .plyr__control svg {
-  width: 18px !important;
-  height: 18px !important;
+  width: 17px !important;
+  height: 17px !important;
   fill: currentColor !important;
+}
+
+@media (max-width: 640px) {
+  .plyr__controls {
+    gap: 5px !important;
+    padding: 10px 8px 8px !important;
+  }
+  .plyr__controls .plyr__control {
+    padding: 6px !important;
+    border-radius: 8px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+  }
+  .plyr__controls .plyr__control svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  /* Hide volume slider on mobile screens to prevent overlapping tools */
+  .plyr__volume input[type="range"] {
+    display: none !important;
+  }
+  .plyr__volume {
+    max-width: 34px !important;
+    min-width: 32px !important;
+  }
 }
 
 /* Progress bar styling */
 .plyr__progress {
   flex: 1 !important;
-  min-width: 80px !important;
+  min-width: 60px !important;
   display: flex !important;
   align-items: center !important;
   position: relative !important;
@@ -458,9 +493,9 @@
 .plyr__volume input[type="range"] {
   accent-color: var(--plyr-color-main) !important;
   cursor: pointer !important;
-  height: 6px !important;
+  height: 5px !important;
   border-radius: 9999px !important;
-  background: rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
 }
 
 .plyr__progress input[type="range"]::-webkit-slider-thumb,
@@ -472,16 +507,17 @@
 .plyr__volume {
   display: flex !important;
   align-items: center !important;
-  max-width: 110px !important;
+  max-width: 100px !important;
   min-width: 32px !important;
 }
 
 .plyr__time {
-  font-size: 12px !important;
-  font-weight: 500 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
   color: rgba(255, 255, 255, 0.9) !important;
   font-variant-numeric: tabular-nums !important;
   white-space: nowrap !important;
+  padding: 0 2px !important;
 }
 
 @keyframes wa-pulse {
