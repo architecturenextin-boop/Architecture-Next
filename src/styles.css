@@ -459,6 +459,45 @@
   fill: currentColor !important;
 }
 
+/* Plyr Settings Popup Menu: Black Text on Crisp White Menu */
+.plyr__menu__container {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35) !important;
+  padding: 6px !important;
+  z-index: 60 !important;
+}
+
+.plyr__menu__container [role="menu"],
+.plyr__menu__container [role="menuitem"],
+.plyr__menu__container [role="menuitemradio"],
+.plyr__menu__container button,
+.plyr__menu__container span,
+.plyr__menu__container .plyr__control {
+  color: #111111 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+.plyr__menu__container [role="menuitem"]:hover,
+.plyr__menu__container [role="menuitemradio"]:hover,
+.plyr__menu__container button:hover,
+.plyr__menu__container .plyr__control:hover {
+  background: #f1f3f9 !important;
+  color: #294398 !important;
+}
+
+.plyr__menu__container [aria-checked="true"] {
+  color: #294398 !important;
+  font-weight: 700 !important;
+}
+
+.plyr__menu__container [aria-checked="true"]::before {
+  background: #294398 !important;
+}
+
 @media (max-width: 640px) {
   .plyr__controls {
     gap: 5px !important;

@@ -640,8 +640,8 @@ function LearnPage() {
       </header>
 
       {/* Main Grid: Video Player + Lessons Sidebar */}
-      <div className="mx-auto w-full max-w-7xl grid gap-4 sm:gap-5 px-2 sm:px-6 py-3 sm:py-6 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-3 sm:space-y-5">
+      <div className="mx-auto w-full max-w-7xl grid gap-4 sm:gap-5 px-3 sm:px-6 py-5 sm:py-7 lg:py-8 lg:grid-cols-[1fr_340px]">
+        <div className="space-y-4 sm:space-y-5">
           {/* Video / PDF Container */}
           <div className={`overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl border border-border/80 bg-black shadow-elevated transition-all duration-300 flex items-center justify-center ${
             isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative w-full aspect-video"
@@ -900,20 +900,27 @@ function LearnPage() {
 
             {/* Action Buttons Row */}
             <div className="mt-4 sm:mt-5 flex items-center justify-between gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-border/50">
-              {/* Single-Tick Complete Button */}
-              <Button 
+              {/* Interactive Completion Toggle Pill */}
+              <button 
+                type="button"
                 onClick={() => toggleProgressMutation.mutate(activeId)} 
                 disabled={toggleProgressMutation.isPending}
-                variant={isDone ? "outline" : "default"} 
-                className={`h-10 sm:h-11 px-3 sm:px-5 font-semibold transition-all duration-200 text-xs sm:text-sm ${
+                aria-pressed={isDone}
+                className={`group inline-flex items-center gap-2 rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 ${
                   isDone 
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20" 
-                    : "bg-gradient-primary text-primary-foreground shadow-soft hover:opacity-95"
+                    ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15" 
+                    : "border border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted/60 hover:text-foreground"
                 }`}
               >
-                <Check className="mr-1.5 h-4 w-4 shrink-0" />
-                <span>{isDone ? "Completed" : "Mark as Complete"}</span>
-              </Button>
+                <div className={`grid h-5 w-5 place-items-center rounded-md transition-colors ${
+                  isDone 
+                    ? "bg-emerald-500 text-white shadow-xs" 
+                    : "border border-muted-foreground/40 bg-background group-hover:border-primary/60"
+                }`}>
+                  <Check className={`h-3.5 w-3.5 stroke-[2.5] transition-transform ${isDone ? "scale-100" : "scale-0 text-primary"}`} />
+                </div>
+                <span>{isDone ? "Completed" : "Mark Complete"}</span>
+              </button>
 
               {/* Navigation Controls: Clean Symbols + Responsive Labels */}
               <div className="flex items-center gap-1.5 sm:gap-2">
