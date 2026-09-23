@@ -327,6 +327,8 @@ function LearnPage() {
       }
     };
 
+    const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
+
     const playerOptions: Plyr.Options = {
       controls: [
         "play-large",
