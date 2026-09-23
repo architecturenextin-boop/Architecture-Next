@@ -217,23 +217,33 @@ function LearnPage() {
             setPdfLoading(true);
             try {
               let resolvedPdf = getMediaUrl(rawPdf);
-              const token = tokenStorage.get();
+              const isPresignedR2 = resolvedPdf.includes("X-Amz-") || resolvedPdf.includes("r2.cloudflarestorage.com");
               const headers: Record<string, string> = {};
-              if (token) headers["Authorization"] = `Bearer ${token}`;
+              
+              if (!isPresignedR2) {
+                const token = tokenStorage.get();
+                if (token) headers["Authorization"] = `Bearer ${token}`;
+              }
 
               const res = await fetch(resolvedPdf, { headers });
-              if (!res.ok) {
-                throw new Error(`Failed to load PDF (${res.status} ${res.statusText})`);
-              }
-              const blob = await res.blob();
-              const blobUrl = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
-              if (active) {
-                setPdfBlobUrl(blobUrl);
-                setPlayerReady(true);
+              if (res.ok) {
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+                if (active) {
+                  setPdfBlobUrl(blobUrl);
+                  setPlayerReady(true);
+                }
+              } else {
+                // If fetch fails or has CORS, fallback to direct presigned URL in iframe
+                if (active) {
+                  setPdfBlobUrl(resolvedPdf);
+                  setPlayerReady(true);
+                }
               }
             } catch (pErr: any) {
               if (active) {
-                setPdfError(pErr?.message || "Failed to load PDF file from server");
+                let resolvedPdf = getMediaUrl(rawPdf);
+                setPdfBlobUrl(resolvedPdf);
                 setPlayerReady(true);
               }
             } finally {
@@ -674,10 +684,11 @@ function LearnPage() {
                       );
                     }
 
+                    const iframeSrc = pdfBlobUrl.startsWith("blob:") ? `${pdfBlobUrl}#toolbar=0&navpanes=0` : pdfBlobUrl;
                     return (
                       <div className="w-full h-full bg-slate-900 flex flex-col relative">
                         <iframe
-                          src={`${pdfBlobUrl}#toolbar=0&navpanes=0`}
+                          src={iframeSrc}
                           className="w-full h-full border-none rounded-xl"
                           title="PDF Lesson Viewer"
                           allowFullScreen
