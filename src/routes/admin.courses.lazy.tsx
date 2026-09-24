@@ -139,7 +139,7 @@ function AdminCourses() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {courses.map((c: any) => (
+        {(Array.isArray(courses) ? courses : []).map((c: any) => (
           <article key={c.id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft flex flex-col justify-between">
             <div className="relative">
               <img src={getMediaUrl(c.cover_url)} alt={c.title} loading="lazy" className="aspect-video w-full object-cover" />

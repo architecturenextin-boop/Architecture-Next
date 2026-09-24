@@ -72,7 +72,10 @@ export const adminService = {
   },
 
   getAllCourses: async (): Promise<CourseWithContent[]> => {
-    return apiClient<CourseWithContent[]>("/admin/courses");
+    const res = await apiClient<{ courses: CourseWithContent[]; total: number } | CourseWithContent[]>("/admin/courses");
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray((res as any).courses)) return (res as any).courses;
+    return [];
   },
 
   upsertCourse: async (courseData: any, modulesData?: any[]): Promise<any> => {
