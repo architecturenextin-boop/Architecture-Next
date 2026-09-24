@@ -407,98 +407,125 @@ function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Promo code toggle */}
-              <div className="space-y-2 border-b border-border/60 pb-5">
+              {/* ── Coupon Code Section ── */}
+              <div className="border-b border-border/60 pb-5 space-y-3">
                 {!appliedCoupon ? (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => setShowCouponToggle(!showCouponToggle)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
-                    >
-                      <Tag className="h-3 w-3" /> Have a coupon code?
-                    </button>
+                    {/* Toggle trigger */}
+                    {!showCouponToggle && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCouponToggle(true)}
+                        className="group inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                      >
+                        <span className="grid h-6 w-6 place-items-center rounded-md bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                          <Tag className="h-3.5 w-3.5" />
+                        </span>
+                        Have a coupon code?
+                      </button>
+                    )}
+
                     {showCouponToggle && (
-                      <div className="space-y-2 mt-2">
-                        <div className="flex gap-2">
+                      <div className="rounded-2xl border border-border bg-muted/30 p-4 space-y-3">
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                          <Tag className="h-3.5 w-3.5 text-primary" /> Coupon code
+                        </label>
+                        {/* Input row */}
+                        <div className="relative flex items-center">
                           <Input
+                            id="coupon-code-input"
                             value={couponInput}
                             onChange={(e) => {
-                              setCouponInput(e.target.value);
+                              setCouponInput(e.target.value.toUpperCase());
                               setCouponError("");
                             }}
-                            placeholder="Enter coupon code"
-                            className="h-9 text-xs uppercase"
+                            placeholder="e.g. SAVE400"
+                            className="h-12 rounded-xl bg-background pr-4 text-sm font-mono uppercase tracking-widest border-border focus:border-primary"
                             disabled={couponLoading}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleApplyCoupon();
-                              }
+                              if (e.key === "Enter") { e.preventDefault(); handleApplyCoupon(); }
                             }}
+                            autoFocus
                           />
+                        </div>
+                        {/* Error message */}
+                        {couponError && (
+                          <div className="flex items-start gap-2 rounded-lg bg-destructive/8 px-3 py-2 text-xs font-medium text-destructive">
+                            <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                            <span>{couponError}</span>
+                          </div>
+                        )}
+                        {/* Action buttons */}
+                        <div className="flex gap-2 pt-0.5">
                           <Button
                             type="button"
                             onClick={() => handleApplyCoupon()}
                             disabled={couponLoading || !couponInput.trim()}
-                            size="sm"
-                            className="h-9 bg-primary text-primary-foreground font-semibold px-4"
+                            className="flex-1 h-11 bg-gradient-primary text-primary-foreground font-bold rounded-xl shadow-sm hover:brightness-110 transition-all"
                           >
-                            {couponLoading ? "Applying..." : "Apply"}
+                            {couponLoading ? (
+                              <span className="flex items-center gap-2">
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                Applying…
+                              </span>
+                            ) : "Apply Coupon"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => { setShowCouponToggle(false); setCouponInput(""); setCouponError(""); }}
+                            className="h-11 px-4 rounded-xl text-sm font-semibold"
+                          >
+                            Cancel
                           </Button>
                         </div>
-                        {couponError && (
-                          <div className="flex items-center gap-1.5 text-xs text-destructive">
-                            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                            <span>{couponError}</span>
-                          </div>
-                        )}
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        <CheckCircle2 className="h-4 w-4 shrink-0" />
-                        <span>Coupon applied: {appliedCoupon.code}</span>
+                  /* ── Applied State Banner ── */
+                  <div className="rounded-2xl border border-primary/25 bg-primary/8 p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/15">
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">Coupon applied: <span className="text-primary font-mono tracking-wide">{appliedCoupon.code}</span></p>
+                          {couponSuccess && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{couponSuccess}</p>
+                          )}
+                        </div>
                       </div>
                       <button
                         type="button"
                         onClick={removeCoupon}
                         aria-label="Remove coupon"
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-destructive/10"
+                        className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-muted-foreground border border-border hover:border-destructive/50 hover:bg-destructive/8 hover:text-destructive transition-all"
                       >
-                        <X className="h-3.5 w-3.5" /> Remove
+                        <X className="h-3 w-3" /> Remove
                       </button>
                     </div>
-                    {couponSuccess && (
-                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 pl-5.5">
-                        {couponSuccess}
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
 
-              {/* Price Calculations */}
-              <div className="space-y-2.5 text-sm border-b border-border/60 pb-5">
-                <div className="flex justify-between">
+              {/* ── Price Breakdown ── */}
+              <div className="space-y-3 text-sm border-b border-border/60 pb-5">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Course price</span>
-                  <span className="font-semibold text-foreground">
-                    {course.currency}
-                    {originalSubtotal.toLocaleString()}
+                  <span className="font-semibold text-foreground tabular-nums">
+                    ₹{originalSubtotal.toLocaleString()}
                   </span>
                 </div>
-
                 {appliedCoupon && (
-                  <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-semibold">
-                    <span className="flex items-center gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1.5 font-semibold text-primary">
+                      <Tag className="h-3.5 w-3.5" />
                       Coupon discount ({appliedCoupon.code})
                     </span>
-                    <span>
-                      -{course.currency}
-                      {appliedCoupon.discount.toLocaleString()}
+                    <span className="font-bold text-primary tabular-nums">
+                      −₹{appliedCoupon.discount.toLocaleString()}
                     </span>
                   </div>
                 )}
