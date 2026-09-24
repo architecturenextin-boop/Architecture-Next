@@ -64,7 +64,28 @@ function VerifyOtpPage() {
   }, [resetToken]);
 
   const handleOtpChange = (index: number, value: string) => {
-    const cleanValue = value.replace(/\D/g, "").slice(-1);
+    const cleanDigits = value.replace(/\D/g, "");
+
+    // Support iOS SMS / email auto-fill which inserts the whole 6-digit code at once
+    if (cleanDigits.length > 1) {
+      const newOtp = [...otp];
+      const startIdx = cleanDigits.length >= 6 ? 0 : index;
+      for (let i = 0; i < cleanDigits.length && startIdx + i < 6; i++) {
+        newOtp[startIdx + i] = cleanDigits[i];
+      }
+      setOtp(newOtp);
+      setErrorMsg("");
+
+      const lastFilledIndex = Math.min(startIdx + cleanDigits.length - 1, 5);
+      inputRefs.current[lastFilledIndex]?.focus();
+
+      if (newOtp.every((digit) => digit.length === 1)) {
+        submitOtp(newOtp.join(""));
+      }
+      return;
+    }
+
+    const cleanValue = cleanDigits.slice(-1);
     const newOtp = [...otp];
     newOtp[index] = cleanValue;
     setOtp(newOtp);
@@ -113,7 +134,8 @@ function VerifyOtpPage() {
       setErrorMsg("Please enter all 6 digits of the verification code.");
       return;
     }
-    if (!email.trim()) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
       setErrorMsg("Email address is missing.");
       return;
     }
@@ -125,7 +147,7 @@ function VerifyOtpPage() {
     try {
       if (purpose === "signup") {
         const res = await authService.verifyOtp({
-          email: email.trim(),
+          email: cleanEmail,
           otp: fullCode,
         });
 
@@ -144,12 +166,13 @@ function VerifyOtpPage() {
       } else {
         // Password Reset flow
         const res = await authService.verifyResetOtp({
-          email: email.trim(),
+          email: cleanEmail,
           otp: fullCode,
         });
 
         setResetToken(res.resetToken);
         setSuccessMsg("Code verified! Please set your new password below.");
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } catch (err: any) {
       setErrorMsg(err?.message || "Invalid or expired verification code.");
@@ -159,14 +182,15 @@ function VerifyOtpPage() {
   };
 
   const handleResend = async () => {
-    if (resendCooldown > 0 || !email.trim()) return;
+    const cleanEmail = email.trim().toLowerCase();
+    if (resendCooldown > 0 || !cleanEmail) return;
     setIsResending(true);
     setErrorMsg("");
     setSuccessMsg("");
 
     try {
       const res = await authService.resendOtp({
-        email: email.trim(),
+        email: cleanEmail,
         purpose: purpose === "reset" ? "PASSWORD_RESET" : "SIGNUP_VERIFY",
       });
       setSuccessMsg(res.message || "New code sent to your email!");
@@ -255,16 +279,8 @@ function VerifyOtpPage() {
       {/* Right Interaction Column */}
       <div className="flex flex-col items-center justify-center p-4 sm:p-8 lg:p-14 overflow-y-auto">
         <div className="w-full max-w-md space-y-6 sm:space-y-8">
-          <div className="flex items-center justify-between w-full">
-            <div className="md:hidden">
-              <BrandLogo size="sm" />
-            </div>
-            <Link
-              to="/auth"
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary transition-colors ml-auto group"
-            >
-              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Sign In
-            </Link>
+          <div className="md:hidden flex justify-center w-full mb-2">
+            <BrandLogo size="md" />
           </div>
 
           {!resetToken ? (
@@ -295,6 +311,10 @@ function VerifyOtpPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@example.com"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      inputMode="email"
                       className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
                     />
                   </div>
@@ -315,7 +335,7 @@ function VerifyOtpPage() {
               )}
 
               <div className="space-y-6">
-                {/* 6 Digit Input Boxes - responsive square layout */}
+                {/* 6 Digit Input Boxes - responsive square layout with iOS auto-fill */}
                 <div className="grid grid-cols-6 gap-2 sm:gap-3 w-full max-w-sm mx-auto" onPaste={handlePaste}>
                   {otp.map((digit, idx) => (
                     <input
@@ -325,8 +345,9 @@ function VerifyOtpPage() {
                       }}
                       type="text"
                       inputMode="numeric"
+                      autoComplete={idx === 0 ? "one-time-code" : "off"}
                       pattern="[0-9]*"
-                      maxLength={1}
+                      maxLength={idx === 0 ? 6 : 1}
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(idx, e)}
@@ -402,6 +423,7 @@ function VerifyOtpPage() {
                           setNewPassword(e.target.value);
                           setErrorMsg("");
                         }}
+                        autoComplete="new-password"
                         placeholder="••••••••"
                         className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium pr-10"
                         required
@@ -410,7 +432,7 @@ function VerifyOtpPage() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -430,6 +452,7 @@ function VerifyOtpPage() {
                           setConfirmPassword(e.target.value);
                           setErrorMsg("");
                         }}
+                        autoComplete="new-password"
                         placeholder="••••••••"
                         className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium pr-10"
                         required
@@ -438,7 +461,7 @@ function VerifyOtpPage() {
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
                       >
                         {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -448,17 +471,20 @@ function VerifyOtpPage() {
                   <Button
                     type="submit"
                     disabled={isResetting}
-                    className="h-12 w-full bg-gradient-primary text-base font-bold text-primary-foreground shadow-soft transition-all hover:brightness-110 rounded-xl"
+                    className="min-h-[48px] h-12 w-full bg-gradient-primary text-base font-bold text-primary-foreground shadow-soft transition-all hover:brightness-110 rounded-xl"
                   >
                     {isResetting ? "Updating password..." : "Update Password"} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </form>
               ) : (
                 <div className="text-center space-y-4 pt-4">
-                  <p className="text-sm font-medium text-foreground">
-                    Redirecting you to the sign in page...
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
+                    <CheckCircle2 className="h-7 w-7" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Password updated! Redirecting you to sign in...
                   </p>
-                  <Button asChild className="bg-gradient-primary text-primary-foreground font-bold">
+                  <Button asChild className="min-h-[48px] h-12 w-full bg-gradient-primary text-primary-foreground font-bold rounded-xl shadow-soft">
                     <Link to="/auth">Sign In Now</Link>
                   </Button>
                 </div>
@@ -466,22 +492,15 @@ function VerifyOtpPage() {
             </>
           )}
 
-          <div className="border-t border-border pt-4 text-center text-xs sm:text-sm text-muted-foreground">
-            {purpose === "reset" ? (
-              <>
-                Remember your password?{" "}
-                <Link to="/auth" className="font-bold text-primary hover:underline">
-                  Sign in
-                </Link>
-              </>
-            ) : (
-              <>
-                Already verified?{" "}
-                <Link to="/auth" className="font-bold text-primary hover:underline">
-                  Sign in
-                </Link>
-              </>
-            )}
+          {/* Classic Redesigned Return to Sign In (Single Clean Instance) */}
+          <div className="border-t border-border/80 pt-6 text-center">
+            <Link
+              to="/auth"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary bg-muted/40 hover:bg-primary/10 border border-border/60 hover:border-primary/25 transition-all duration-200 group shadow-2xs hover:shadow-xs"
+            >
+              <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:-translate-x-1" />
+              <span>Return to Sign In</span>
+            </Link>
           </div>
         </div>
       </div>

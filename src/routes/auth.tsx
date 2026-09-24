@@ -88,7 +88,8 @@ function AuthPage() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!forgotEmail.trim() || !forgotEmail.includes("@")) {
+    const cleanEmail = forgotEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
       setErr("Please enter a valid email address.");
       return;
     }
@@ -98,14 +99,14 @@ function AuthPage() {
     setForgotMsg("");
 
     try {
-      await authService.forgotPassword(forgotEmail.trim());
+      await authService.forgotPassword(cleanEmail);
       setForgotMsg("Verification code sent! Redirecting...");
       setTimeout(() => {
         navigate({
           to: "/verify-otp",
-          search: { email: forgotEmail.trim(), purpose: "reset" },
+          search: { email: cleanEmail, purpose: "reset" },
         });
-      }, 1000);
+      }, 600);
     } catch (error: any) {
       setErr(error?.message || "Failed to process forgot password request.");
     } finally {
@@ -212,11 +213,11 @@ function AuthPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setForgotEmail(email);
+                        setForgotEmail(email.trim().toLowerCase());
                         setIsForgotPassword(true);
                         setErr("");
                       }}
-                      className="text-xs font-semibold text-primary hover:underline"
+                      className="text-xs font-semibold text-primary hover:underline py-1 px-1 touch-manipulation cursor-pointer"
                     >
                       Forgot password?
                     </button>
@@ -267,14 +268,15 @@ function AuthPage() {
                     setIsForgotPassword(false);
                     setErr("");
                   }}
-                  className="text-xs font-semibold text-primary hover:underline mb-3 inline-block"
+                  className="inline-flex min-h-[40px] items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold text-muted-foreground hover:text-primary bg-muted/40 hover:bg-primary/10 border border-border/60 hover:border-primary/25 transition-all duration-200 mb-4 group cursor-pointer"
                 >
-                  ← Back to Sign In
+                  <ArrowLeft className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-transform group-hover:-translate-x-1" />
+                  <span>Return to Sign In</span>
                 </button>
-                <h2 className="font-display text-3xl font-extrabold tracking-tight text-foreground">
+                <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                   Reset Password
                 </h2>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
                   Enter your account email to receive a 6-digit verification code.
                 </p>
               </div>
@@ -307,6 +309,10 @@ function AuthPage() {
                         setErr("");
                       }}
                       placeholder="name@example.com"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      inputMode="email"
                       className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
                       required
                     />
