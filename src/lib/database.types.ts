@@ -511,9 +511,56 @@ export type Module = Database['public']['Tables']['course_modules']['Row']
 export type Lesson = Database['public']['Tables']['course_lessons']['Row']
 export type LessonSafe = Database['public']['Views']['lessons_safe']['Row']
 export type Profile = Database['public']['Tables']['profiles']['Row']
-export type Payment = Database['public']['Tables']['payments']['Row']
+export type Payment = Database['public']['Tables']['payments']['Row'] & {
+  original_amount?: number | null
+  originalAmount?: number | null
+  discount_amount?: number
+  discountAmount?: number
+  final_amount?: number | null
+  finalAmount?: number | null
+  coupon_id?: string | null
+  couponId?: string | null
+  coupon_code?: string | null
+  couponCode?: string | null
+}
 export type Enrollment = Database['public']['Tables']['enrollments']['Row']
 export type Progress = Database['public']['Tables']['lesson_progress']['Row']
+
+export type DiscountType = 'FLAT' | 'PERCENT'
+
+export interface Coupon {
+  id: string
+  code: string
+  discountType: DiscountType
+  discountValue: number
+  maxDiscount?: number | null
+  courseId?: string | null
+  expiresAt?: string | null
+  usageLimit?: number | null
+  perUserLimit: number
+  usedCount: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+  course?: {
+    id: string
+    title: string
+    slug: string
+  } | null
+  _count?: {
+    redemptions: number
+  }
+}
+
+export interface CouponRedemption {
+  id: string
+  couponId: string
+  userId: string
+  paymentId?: string | null
+  orderId?: string | null
+  discountAmount: number
+  createdAt: string
+}
 
 // Compound relationships used in the app
 export type CourseWithContent = Course & {
@@ -581,4 +628,5 @@ export interface AdminTestimonialsResponse {
     rejected: number
   }
 }
+
 

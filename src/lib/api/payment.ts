@@ -1,8 +1,9 @@
 import { paymentService } from "../services/payment.service";
 
-export async function createOrder({ courseId }: { courseId: string }) {
-  return paymentService.createOrder(courseId);
+export async function createOrder({ courseId, couponCode }: { courseId: string; couponCode?: string }) {
+  return paymentService.createOrder({ courseId, couponCode });
 }
+
 
 export async function verifyPayment(payload: {
   purchaseId: string;

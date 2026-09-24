@@ -31,6 +31,7 @@ import { Route as AdminTestimonialsRouteImport } from './routes/admin.testimonia
 import { Route as AdminStudentsRouteImport } from './routes/admin.students'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminCoursesRouteImport } from './routes/admin.courses'
+import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 
 const VerifyOtpRoute = VerifyOtpRouteImport.update({
   id: '/verify-otp',
@@ -144,6 +145,11 @@ const AdminCoursesRoute = AdminCoursesRouteImport.update({
   path: '/courses',
   getParentRoute: () => AdminRoute,
 } as any).lazy(() => import('./routes/admin.courses.lazy').then((d) => d.Route))
+const AdminCouponsRoute = AdminCouponsRouteImport.update({
+  id: '/coupons',
+  path: '/coupons',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/payment-success': typeof PaymentSuccessRoute
   '/signup': typeof SignupRoute
   '/verify-otp': typeof VerifyOtpRoute
+  '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/payment-success': typeof PaymentSuccessRoute
   '/signup': typeof SignupRoute
   '/verify-otp': typeof VerifyOtpRoute
+  '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/payment-success': typeof PaymentSuccessRoute
   '/signup': typeof SignupRoute
   '/verify-otp': typeof VerifyOtpRoute
+  '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRoute
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/payment-success'
     | '/signup'
     | '/verify-otp'
+    | '/admin/coupons'
     | '/admin/courses'
     | '/admin/payments'
     | '/admin/students'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/payment-success'
     | '/signup'
     | '/verify-otp'
+    | '/admin/coupons'
     | '/admin/courses'
     | '/admin/payments'
     | '/admin/students'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/payment-success'
     | '/signup'
     | '/verify-otp'
+    | '/admin/coupons'
     | '/admin/courses'
     | '/admin/payments'
     | '/admin/students'
@@ -460,10 +472,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCoursesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/coupons': {
+      id: '/admin/coupons'
+      path: '/coupons'
+      fullPath: '/admin/coupons'
+      preLoaderRoute: typeof AdminCouponsRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminCouponsRoute: typeof AdminCouponsRoute
   AdminCoursesRoute: typeof AdminCoursesRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
@@ -472,6 +492,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCouponsRoute: AdminCouponsRoute,
   AdminCoursesRoute: AdminCoursesRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminStudentsRoute: AdminStudentsRoute,

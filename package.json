@@ -10,11 +10,11 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "studio": "npm run --prefix backend prisma:studio",
-    "prisma:studio": "npm run --prefix backend prisma:studio",
-    "db:push": "npm run --prefix backend prisma:push",
-    "db:seed": "npm run --prefix backend prisma:seed",
-    "db:generate": "npm run --prefix backend prisma:generate"
+    "studio": "npm run --prefix ../backend prisma:studio",
+    "prisma:studio": "npm run --prefix ../backend prisma:studio",
+    "db:push": "npm run --prefix ../backend prisma:push",
+    "db:seed": "npm run --prefix ../backend prisma:seed",
+    "db:generate": "npm run --prefix ../backend prisma:generate"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

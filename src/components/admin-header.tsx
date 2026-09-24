@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
-import { BookOpen, CreditCard, LayoutDashboard, Users, Globe, Menu, X, MessageSquareQuote } from "lucide-react";
+import { BookOpen, CreditCard, LayoutDashboard, Users, Globe, Menu, X, MessageSquareQuote, Tag } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
 
@@ -38,8 +38,10 @@ export function AdminHeader() {
     { to: "/admin/students", label: "Students", icon: Users },
     { to: "/admin/payments", label: "Payments", icon: CreditCard },
     { to: "/admin/courses", label: "Courses", icon: BookOpen },
+    { to: "/admin/coupons", label: "Coupons", icon: Tag },
     { to: "/admin/testimonials", label: "Testimonials", icon: MessageSquareQuote },
   ];
+
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">

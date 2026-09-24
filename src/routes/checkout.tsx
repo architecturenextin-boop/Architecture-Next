@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, CreditCard, Lock, Shield, Tag, AlertCircle, HelpCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, Lock, Shield, Tag, AlertCircle, HelpCircle, CheckCircle2, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,12 @@ import { Footer } from "@/components/footer";
 import { useAuth } from "@/hooks/use-auth";
 import { tokenStorage } from "@/lib/api-client";
 import { courseService } from "@/lib/services/course.service";
+import { couponService } from "@/lib/services/coupon.service";
 import { useQuery } from "@tanstack/react-query";
 import { createOrder, loadRazorpayCheckout, verifyPayment } from "@/lib/api/payment";
 import type { Course } from "@/lib/database.types";
 import { getMediaUrl } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -60,35 +62,57 @@ function CheckoutPage() {
     }
   }, [profile]);
 
-  // Toggle sections
+  // Coupon state
   const [showCouponToggle, setShowCouponToggle] = useState(false);
   const [couponInput, setCouponInput] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     discount: number;
+    finalAmount: number;
   } | null>(null);
+  const [couponSuccess, setCouponSuccess] = useState("");
   const [couponError, setCouponError] = useState("");
 
   // Payment states
   const [processing, setProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState("");
 
-  // Handle Coupon Application
-  const handleApplyCoupon = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle Coupon Application via Server
+  const handleApplyCoupon = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setCouponError("");
+    setCouponSuccess("");
     if (!course) return;
-    const cleaned = couponInput.trim().toUpperCase();
-    if (!cleaned) return;
 
-    if (cleaned === "JULYOFF" || cleaned === "JULY2026") {
-      setAppliedCoupon({ code: cleaned, discount: Math.round(course.price * 0.4) });
-    } else if (cleaned === "LAUNCH50" || cleaned === "OFFER50") {
-      setAppliedCoupon({ code: cleaned, discount: Math.round(course.price * 0.5) });
-    } else if (cleaned === "WELCOME10") {
-      setAppliedCoupon({ code: cleaned, discount: Math.round(course.price * 0.1) });
-    } else {
-      setCouponError("Invalid coupon code. Try 'JULYOFF' or 'LAUNCH50'.");
+    const cleaned = couponInput.trim().toUpperCase();
+    if (!cleaned) {
+      setCouponError("Please enter a coupon code");
+      return;
+    }
+
+    setCouponLoading(true);
+    try {
+      const res = await couponService.validateCoupon({
+        code: cleaned,
+        courseId: course.id,
+      });
+
+      if (res.valid) {
+        setAppliedCoupon({
+          code: res.coupon?.code || cleaned,
+          discount: res.discountAmount,
+          finalAmount: res.finalAmount,
+        });
+        setCouponSuccess(res.message || "Coupon applied successfully");
+        toast.success(res.message || "Coupon applied successfully");
+      }
+    } catch (err: any) {
+      const msg = err?.message || "Invalid coupon code";
+      setCouponError(msg);
+      toast.error(msg);
+    } finally {
+      setCouponLoading(false);
     }
   };
 
@@ -96,6 +120,7 @@ function CheckoutPage() {
     setAppliedCoupon(null);
     setCouponInput("");
     setCouponError("");
+    setCouponSuccess("");
   };
 
   // Loading and error states for course fetch
@@ -125,7 +150,7 @@ function CheckoutPage() {
   // Price calculations
   const originalSubtotal = course.price;
   const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
-  const finalTotal = Math.max(0, originalSubtotal - discountAmount);
+  const finalTotal = appliedCoupon ? appliedCoupon.finalAmount : originalSubtotal;
   const estimatedTax = Math.round(finalTotal * 0.18);
 
   // Complete Payment submission
@@ -138,12 +163,20 @@ function CheckoutPage() {
       const token = tokenStorage.get();
       if (!token) throw new Error("No active session found. Please sign in.");
 
-      // 1. Create order
+      // 1. Create order on server (with server-validated coupon)
       const order = await createOrder({
         courseId: course.id,
+        couponCode: appliedCoupon?.code,
       });
 
-      // 2. Check if fake payment simulation is explicitly enabled in .env
+      // 2. ZERO PAYMENT FLOW (100% discount or free course)
+      if (order.free || finalTotal === 0) {
+        toast.success("Course enrolled successfully!");
+        navigate({ to: "/payment-success", search: { purchase_id: order.paymentId } });
+        return;
+      }
+
+      // 3. Check if fake payment simulation is explicitly enabled in .env
       const isFakePaymentEnabled = import.meta.env.VITE_FAKE_PAYMENT === "true";
 
       if (isFakePaymentEnabled) {
@@ -165,22 +198,22 @@ function CheckoutPage() {
         return;
       }
 
-      // 3. If fake payment is NOT enabled, ensure valid Razorpay key is present
+      // 4. If fake payment is NOT enabled, ensure valid Razorpay key is present
       if (!order.keyId || order.keyId === "rzp_test_mock_key" || order.keyId.includes("mock")) {
         throw new Error(
           "Payment gateway key is not configured. Please add your real Razorpay Key ID and Secret in backend/.env (or set VITE_FAKE_PAYMENT=true in .env to simulate test payments)."
         );
       }
 
-      // 4. Real Razorpay production / test checkout
+      // 5. Real Razorpay production / test checkout
       const Razorpay = await loadRazorpayCheckout();
       const checkout = new Razorpay({
         key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
+        amount: order.amount!,
+        currency: order.currency || "INR",
         name: "ArchitectureNext",
         description: course.title,
-        order_id: order.orderId,
+        order_id: order.orderId!,
         prefill: {
           name: firstName || undefined,
           email,
@@ -210,6 +243,7 @@ function CheckoutPage() {
       setProcessing(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
@@ -374,42 +408,83 @@ function CheckoutPage() {
               </div>
 
               {/* Promo code toggle */}
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCouponToggle(!showCouponToggle)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
-                >
-                  <Tag className="h-3 w-3" /> Have a coupon code?
-                </button>
-                {showCouponToggle && (
-                  <div className="flex gap-2 mt-2">
-                    <Input
-                      value={couponInput}
-                      onChange={(e) => {
-                        setCouponInput(e.target.value);
-                        setCouponError("");
-                      }}
-                      placeholder="JULYOFF"
-                      className="h-9 text-xs"
-                    />
-                    <Button
+              <div className="space-y-2 border-b border-border/60 pb-5">
+                {!appliedCoupon ? (
+                  <>
+                    <button
                       type="button"
-                      onClick={handleApplyCoupon}
-                      size="sm"
-                      className="h-9 bg-primary text-primary-foreground"
+                      onClick={() => setShowCouponToggle(!showCouponToggle)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
                     >
-                      Apply
-                    </Button>
+                      <Tag className="h-3 w-3" /> Have a coupon code?
+                    </button>
+                    {showCouponToggle && (
+                      <div className="space-y-2 mt-2">
+                        <div className="flex gap-2">
+                          <Input
+                            value={couponInput}
+                            onChange={(e) => {
+                              setCouponInput(e.target.value);
+                              setCouponError("");
+                            }}
+                            placeholder="Enter coupon code"
+                            className="h-9 text-xs uppercase"
+                            disabled={couponLoading}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleApplyCoupon();
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => handleApplyCoupon()}
+                            disabled={couponLoading || !couponInput.trim()}
+                            size="sm"
+                            className="h-9 bg-primary text-primary-foreground font-semibold px-4"
+                          >
+                            {couponLoading ? "Applying..." : "Apply"}
+                          </Button>
+                        </div>
+                        {couponError && (
+                          <div className="flex items-center gap-1.5 text-xs text-destructive">
+                            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                            <span>{couponError}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        <span>Coupon applied: {appliedCoupon.code}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeCoupon}
+                        aria-label="Remove coupon"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-destructive/10"
+                      >
+                        <X className="h-3.5 w-3.5" /> Remove
+                      </button>
+                    </div>
+                    {couponSuccess && (
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 pl-5.5">
+                        {couponSuccess}
+                      </p>
+                    )}
                   </div>
                 )}
-                {couponError && <p className="text-xs text-destructive">{couponError}</p>}
               </div>
 
               {/* Price Calculations */}
               <div className="space-y-2.5 text-sm border-b border-border/60 pb-5">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">Course price</span>
                   <span className="font-semibold text-foreground">
                     {course.currency}
                     {originalSubtotal.toLocaleString()}
@@ -417,16 +492,9 @@ function CheckoutPage() {
                 </div>
 
                 {appliedCoupon && (
-                  <div className="flex justify-between items-center text-emerald-500 font-semibold">
+                  <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-semibold">
                     <span className="flex items-center gap-1">
-                      Coupon: {appliedCoupon.code}
-                      <button
-                        type="button"
-                        onClick={removeCoupon}
-                        className="text-[11px] text-muted-foreground underline ml-1 hover:text-foreground"
-                      >
-                        [Remove]
-                      </button>
+                      Coupon discount ({appliedCoupon.code})
                     </span>
                     <span>
                       -{course.currency}
@@ -440,10 +508,12 @@ function CheckoutPage() {
               <div className="flex items-baseline justify-between pt-1">
                 <div>
                   <span className="font-display text-lg font-bold text-foreground">Total</span>
-                  <span className="block text-[11px] text-muted-foreground">
-                    (includes {course.currency}
-                    {estimatedTax.toLocaleString()} Tax)
-                  </span>
+                  {finalTotal > 0 && (
+                    <span className="block text-[11px] text-muted-foreground">
+                      (includes {course.currency}
+                      {estimatedTax.toLocaleString()} Tax)
+                    </span>
+                  )}
                 </div>
                 <div className="font-display text-3xl font-extrabold text-primary">
                   {course.currency}
@@ -452,15 +522,27 @@ function CheckoutPage() {
               </div>
 
               {/* Payment Method Selector */}
-              <div className="rounded-2xl border border-border bg-surface/60 p-5 space-y-4">
-                <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                  <CreditCard className="h-4 w-4 text-primary" />
-                  <span>Pay securely by Razorpay</span>
+              {finalTotal > 0 ? (
+                <div className="rounded-2xl border border-border bg-surface/60 p-5 space-y-4">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                    <CreditCard className="h-4 w-4 text-primary" />
+                    <span>Pay securely by Razorpay</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Pay securely by Credit/Debit card, Net Banking, UPI, or QR Code.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Pay securely by Credit/Debit card, Net Banking, UPI, or QR Code.
-                </p>
-              </div>
+              ) : (
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>100% Free Enrollment</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    No payment details required. Click below to enroll instantly.
+                  </p>
+                </div>
+              )}
 
               {/* Privacy Policy terms */}
               <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -485,8 +567,10 @@ function CheckoutPage() {
                 {processing ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Processing Payment...
+                    {finalTotal === 0 ? "Enrolling..." : "Processing Payment..."}
                   </span>
+                ) : finalTotal === 0 ? (
+                  "Enroll for Free"
                 ) : (
                   `Complete Payment (${course.currency}${finalTotal.toLocaleString()})`
                 )}
@@ -505,3 +589,4 @@ function CheckoutPage() {
     </div>
   );
 }
+

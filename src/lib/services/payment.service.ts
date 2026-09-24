@@ -1,11 +1,13 @@
 import { apiClient } from "../api-client";
 
 export interface CreateOrderResult {
+  free?: boolean;
   paymentId: string;
-  orderId: string;
-  amount: number;
-  currency: string;
-  keyId: string;
+  courseId?: string;
+  orderId?: string;
+  amount?: number;
+  currency?: string;
+  keyId?: string;
 }
 
 export interface VerifyPaymentPayload {
@@ -18,12 +20,14 @@ export interface VerifyPaymentPayload {
 }
 
 export const paymentService = {
-  createOrder: async (courseId: string): Promise<CreateOrderResult> => {
+  createOrder: async (payload: { courseId: string; couponCode?: string } | string): Promise<CreateOrderResult> => {
+    const body = typeof payload === "string" ? { courseId: payload } : payload;
     return apiClient<CreateOrderResult>("/payments/create-order", {
       method: "POST",
-      body: JSON.stringify({ courseId }),
+      body: JSON.stringify(body),
     });
   },
+
 
   verifyPayment: async (payload: VerifyPaymentPayload): Promise<{ success: boolean; paymentId: string }> => {
     return apiClient<{ success: boolean; paymentId: string }>("/payments/verify", {

@@ -1,8 +1,9 @@
 const API_BASE = 
   import.meta.env.VITE_API_URL || 
-  (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" 
-    ? "https://api.architecturenext.in/api/v1" 
+  (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "http://localhost:5000/api/v1" 
     : "https://api.architecturenext.in/api/v1");
+
 
 const TOKEN_KEY = "skillspring_auth_token";
 

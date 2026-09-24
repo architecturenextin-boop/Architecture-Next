@@ -1,5 +1,5 @@
 import { apiClient, getApiConfig } from "../api-client";
-import type { CourseWithContent } from "../database.types";
+import type { CourseWithContent, Coupon } from "../database.types";
 
 export interface AdminOverviewStats {
   profileCount: number;
@@ -301,4 +301,61 @@ export const adminService = {
       xhr.send(formData);
     });
   },
+
+  // Coupon Management
+  getAllCoupons: async (): Promise<Coupon[]> => {
+    return apiClient<Coupon[]>("/admin/coupons");
+  },
+
+  createCoupon: async (payload: {
+    code: string;
+    discountType: "FLAT" | "PERCENT";
+    discountValue: number;
+    maxDiscount?: number | null;
+    courseId?: string | null;
+    expiresAt?: string | null;
+    usageLimit?: number | null;
+    perUserLimit?: number;
+    isActive?: boolean;
+  }): Promise<Coupon> => {
+    return apiClient<Coupon>("/admin/coupons", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateCoupon: async (
+    id: string,
+    payload: {
+      code?: string;
+      discountType?: "FLAT" | "PERCENT";
+      discountValue?: number;
+      maxDiscount?: number | null;
+      courseId?: string | null;
+      expiresAt?: string | null;
+      usageLimit?: number | null;
+      perUserLimit?: number;
+      isActive?: boolean;
+    }
+  ): Promise<Coupon> => {
+    return apiClient<Coupon>(`/admin/coupons/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  toggleCoupon: async (id: string): Promise<Coupon> => {
+    return apiClient<Coupon>(`/admin/coupons/${id}/toggle`, {
+      method: "PATCH",
+    });
+  },
+
+  deleteCoupon: async (
+    id: string
+  ): Promise<{ deactivated?: boolean; deleted?: boolean; message: string }> => {
+    return apiClient(`/admin/coupons/${id}`, {
+      method: "DELETE",
+    });
+  },
 };
+
