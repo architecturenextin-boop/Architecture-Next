@@ -277,25 +277,34 @@ function VerifyOtpPage() {
       </div>
 
       {/* Right Interaction Column */}
-      <div className="flex flex-col items-center justify-center p-4 sm:p-8 lg:p-14 overflow-y-auto">
-        <div className="w-full max-w-md space-y-6 sm:space-y-8">
-          <div className="md:hidden flex justify-center w-full mb-2">
-            <BrandLogo size="md" />
+      <div className="flex flex-col items-center justify-start sm:justify-center p-4 sm:p-8 lg:p-14 pt-6 sm:pt-10 pb-12 sm:pb-16 overflow-y-auto">
+        <div className="w-full max-w-md space-y-5 sm:space-y-6">
+          <div className="flex items-center justify-between w-full pb-1">
+            <div className="md:hidden">
+              <BrandLogo size="sm" />
+            </div>
+            <Link
+              to="/auth"
+              className="inline-flex min-h-[36px] items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-primary bg-muted/40 hover:bg-primary/10 border border-border/60 hover:border-primary/25 transition-all group ml-auto"
+            >
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
+              <span>Back to Sign In</span>
+            </Link>
           </div>
 
           {!resetToken ? (
             /* STAGE 1: ENTER 6-DIGIT OTP */
             <>
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
-                  <Sparkles className="h-4 w-4" /> 6-Digit Verification
+              <div className="space-y-1.5">
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+                  <Sparkles className="h-3.5 w-3.5" /> 6-Digit Verification
                 </div>
-                <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight leading-tight">
                   {purpose === "signup" ? "Check your email" : "Enter reset code"}
                 </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-normal">
                   We've sent a 6-digit verification code to{" "}
-                  <strong className="text-foreground break-all">{email || "your email address"}</strong>.
+                  <span className="font-semibold text-foreground [overflow-wrap:anywhere] break-words">{email || "your email address"}</span>.
                 </p>
               </div>
 
@@ -492,15 +501,13 @@ function VerifyOtpPage() {
             </>
           )}
 
-          {/* Classic Redesigned Return to Sign In (Single Clean Instance) */}
-          <div className="border-t border-border/80 pt-6 text-center">
-            <Link
-              to="/auth"
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary bg-muted/40 hover:bg-primary/10 border border-border/60 hover:border-primary/25 transition-all duration-200 group shadow-2xs hover:shadow-xs"
-            >
-              <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:-translate-x-1" />
-              <span>Return to Sign In</span>
-            </Link>
+          {/* Bottom helper text */}
+          <div className="border-t border-border pt-4 text-center text-xs text-muted-foreground">
+            {purpose === "reset" ? (
+              <span>Remember your password? <Link to="/auth" className="font-bold text-primary hover:underline">Sign in</Link></span>
+            ) : (
+              <span>Already verified? <Link to="/auth" className="font-bold text-primary hover:underline">Sign in</Link></span>
+            )}
           </div>
         </div>
       </div>

@@ -156,17 +156,18 @@ function AuthPage() {
       </div>
 
       {/* Right Sign-in Form */}
-      <div className="flex flex-col items-center justify-center p-6 md:p-12 relative">
-        <div className="w-full max-w-md space-y-8">
-          <div className="flex items-center justify-between w-full">
+      <div className="flex flex-col items-center justify-start sm:justify-center p-4 sm:p-8 md:p-12 pt-6 sm:pt-10 pb-12 sm:pb-16 relative overflow-y-auto">
+        <div className="w-full max-w-md space-y-6 sm:space-y-7">
+          <div className="flex items-center justify-between w-full pb-1">
             <div className="md:hidden">
               <BrandLogo size="sm" />
             </div>
             <Link
               to="/"
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary transition-colors ml-auto group"
+              className="inline-flex min-h-[36px] items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-primary bg-muted/40 hover:bg-primary/10 border border-border/60 hover:border-primary/25 transition-all group ml-auto"
             >
-              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Home
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
+              <span>Back to Home</span>
             </Link>
           </div>
 

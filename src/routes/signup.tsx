@@ -144,57 +144,58 @@ function SignupPage() {
       </div>
 
       {/* Right Signup Form (7 Cols) */}
-      <div className="md:col-span-7 flex flex-col items-center justify-center p-4 sm:p-8 md:p-10 lg:p-12 pb-12 sm:pb-16 relative overflow-y-auto">
-        <div className="w-full max-w-lg space-y-6">
-          <div className="flex items-center justify-between w-full">
+      <div className="md:col-span-7 flex flex-col items-center justify-start sm:justify-center p-4 sm:p-8 md:p-10 lg:p-12 pt-6 sm:pt-10 pb-12 sm:pb-16 relative overflow-y-auto">
+        <div className="w-full max-w-lg space-y-5 sm:space-y-6">
+          <div className="flex items-center justify-between w-full pb-1">
             <div className="md:hidden">
               <BrandLogo size="sm" />
             </div>
             <Link
               to="/"
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary transition-colors ml-auto group"
+              className="inline-flex min-h-[36px] items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-primary bg-muted/40 hover:bg-primary/10 border border-border/60 hover:border-primary/25 transition-all group ml-auto"
             >
-              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Home
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
+              <span>Back to Home</span>
             </Link>
           </div>
 
           <div>
           {isSubmitted ? (
-            <div className="space-y-6 text-center py-8">
-              <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary">
-                <Mail className="h-8 w-8" />
+            <div className="space-y-5 text-center py-6">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
+                <Mail className="h-7 w-7" />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <h2 className="font-display text-2xl font-extrabold tracking-tight text-foreground">
                   Check your email
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-normal">
                   We've sent a verification link to <span className="font-semibold text-foreground">{email}</span>. Please click the link to confirm your account and log in.
                 </p>
               </div>
-              <Button asChild size="lg" className="w-full min-h-[48px] h-12 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated rounded-xl">
+              <Button asChild size="lg" className="w-full min-h-[46px] h-11 sm:h-12 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated rounded-xl">
                 <Link to="/auth">Go to Login</Link>
               </Button>
             </div>
           ) : (
             <>
-              <div>
-                <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              <div className="space-y-1 mb-4">
+                <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground leading-tight">
                   Create your account
                 </h2>
-                <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
-                  Fill in your information to register and begin your learning journey.
+                <p className="text-xs sm:text-sm text-muted-foreground leading-normal">
+                  Fill in your details to register and start learning.
                 </p>
               </div>
 
-              <form onSubmit={submit} className="space-y-4">
-            {/* First Name & Last Name (2 columns) */}
-            <div className="grid gap-3.5 sm:grid-cols-2">
+              <form onSubmit={submit} className="space-y-3 sm:space-y-3.5">
+            {/* First Name & Last Name (2 columns on mobile & desktop) */}
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   First Name
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
+                <div className="flex items-center gap-2 rounded-xl border border-input bg-surface px-3 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type="text"
@@ -204,17 +205,17 @@ function SignupPage() {
                       setErr("");
                     }}
                     placeholder="Rahul"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                    className="border-0 bg-transparent px-0.5 shadow-none focus-visible:ring-0 text-sm h-9 sm:h-10 font-medium"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Last Name
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
+                <div className="flex items-center gap-2 rounded-xl border border-input bg-surface px-3 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type="text"
@@ -224,20 +225,20 @@ function SignupPage() {
                       setErr("");
                     }}
                     placeholder="Kumar"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                    className="border-0 bg-transparent px-0.5 shadow-none focus-visible:ring-0 text-sm h-9 sm:h-10 font-medium"
                     required
                   />
                 </div>
               </div>
             </div>
 
-            {/* Username & Email (2 columns) */}
-            <div className="grid gap-3.5 sm:grid-cols-2">
+            {/* Username & Email (1 column mobile, 2 col sm+) */}
+            <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3.5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Username
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
+                <div className="flex items-center gap-2 rounded-xl border border-input bg-surface px-3 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
                   <AtSign className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type="text"
@@ -247,17 +248,20 @@ function SignupPage() {
                       setErr("");
                     }}
                     placeholder="rahulkumar"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className="border-0 bg-transparent px-0.5 shadow-none focus-visible:ring-0 text-sm h-9 sm:h-10 font-medium"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Email Address
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
+                <div className="flex items-center gap-2 rounded-xl border border-input bg-surface px-3 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
                   <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type="email"
@@ -267,7 +271,11 @@ function SignupPage() {
                       setErr("");
                     }}
                     placeholder="rahul@example.com"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    inputMode="email"
+                    className="border-0 bg-transparent px-0.5 shadow-none focus-visible:ring-0 text-sm h-9 sm:h-10 font-medium"
                     required
                   />
                 </div>
@@ -276,10 +284,10 @@ function SignupPage() {
 
             {/* Mobile Number */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                 Mobile Number
               </label>
-              <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
+              <div className="flex items-center gap-2 rounded-xl border border-input bg-surface px-3 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
                 <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-sm font-bold text-foreground border-r border-border/80 pr-2 pt-0.5">+91</span>
                 <Input
@@ -292,19 +300,19 @@ function SignupPage() {
                   }}
                   placeholder="98765 43210"
                   maxLength={14}
-                  className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                  className="border-0 bg-transparent px-0.5 shadow-none focus-visible:ring-0 text-sm h-9 sm:h-10 tracking-wide font-medium"
                   required
                 />
               </div>
             </div>
 
-            {/* Password & Confirm Password (2 columns) */}
-            <div className="grid gap-3.5 sm:grid-cols-2">
+            {/* Password & Confirm Password (2 columns on mobile & desktop) */}
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Password
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all relative">
+                <div className="flex items-center gap-1.5 rounded-xl border border-input bg-surface px-2.5 sm:px-3 py-1 focus-within:ring-2 focus-within:ring-ring transition-all relative">
                   <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type={showPassword ? "text" : "password"}
@@ -313,26 +321,27 @@ function SignupPage() {
                       setPassword(e.target.value);
                       setErr("");
                     }}
+                    autoComplete="new-password"
                     placeholder="••••••••"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium pr-10"
+                    className="border-0 bg-transparent px-0.5 shadow-none focus-visible:ring-0 text-sm h-9 sm:h-10 font-medium pr-6"
                     required
                     minLength={6}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Confirm Password
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all relative">
+                <div className="flex items-center gap-1.5 rounded-xl border border-input bg-surface px-2.5 sm:px-3 py-1 focus-within:ring-2 focus-within:ring-ring transition-all relative">
                   <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
@@ -341,30 +350,31 @@ function SignupPage() {
                       setConfirmPassword(e.target.value);
                       setErr("");
                     }}
+                    autoComplete="new-password"
                     placeholder="••••••••"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium pr-10"
+                    className="border-0 bg-transparent px-0.5 shadow-none focus-visible:ring-0 text-sm h-9 sm:h-10 font-medium pr-6"
                     required
                     minLength={6}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                   >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showConfirmPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                 </div>
               </div>
             </div>
 
             {/* Terms Agreement */}
-            <div className="flex items-start gap-2.5 pt-1">
+            <div className="flex items-start gap-2 pt-0.5">
               <input
                 type="checkbox"
                 id="agree"
                 checked={agreed}
                 onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary cursor-pointer"
+                className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary cursor-pointer shrink-0"
               />
               <label htmlFor="agree" className="text-xs text-muted-foreground leading-snug cursor-pointer select-none">
                 I agree to ArchitectureNext's{" "}
@@ -384,7 +394,7 @@ function SignupPage() {
               type="submit"
               size="lg"
               disabled={isLoading}
-              className="w-full min-h-[48px] h-12 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated hover:brightness-110 mt-1 rounded-xl text-base"
+              className="w-full min-h-[46px] h-11 sm:h-12 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated hover:brightness-110 mt-1 rounded-xl text-sm sm:text-base cursor-pointer"
             >
               {isLoading ? "Creating Account..." : "Create Account"} <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
