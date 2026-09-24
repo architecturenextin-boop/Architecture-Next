@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { ArrowRight, CheckCircle2, Lock, Mail, RefreshCw, ShieldCheck, Sparkles, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2, Lock, Mail, RefreshCw, ShieldCheck, Sparkles, Eye, EyeOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,7 @@ function VerifyOtpPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetComplete, setResetComplete] = useState(false);
 
@@ -252,10 +253,18 @@ function VerifyOtpPage() {
       </div>
 
       {/* Right Interaction Column */}
-      <div className="flex items-center justify-center p-3.5 sm:p-8 lg:p-14 overflow-x-hidden">
+      <div className="flex flex-col items-center justify-center p-4 sm:p-8 lg:p-14 overflow-y-auto">
         <div className="w-full max-w-md space-y-6 sm:space-y-8">
-          <div className="md:hidden flex justify-center mb-4 sm:mb-6">
-            <BrandLogo size="md" />
+          <div className="flex items-center justify-between w-full">
+            <div className="md:hidden">
+              <BrandLogo size="sm" />
+            </div>
+            <Link
+              to="/auth"
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary transition-colors ml-auto group"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Sign In
+            </Link>
           </div>
 
           {!resetToken ? (
@@ -270,9 +279,27 @@ function VerifyOtpPage() {
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   We've sent a 6-digit verification code to{" "}
-                  <strong className="text-foreground">{email || "your email address"}</strong>.
+                  <strong className="text-foreground break-all">{email || "your email address"}</strong>.
                 </p>
               </div>
+
+              {!email && (
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Email Address
+                  </label>
+                  <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1">
+                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                    />
+                  </div>
+                </div>
+              )}
 
               {errorMsg && (
                 <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-xs font-semibold text-destructive">
@@ -288,8 +315,8 @@ function VerifyOtpPage() {
               )}
 
               <div className="space-y-6">
-                {/* 6 Digit Input Boxes */}
-                <div className="flex justify-between gap-1 sm:gap-2.5 md:gap-3" onPaste={handlePaste}>
+                {/* 6 Digit Input Boxes - responsive square layout */}
+                <div className="grid grid-cols-6 gap-2 sm:gap-3 w-full max-w-sm mx-auto" onPaste={handlePaste}>
                   {otp.map((digit, idx) => (
                     <input
                       key={idx}
@@ -303,7 +330,7 @@ function VerifyOtpPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(idx, e)}
-                      className="h-11 w-9 min-w-[36px] sm:h-14 sm:w-12 md:h-16 md:w-14 rounded-xl sm:rounded-2xl border border-input bg-card text-center font-mono text-xl sm:text-2xl font-extrabold text-foreground shadow-xs transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none"
+                      className="aspect-square w-full min-w-0 max-w-[54px] mx-auto rounded-xl sm:rounded-2xl border-2 border-border/80 bg-card text-center font-mono text-xl sm:text-2xl font-extrabold text-foreground shadow-xs transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none"
                     />
                   ))}
                 </div>
@@ -318,27 +345,18 @@ function VerifyOtpPage() {
                 </Button>
 
                 {/* Resend Action */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground border-t border-border pt-4">
                   <span>Didn't receive the code?</span>
                   <button
                     type="button"
                     onClick={handleResend}
                     disabled={resendCooldown > 0 || isResending}
-                    className="inline-flex min-h-[44px] items-center gap-1.5 font-bold text-primary hover:underline disabled:opacity-50 disabled:no-underline"
+                    className="inline-flex min-h-[44px] items-center gap-1.5 font-bold text-primary hover:underline disabled:opacity-50 disabled:no-underline cursor-pointer"
                   >
                     <RefreshCw className={`h-3.5 w-3.5 ${isResending ? "animate-spin" : ""}`} />
                     {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
                   </button>
                 </div>
-              </div>
-
-              <div className="text-center pt-2">
-                <Link
-                  to="/auth"
-                  className="inline-flex min-h-[44px] items-center font-semibold text-xs text-primary hover:underline"
-                >
-                  ← Return to Sign In
-                </Link>
               </div>
             </>
           ) : (
@@ -403,20 +421,27 @@ function VerifyOtpPage() {
                     <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                       Confirm New Password
                     </label>
-                    <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
+                    <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all relative">
                       <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
                       <Input
-                        type={showPassword ? "text" : "password"}
+                        type={showConfirmPassword ? "text" : "password"}
                         value={confirmPassword}
                         onChange={(e) => {
                           setConfirmPassword(e.target.value);
                           setErrorMsg("");
                         }}
                         placeholder="••••••••"
-                        className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                        className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium pr-10"
                         required
                         minLength={6}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
 
@@ -441,10 +466,22 @@ function VerifyOtpPage() {
             </>
           )}
 
-          <div className="text-center text-xs text-muted-foreground pt-4">
-            <Link to="/auth" className="font-semibold text-primary hover:underline">
-              ← Return to Sign In
-            </Link>
+          <div className="border-t border-border pt-4 text-center text-xs sm:text-sm text-muted-foreground">
+            {purpose === "reset" ? (
+              <>
+                Remember your password?{" "}
+                <Link to="/auth" className="font-bold text-primary hover:underline">
+                  Sign in
+                </Link>
+              </>
+            ) : (
+              <>
+                Already verified?{" "}
+                <Link to="/auth" className="font-bold text-primary hover:underline">
+                  Sign in
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

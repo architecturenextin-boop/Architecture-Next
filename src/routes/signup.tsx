@@ -48,8 +48,12 @@ function SignupPage() {
       setErr("Please enter a valid email address");
       return;
     }
-    const cleanPhone = phone.replace(/\D/g, "");
-    if (cleanPhone.length < 10) {
+    const rawDigits = phone.replace(/\D/g, "");
+    const cleanPhone = rawDigits.length > 10 && rawDigits.startsWith("91") 
+      ? rawDigits.slice(2) 
+      : rawDigits.slice(-10);
+
+    if (cleanPhone.length !== 10) {
       setErr("Enter a valid 10-digit mobile number");
       return;
     }
@@ -140,7 +144,7 @@ function SignupPage() {
       </div>
 
       {/* Right Signup Form (7 Cols) */}
-      <div className="md:col-span-7 flex flex-col items-center justify-center p-6 md:p-10 lg:p-12 relative overflow-y-auto">
+      <div className="md:col-span-7 flex flex-col items-center justify-center p-4 sm:p-8 md:p-10 lg:p-12 pb-12 sm:pb-16 relative overflow-y-auto">
         <div className="w-full max-w-lg space-y-6">
           <div className="flex items-center justify-between w-full">
             <div className="md:hidden">
@@ -168,7 +172,7 @@ function SignupPage() {
                   We've sent a verification link to <span className="font-semibold text-foreground">{email}</span>. Please click the link to confirm your account and log in.
                 </p>
               </div>
-              <Button asChild size="lg" className="w-full h-11 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated rounded-xl">
+              <Button asChild size="lg" className="w-full min-h-[48px] h-12 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated rounded-xl">
                 <Link to="/auth">Go to Login</Link>
               </Button>
             </div>
@@ -178,7 +182,7 @@ function SignupPage() {
                 <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                   Create your account
                 </h2>
-                <p className="mt-1.5 text-sm text-muted-foreground">
+                <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
                   Fill in your information to register and begin your learning journey.
                 </p>
               </div>
@@ -190,7 +194,7 @@ function SignupPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   First Name
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3 py-0.5 focus-within:ring-2 focus-within:ring-ring transition-all">
+                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type="text"
@@ -200,7 +204,8 @@ function SignupPage() {
                       setErr("");
                     }}
                     placeholder="Rahul"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-9"
+                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                    required
                   />
                 </div>
               </div>
@@ -209,7 +214,7 @@ function SignupPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Last Name
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3 py-0.5 focus-within:ring-2 focus-within:ring-ring transition-all">
+                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type="text"
@@ -219,7 +224,8 @@ function SignupPage() {
                       setErr("");
                     }}
                     placeholder="Kumar"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-9"
+                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                    required
                   />
                 </div>
               </div>
@@ -231,7 +237,7 @@ function SignupPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Username
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3 py-0.5 focus-within:ring-2 focus-within:ring-ring transition-all">
+                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
                   <AtSign className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type="text"
@@ -241,7 +247,8 @@ function SignupPage() {
                       setErr("");
                     }}
                     placeholder="rahulkumar"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-9"
+                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                    required
                   />
                 </div>
               </div>
@@ -250,7 +257,7 @@ function SignupPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Email Address
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3 py-0.5 focus-within:ring-2 focus-within:ring-ring transition-all">
+                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
                   <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type="email"
@@ -260,7 +267,8 @@ function SignupPage() {
                       setErr("");
                     }}
                     placeholder="rahul@example.com"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-9"
+                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                    required
                   />
                 </div>
               </div>
@@ -271,7 +279,7 @@ function SignupPage() {
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                 Mobile Number
               </label>
-              <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-0.5 focus-within:ring-2 focus-within:ring-ring transition-all">
+              <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
                 <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-sm font-bold text-foreground border-r border-border/80 pr-2 pt-0.5">+91</span>
                 <Input
@@ -283,7 +291,9 @@ function SignupPage() {
                     setErr("");
                   }}
                   placeholder="98765 43210"
-                  className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-9 tracking-wide font-medium"
+                  maxLength={14}
+                  className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                  required
                 />
               </div>
             </div>
@@ -294,7 +304,7 @@ function SignupPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Password
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3 py-0.5 focus-within:ring-2 focus-within:ring-ring transition-all relative">
+                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all relative">
                   <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type={showPassword ? "text" : "password"}
@@ -304,12 +314,14 @@ function SignupPage() {
                       setErr("");
                     }}
                     placeholder="••••••••"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-9 pr-8"
+                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium pr-10"
+                    required
+                    minLength={6}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -320,7 +332,7 @@ function SignupPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   Confirm Password
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3 py-0.5 focus-within:ring-2 focus-within:ring-ring transition-all relative">
+                <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all relative">
                   <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
@@ -330,12 +342,14 @@ function SignupPage() {
                       setErr("");
                     }}
                     placeholder="••••••••"
-                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-9 pr-8"
+                    className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium pr-10"
+                    required
+                    minLength={6}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -354,14 +368,14 @@ function SignupPage() {
               />
               <label htmlFor="agree" className="text-xs text-muted-foreground leading-snug cursor-pointer select-none">
                 I agree to ArchitectureNext's{" "}
-                <a href="#" className="font-semibold text-foreground hover:underline">Terms of Service</a>{" "}
+                <a href="#" onClick={(e) => e.preventDefault()} className="font-semibold text-foreground hover:underline">Terms of Service</a>{" "}
                 and{" "}
-                <a href="#" className="font-semibold text-foreground hover:underline">Privacy Policy</a>.
+                <a href="#" onClick={(e) => e.preventDefault()} className="font-semibold text-foreground hover:underline">Privacy Policy</a>.
               </label>
             </div>
 
             {err && (
-              <div className="rounded-lg bg-destructive/10 p-3 text-xs font-semibold text-destructive">
+              <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-xs font-semibold text-destructive">
                 {err}
               </div>
             )}
@@ -370,14 +384,14 @@ function SignupPage() {
               type="submit"
               size="lg"
               disabled={isLoading}
-              className="w-full h-11 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated hover:brightness-110 mt-1 rounded-xl text-sm sm:text-base"
+              className="w-full min-h-[48px] h-12 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated hover:brightness-110 mt-1 rounded-xl text-base"
             >
               {isLoading ? "Creating Account..." : "Create Account"} <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
 
           {/* Already have an account */}
-          <div className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
+          <div className="border-t border-border pt-4 text-center text-xs sm:text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link to="/auth" className="font-bold text-primary hover:underline">
               Sign in
