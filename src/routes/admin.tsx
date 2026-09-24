@@ -1,7 +1,8 @@
 import { createFileRoute, Link, Outlet, useRouterState, redirect, isRedirect, useNavigate } from "@tanstack/react-router";
 import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2, MessageSquareQuote, Tag, ChevronRight, Globe, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
-import { AdminHeader } from "@/components/admin-header";
+import { BrandLogo } from "@/components/brand-logo";
+import { ProfileCard } from "@/components/profile-card";
 import { authService } from "@/lib/services/auth.service";
 import { tokenStorage } from "@/lib/api-client";
 import { useAuth } from "@/hooks/use-auth";
@@ -59,12 +60,23 @@ function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-surface-soft">
-      <AdminHeader />
+      {/* Slim brand-only top bar — nav lives in the sidebar */}
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <BrandLogo size="md" />
+            <span className="rounded-md bg-gradient-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-xs">
+              Admin
+            </span>
+          </div>
+          <ProfileCard />
+        </div>
+      </header>
       {/* Same layout pattern as student AppShell: sidebar on desktop, full width on mobile */}
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:grid-cols-[240px_1fr] md:px-6">
         {/* Desktop Sidebar */}
         <aside className="hidden md:block">
-          <nav className="sticky top-24 space-y-1 rounded-2xl border border-border bg-card p-2 shadow-soft">
+          <nav className="sticky top-20 space-y-1 rounded-2xl border border-border bg-card p-2 shadow-soft">
             {nav.map((n) => {
               const active = n.to === "/admin" ? path === "/admin" : path.startsWith(n.to);
               return (
