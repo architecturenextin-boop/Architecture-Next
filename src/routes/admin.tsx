@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState, redirect, isRedirect, useNavigate } from "@tanstack/react-router";
-import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2, MessageSquareQuote, Tag } from "lucide-react";
+import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2, MessageSquareQuote, Tag, ChevronRight, Globe, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { AdminHeader } from "@/components/admin-header";
 import { authService } from "@/lib/services/auth.service";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminShell({ children }: { children: ReactNode }) {
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
 
@@ -42,6 +42,7 @@ function AdminShell({ children }: { children: ReactNode }) {
     navigate({ to: "/dashboard" });
     return null;
   }
+
   const nav = [
     { to: "/admin", label: "Overview", icon: LayoutDashboard },
     { to: "/admin/students", label: "Students", icon: Users },
@@ -50,21 +51,70 @@ function AdminShell({ children }: { children: ReactNode }) {
     { to: "/admin/coupons", label: "Coupons", icon: Tag },
     { to: "/admin/testimonials", label: "Testimonials", icon: MessageSquareQuote },
   ];
-  
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate({ to: "/" });
+  };
+
   return (
     <div className="min-h-screen bg-surface-soft">
       <AdminHeader />
-      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-10">{children}</div>
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-border bg-background/95 backdrop-blur md:hidden">
-
-        {nav.map((n) => {
-          const active = n.to === "/admin" ? path === "/admin" : path.startsWith(n.to);
-          return (
-            <Link key={n.to} to={n.to} className={`flex flex-col items-center gap-1 py-2.5 text-xs ${active ? "text-primary" : "text-muted-foreground"}`}>
-              <n.icon className="h-5 w-5" /><span className="text-[10px] font-medium">{n.label}</span>
+      {/* Same layout pattern as student AppShell: sidebar on desktop, full width on mobile */}
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:grid-cols-[240px_1fr] md:px-6">
+        {/* Desktop Sidebar */}
+        <aside className="hidden md:block">
+          <nav className="sticky top-24 space-y-1 rounded-2xl border border-border bg-card p-2 shadow-soft">
+            {nav.map((n) => {
+              const active = n.to === "/admin" ? path === "/admin" : path.startsWith(n.to);
+              return (
+                <Link
+                  key={n.to}
+                  to={n.to}
+                  className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                >
+                  <span className="inline-flex items-center gap-2.5">
+                    <n.icon className="h-4 w-4" /> {n.label}
+                  </span>
+                  {active && <ChevronRight className="h-4 w-4" />}
+                </Link>
+              );
+            })}
+            <div className="my-1.5 border-t border-border/60" />
+            <Link
+              to="/"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              <Globe className="h-4 w-4" /> Back to website
             </Link>
-          );
-        })}
+            <button
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" /> Sign out
+            </button>
+          </nav>
+        </aside>
+        <main className="min-w-0 pb-20 md:pb-0">{children}</main>
+      </div>
+
+      {/* Mobile Bottom Nav */}
+      <nav aria-label="Admin Mobile Navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-6">
+          {nav.map((n) => {
+            const active = n.to === "/admin" ? path === "/admin" : path.startsWith(n.to);
+            return (
+              <Link
+                key={n.to}
+                to={n.to}
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 py-1.5 text-xs transition-colors ${active ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <n.icon className="h-5 w-5" />
+                <span className="text-[10px] leading-tight">{n.label.split(" ")[0]}</span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
       <div className="h-16 md:hidden" />
     </div>

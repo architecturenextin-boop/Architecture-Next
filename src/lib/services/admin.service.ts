@@ -68,7 +68,29 @@ export interface AdminPaymentItem {
 
 export const adminService = {
   getOverviewStats: async (): Promise<AdminOverviewStats> => {
-    return apiClient<AdminOverviewStats>("/admin/overview");
+    const raw = await apiClient<any>("/admin/overview");
+    // Backend returns { stats: {...}, recentUsers, recentEnrollments }
+    // Normalize to the flat shape the frontend Overview component expects
+    if (raw?.stats) {
+      return {
+        profileCount: raw.stats.totalUsers ?? 0,
+        enrolledStudentsCount: raw.stats.totalEnrollments ?? 0,
+        totalPaymentsCount: 0,
+        totalRevenue: raw.stats.totalRevenue ?? 0,
+        courseCount: raw.stats.publishedCourses ?? raw.stats.totalCourses ?? 0,
+        recent: (raw.recentEnrollments ?? []).map((e: any) => ({
+          id: e.id,
+          amount: e.payment?.amount ?? e.course?.price ?? 0,
+          currency: "₹",
+          status: "completed",
+          studentName: e.user?.full_name || e.user?.email || "Learner",
+          courseTitle: e.course?.title || "Course",
+          orderId: e.id?.substring(0, 8).toUpperCase(),
+          created_at: e.enrolled_at ?? e.created_at,
+        })),
+      };
+    }
+    return raw;
   },
 
   getAllCourses: async (): Promise<CourseWithContent[]> => {
