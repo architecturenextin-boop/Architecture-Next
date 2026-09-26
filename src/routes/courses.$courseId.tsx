@@ -634,11 +634,6 @@ function CourseDetailPage() {
                                     <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground">
                                       {lesson.duration}
                                     </span>
-                                    {lesson.is_free && (
-                                      <span className="hidden sm:inline-flex text-[11px] font-bold text-primary opacity-0 group-hover:opacity-100 transition">
-                                        Watch Preview →
-                                      </span>
-                                    )}
                                   </div>
                                 </div>
                               );
