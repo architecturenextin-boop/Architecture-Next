@@ -283,31 +283,29 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
 
   return (
     <div 
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs animate-fade-in" 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 bg-black/60 backdrop-blur-xs animate-fade-in" 
       onClick={onClose}
     >
-      <div className="flex min-h-full items-center justify-center p-3 sm:p-6 md:p-8">
-        <div 
-          className="relative w-full max-w-4xl rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-elevated my-auto" 
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Modal Header */}
-          <div className="flex items-center justify-between border-b border-border/60 pb-4 mb-6">
-            <h2 className="font-display text-lg sm:text-xl font-bold text-foreground">{title}</h2>
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-              aria-label="Close modal"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+      <div 
+        className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border border-border bg-card shadow-elevated overflow-hidden animate-fade-up" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sticky Modal Header */}
+        <div className="flex items-center justify-between border-b border-border/60 bg-card/95 backdrop-blur-sm px-6 sm:px-8 py-4 shrink-0 z-10">
+          <h2 className="font-display text-lg sm:text-xl font-bold text-foreground">{title}</h2>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+            aria-label="Close modal"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-          {/* Modal Body */}
-          <div>
-            {children}
-          </div>
+        {/* Dedicated Scrollable Modal Body */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 overscroll-contain">
+          {children}
         </div>
       </div>
     </div>

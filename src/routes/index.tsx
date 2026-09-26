@@ -144,7 +144,7 @@ function Hero() {
             >
               {user && hasAnyEnrollments ? (
                 <Link to="/dashboard/courses">
-                  Continue <ArrowRight className="ml-1.5 h-4 w-4" />
+                  Enrolled <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Link>
               ) : (
                 <Link to="/courses">
