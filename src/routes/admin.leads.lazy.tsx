@@ -125,81 +125,35 @@ function AdminLeads() {
   return (
     <div className="space-y-6">
       {/* Page Title & Header Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold text-foreground">Free Preview Leads</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track students who watched free preview lessons and prioritize warm sales follow-ups.
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Preview Leads</h1>
+          <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">
+            {filteredLeads.length} leads tracked from free preview lessons
           </p>
         </div>
         <Button
           onClick={handleExportCsv}
           variant="outline"
-          className="gap-2 border-border font-semibold shadow-xs"
+          size="sm"
+          className="h-9 gap-1.5 border-border text-xs font-semibold shadow-2xs"
           disabled={filteredLeads.length === 0}
         >
-          <Download className="h-4 w-4 text-primary" /> Export Filtered CSV ({filteredLeads.length})
+          <Download className="h-3.5 w-3.5 text-primary" /> Export CSV ({filteredLeads.length})
         </Button>
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Preview Leads</span>
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
-              <Users className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 font-display text-2xl font-bold text-foreground">{totalLeads}</div>
-          <p className="mt-1 text-xs text-muted-foreground">Students engaged with previews</p>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">🔥 Hot Leads (≥3 Views)</span>
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-amber-500/10 text-amber-500">
-              <Flame className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 font-display text-2xl font-bold text-amber-500">{hotLeadsCount}</div>
-          <p className="mt-1 text-xs text-muted-foreground">High purchase intent signals</p>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Converted / Purchased</span>
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600">
-              <CheckCircle2 className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 font-display text-2xl font-bold text-emerald-600">{convertedCount}</div>
-          <p className="mt-1 text-xs text-muted-foreground">Bought course after previewing</p>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Preview → Buy Rate</span>
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-primary-foreground">
-              <Sparkles className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 font-display text-2xl font-bold text-foreground">{conversionRate}%</div>
-          <p className="mt-1 text-xs text-muted-foreground">Funnel conversion efficiency</p>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="rounded-2xl border border-border bg-card p-4 shadow-soft space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
+      {/* Minimal Filter and Search Bar */}
+      <div className="rounded-2xl border border-border bg-card p-3 sm:p-4 shadow-soft space-y-2.5">
+        <div className="flex flex-col sm:flex-row gap-2.5">
           {/* Search */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by student name, email, phone, or course..."
-              className="pl-9 bg-surface text-sm"
+              placeholder="Search by name, email, phone, or course..."
+              className="pl-9 h-9 bg-surface text-xs sm:text-sm"
             />
           </div>
 
@@ -207,24 +161,24 @@ function AdminLeads() {
           <button
             type="button"
             onClick={() => setHotLeadsOnly(!hotLeadsOnly)}
-            className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 h-9 text-xs font-bold transition-all cursor-pointer shrink-0 ${
               hotLeadsOnly
-                ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-xs"
+                ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-2xs"
                 : "border-border bg-surface text-muted-foreground hover:text-foreground"
             }`}
           >
             <Flame className="h-3.5 w-3.5" />
-            <span>🔥 Hot Leads Only</span>
+            <span>🔥 Hot Leads</span>
           </button>
         </div>
 
         {/* Dropdown Filters Row */}
-        <div className="grid gap-2.5 sm:grid-cols-4 pt-1">
+        <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
           {/* Course filter */}
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="h-9 w-full rounded-xl border border-input bg-surface px-3 text-xs shadow-xs outline-none"
+            className="h-8.5 w-full rounded-xl border border-input bg-surface px-2.5 text-xs shadow-2xs outline-none"
           >
             <option value="all">All Courses ({courseOptions.length})</option>
             {courseOptions.map((c) => (
@@ -238,7 +192,7 @@ function AdminLeads() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 w-full rounded-xl border border-input bg-surface px-3 text-xs shadow-xs outline-none"
+            className="h-8.5 w-full rounded-xl border border-input bg-surface px-2.5 text-xs shadow-2xs outline-none"
           >
             <option value="all">All Lead Statuses</option>
             <option value="viewed">Status: Viewed</option>
@@ -250,9 +204,9 @@ function AdminLeads() {
           <select
             value={purchaseFilter}
             onChange={(e) => setPurchaseFilter(e.target.value)}
-            className="h-9 w-full rounded-xl border border-input bg-surface px-3 text-xs shadow-xs outline-none"
+            className="h-8.5 w-full rounded-xl border border-input bg-surface px-2.5 text-xs shadow-2xs outline-none"
           >
-            <option value="all">All Purchase Statuses</option>
+            <option value="all">All Purchases</option>
             <option value="not_purchased">Not Purchased</option>
             <option value="purchased">Purchased</option>
           </select>
@@ -261,10 +215,10 @@ function AdminLeads() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as "recent" | "views")}
-            className="h-9 w-full rounded-xl border border-input bg-surface px-3 text-xs shadow-xs outline-none font-semibold text-primary"
+            className="h-8.5 w-full rounded-xl border border-input bg-surface px-2.5 text-xs shadow-2xs outline-none font-semibold text-primary"
           >
             <option value="recent">Sort: Most Recent</option>
-            <option value="views">Sort: Highest Views (Hottest First)</option>
+            <option value="views">Sort: Most Views</option>
           </select>
         </div>
       </div>
