@@ -264,28 +264,17 @@ function AdminCourses() {
 }
 
 function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  // Lock background body scroll so wheel events belong 100% to the modal
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, []);
-
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-xs animate-fade-in pointer-events-auto" 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-5 animate-fade-in" 
       onClick={onClose}
     >
       <div 
-        className="relative flex flex-col w-full max-w-4xl max-h-[92vh] min-h-0 rounded-3xl border border-border bg-card shadow-elevated overflow-hidden animate-scale-in pointer-events-auto" 
+        className="relative w-full max-w-4xl rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-elevated max-h-[90vh] overflow-y-auto animate-scale-in" 
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Sticky Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-6 py-4 bg-card/95 backdrop-blur-xs z-10">
+        {/* Modal Sticky Header */}
+        <div className="flex items-center justify-between border-b border-border/60 pb-4 mb-6 sticky -top-6 sm:-top-8 -mt-6 sm:-mt-8 -mx-6 sm:-mx-8 px-6 sm:px-8 pt-6 sm:pt-8 bg-card/95 backdrop-blur-md z-20">
           <h2 className="font-display text-lg sm:text-xl font-bold text-foreground">{title}</h2>
           <button 
             type="button" 
@@ -297,12 +286,8 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
           </button>
         </div>
 
-        {/* Scrollable Content Body - mouse wheel anywhere inside scrolls smoothly */}
-        <div 
-          ref={contentRef}
-          tabIndex={0}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-4 sm:p-6 md:p-8 space-y-6 touch-pan-y pointer-events-auto outline-none"
-        >
+        {/* Modal Body */}
+        <div>
           {children}
         </div>
       </div>
