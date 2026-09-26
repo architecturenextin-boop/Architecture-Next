@@ -29,6 +29,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/lib/services/course.service";
 import { testimonialService } from "@/lib/services/testimonial.service";
+import { useAuth } from "@/hooks/use-auth";
+import { useEnrolledCourses } from "@/hooks/use-enrolled-courses";
 import heroImg from "@/assets/hero-learner.jpeg";
 
 export const Route = createFileRoute("/")({
@@ -111,6 +113,9 @@ function Landing() {
 }
 
 function Hero() {
+  const { user } = useAuth();
+  const { hasAnyEnrollments } = useEnrolledCourses();
+
   return (
     <section className="relative overflow-hidden bg-gradient-hero border-b border-border">
       <div className="pointer-events-none absolute -top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-brand-blue/15 blur-[120px]" />
@@ -137,9 +142,15 @@ function Hero() {
               size="lg"
               className="h-12 bg-gradient-primary px-7 font-semibold text-primary-foreground shadow-glow transition-all hover:scale-[1.02] hover:brightness-110"
             >
-              <Link to="/courses">
-                Enroll Now <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Link>
+              {user && hasAnyEnrollments ? (
+                <Link to="/dashboard/courses">
+                  Go to My Courses <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              ) : (
+                <Link to="/courses">
+                  Enroll Now <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              )}
             </Button>
             <Button
               asChild
@@ -463,6 +474,9 @@ function Testimonials() {
 }
 
 function Pricing({ course }: { course: any }) {
+  const { isEnrolledIn } = useEnrolledCourses();
+  const isEnrolled = isEnrolledIn(course.id) || isEnrolledIn(course.slug);
+
   const originalPrice = course.original_price || 5999;
   const price = course.price || 1999;
   const currency = course.currency || "₹";
@@ -497,11 +511,15 @@ function Pricing({ course }: { course: any }) {
               <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-primary">
                 {course.level || "Complete Course"}
               </span>
-              {course.language && (
+              {isEnrolled ? (
+                <span className="rounded-md bg-emerald-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">
+                  ✓ Enrolled in Course
+                </span>
+              ) : course.language ? (
                 <span className="rounded-md bg-gradient-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground shadow-sm">
                   {course.language}
                 </span>
-              )}
+              ) : null}
             </div>
 
             <h3 className="mt-3 max-w-2xl type-h2 text-foreground tracking-tight">
@@ -539,15 +557,27 @@ function Pricing({ course }: { course: any }) {
                 </li>
               ))}
             </ul>
-            <Button
-              asChild
-              size="lg"
-              className="mt-10 h-13 w-full bg-gradient-primary py-3.5 text-base font-semibold text-primary-foreground shadow-glow transition-all hover:scale-[1.01] hover:brightness-110"
-            >
-              <Link to="/courses/$courseId" params={{ courseId: course.slug || course.id }}>
-                Enroll Now <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Link>
-            </Button>
+            {isEnrolled ? (
+              <Button
+                asChild
+                size="lg"
+                className="mt-10 h-13 w-full bg-emerald-600 hover:bg-emerald-700 py-3.5 text-base font-bold text-white shadow-glow transition-all hover:scale-[1.01] hover:brightness-110 cursor-pointer"
+              >
+                <Link to="/learn/$courseId" params={{ courseId: course.slug || course.id }}>
+                  <PlayCircle className="mr-2 h-5 w-5" /> Continue Learning
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                asChild
+                size="lg"
+                className="mt-10 h-13 w-full bg-gradient-primary py-3.5 text-base font-semibold text-primary-foreground shadow-glow transition-all hover:scale-[1.01] hover:brightness-110"
+              >
+                <Link to="/courses/$courseId" params={{ courseId: course.slug || course.id }}>
+                  Enroll Now <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
             <p className="mt-4 text-center type-small text-xs text-muted-foreground">
               7-day refund · Internship certificate · Lifetime updates
             </p>

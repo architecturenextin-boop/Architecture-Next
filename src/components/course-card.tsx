@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Clock, BookOpen, Star } from "lucide-react";
+import { ArrowRight, Clock, BookOpen, Star, PlayCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Course } from "@/lib/database.types";
 import { getMediaUrl } from "@/lib/utils";
+import { useEnrolledCourses } from "@/hooks/use-enrolled-courses";
 
 interface CourseCardProps {
   course: Course;
@@ -10,6 +11,10 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, badge }: CourseCardProps) {
+  const { isEnrolledIn, getCourseProgress } = useEnrolledCourses();
+  const isEnrolled = isEnrolledIn(course.id) || isEnrolledIn(course.slug);
+  const userProgress = isEnrolled ? getCourseProgress(course.id) || getCourseProgress(course.slug) : undefined;
+
   // Calculate discount percentage
   const originalPrice = course.original_price || 10000;
   const price = course.price || 0;
@@ -29,19 +34,36 @@ export function CourseCard({ course, badge }: CourseCardProps) {
 
         {/* Top-left Language / Course Tag Badge */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          {course.language && (
-            <span className="rounded-md bg-gradient-primary px-2.5 py-1 text-xs font-bold text-primary-foreground shadow-md backdrop-blur-md">
-              {course.language}
+          {isEnrolled ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white shadow-md backdrop-blur-md">
+              <CheckCircle2 className="h-3 w-3" /> Enrolled
             </span>
+          ) : (
+            course.language && (
+              <span className="rounded-md bg-gradient-primary px-2.5 py-1 text-xs font-bold text-primary-foreground shadow-md backdrop-blur-md">
+                {course.language}
+              </span>
+            )
           )}
         </div>
 
-        {/* Floating Price Offer Badge (Bottom Right of Image) */}
+        {/* Floating Price Offer Badge or Progress Indicator */}
         <div className="absolute bottom-3 right-3 rounded-lg bg-background/90 border border-primary/40 px-3 py-1.5 shadow-lg backdrop-blur-md">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-            <span>{course.currency}{price.toLocaleString()}/- Offer</span>
-            <span className="text-xs text-muted-foreground font-semibold">[Today Only]</span>
-          </div>
+          {isEnrolled ? (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              <PlayCircle className="h-3.5 w-3.5" />
+              <span>
+                {userProgress?.progress_count
+                  ? `${userProgress.progress_count}/${userProgress.total_lessons || course.total_lessons || "?"} Lessons`
+                  : "Lifetime Access"}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+              <span>{course.currency}{price.toLocaleString()}/- Offer</span>
+              <span className="text-xs text-muted-foreground font-semibold">[Today Only]</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -86,32 +108,60 @@ export function CourseCard({ course, badge }: CourseCardProps) {
         {/* Pricing & CTA Row */}
         <div className="mt-6 flex items-center justify-between gap-3 pt-2">
           <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-display text-xl font-extrabold tracking-tight text-foreground">
-                {course.currency}{price.toLocaleString()}
-              </span>
-              <span className="text-xs text-muted-foreground line-through">
-                {course.currency}{originalPrice.toLocaleString()}
-              </span>
-            </div>
-            <span className="text-xs font-semibold text-primary">
-              Save {discount}% OFF
-            </span>
+            {isEnrolled ? (
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
+                  Enrolled Course
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Ready to stream
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-display text-xl font-extrabold tracking-tight text-foreground">
+                    {course.currency}{price.toLocaleString()}
+                  </span>
+                  <span className="text-xs text-muted-foreground line-through">
+                    {course.currency}{originalPrice.toLocaleString()}
+                  </span>
+                </div>
+                <span className="text-xs font-semibold text-primary">
+                  Save {discount}% OFF
+                </span>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              asChild
-              size="sm"
-              className="bg-gradient-primary font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 hover:shadow-elevated"
-            >
-              <Link
-                to="/courses/$courseId"
-                params={{ courseId: course.slug || course.id }}
+            {isEnrolled ? (
+              <Button
+                asChild
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 font-semibold text-white shadow-soft transition-all hover:scale-[1.02] hover:shadow-elevated cursor-pointer"
               >
-                Enroll <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Link>
-            </Button>
+                <Link
+                  to="/learn/$courseId"
+                  params={{ courseId: course.slug || course.id }}
+                >
+                  <PlayCircle className="mr-1.5 h-3.5 w-3.5" /> Continue
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                asChild
+                size="sm"
+                className="bg-gradient-primary font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 hover:shadow-elevated"
+              >
+                <Link
+                  to="/courses/$courseId"
+                  params={{ courseId: course.slug || course.id }}
+                >
+                  Enroll <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>
