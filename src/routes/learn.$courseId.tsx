@@ -15,7 +15,11 @@ export const Route = createFileRoute("/learn/$courseId")({
 
     try {
       const data = await courseService.getCourseLearningContent(params.courseId);
-      if (!data.isEnrolled && !data.isAdmin) {
+      const hasFreeLessons = (data.course?.modules || []).some((m: any) =>
+        (m.lessons || m.lessons_safe || []).some((l: any) => !!l.is_free)
+      );
+
+      if (!data.isEnrolled && !data.isAdmin && !hasFreeLessons) {
         throw redirect({ to: "/checkout", search: { course: params.courseId } });
       }
     } catch (err: any) {

@@ -1,11 +1,12 @@
 import { createLazyFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, RotateCw } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, RotateCw, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
 import { useAuth } from "@/hooks/use-auth";
 import { courseService } from "@/lib/services/course.service";
+import { leadService } from "@/lib/services/lead.service";
 import { tokenStorage } from "@/lib/api-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CourseWithContent } from "@/lib/database.types";
@@ -96,13 +97,17 @@ function LearnPage() {
     );
   }, [sortedModules]);
 
+  const hasAnyFreePreview = useMemo(() => {
+    return flatLessons.some((l: any) => !!l.is_free);
+  }, [flatLessons]);
+
   const [activeId, setActiveId] = useState("");
 
   const completed = useMemo(() => {
     return progressList.filter((p: any) => p.completed).map((p: any) => p.lesson_id);
   }, [progressList]);
 
-  // Synchronize active lesson with URL search params or last-watched progress
+  // Synchronize active lesson with URL search params or last-watched progress / first free lesson
   useEffect(() => {
     if (flatLessons.length === 0) return;
 
@@ -120,9 +125,17 @@ function LearnPage() {
           return;
         }
       }
+      // If user is not enrolled, prioritize selecting the first free preview lesson
+      if (!isEnrolled) {
+        const firstFree = flatLessons.find((l) => !!l.is_free);
+        if (firstFree) {
+          setActiveId(firstFree.id);
+          return;
+        }
+      }
       setActiveId(flatLessons[0]?.id || "");
     }
-  }, [flatLessons, lessonId, activeId, progressList]);
+  }, [flatLessons, lessonId, activeId, progressList, isEnrolled]);
 
   // Update navigation search param smoothly without unmounting route
   const handleSelectLesson = (id: string) => {
@@ -196,7 +209,12 @@ function LearnPage() {
 
         // Check enrollment restriction
         if (!currentLesson.is_free && !isEnrolled) {
-          throw new Error("You must be actively enrolled to stream this lesson.");
+          if (active) {
+            setVideoError("LOCKED_LESSON");
+            setPlayerReady(true);
+            setVideoLoading(false);
+          }
+          return;
         }
 
         const rawVideo = currentLesson.video_url || (currentLesson as any).video_path;
@@ -432,6 +450,7 @@ function LearnPage() {
     }
 
     let lastSavedSeconds = 0;
+    let leadTracked = false;
 
     const updateDurationFromPlayer = async () => {
       try {
@@ -461,6 +480,20 @@ function LearnPage() {
         updateDurationFromPlayer();
       });
 
+      // Free preview lead tracking on actual confirmed video play
+      playerInstance.on("play", () => {
+        if (!isEnrolled && !isAdmin && activeLesson?.is_free && !leadTracked && course?.id && activeLesson?.id) {
+          leadTracked = true;
+          leadService
+            .trackFreePreview({
+              courseId: course.id,
+              lessonId: activeLesson.id,
+              source: "dashboard",
+            })
+            .catch((err) => console.warn("Free preview lead tracking error:", err));
+        }
+      });
+
       playerInstance.on("timeupdate", () => {
         try {
           const current = Math.floor(playerInstance?.currentTime || 0);
@@ -470,8 +503,8 @@ function LearnPage() {
             updateDurationFromPlayer();
           }
 
-          // Auto-mark completed when video reaches >= 90% or within 3 seconds of end
-          if (duration > 5 && !hasAutoCompleted && !completed.includes(activeId)) {
+          // Auto-mark completed when video reaches >= 90% or within 3 seconds of end (for enrolled users)
+          if (isEnrolled && duration > 5 && !hasAutoCompleted && !completed.includes(activeId)) {
             if (current >= duration - 3 || (duration > 0 && current / duration >= 0.90)) {
               triggerAutoCompletion(current);
             }
@@ -479,20 +512,36 @@ function LearnPage() {
 
           if (Math.abs(current - lastSavedSeconds) >= 7) {
             lastSavedSeconds = current;
-            autoSave(current);
+            if (isEnrolled) {
+              autoSave(current);
+            }
           }
         } catch (_) {}
       });
 
       playerInstance.on("pause", () => {
         try {
-          autoSave(Math.floor(playerInstance?.currentTime || 0));
+          const cur = Math.floor(playerInstance?.currentTime || 0);
+          if (isEnrolled) {
+            autoSave(cur);
+          } else if (activeLesson?.is_free && course?.id && activeLesson?.id && cur > 0) {
+            leadService
+              .trackFreePreview({
+                courseId: course.id,
+                lessonId: activeLesson.id,
+                watchDurationSeconds: cur,
+                source: "dashboard",
+              })
+              .catch(() => {});
+          }
         } catch (_) {}
       });
 
       playerInstance.on("ended", () => {
         try {
-          triggerAutoCompletion(Math.floor(playerInstance?.currentTime || 0));
+          if (isEnrolled) {
+            triggerAutoCompletion(Math.floor(playerInstance?.currentTime || 0));
+          }
         } catch (_) {}
       });
     }
@@ -500,7 +549,7 @@ function LearnPage() {
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
         try {
-          if (playerInstance?.currentTime) {
+          if (playerInstance?.currentTime && isEnrolled) {
             autoSave(Math.floor(playerInstance.currentTime));
           }
         } catch (_) {}
@@ -520,7 +569,7 @@ function LearnPage() {
       try {
         if (playerInstance) {
           const currentTime = playerInstance.currentTime ? Math.floor(playerInstance.currentTime) : 0;
-          if (currentTime > 0) autoSave(currentTime);
+          if (currentTime > 0 && isEnrolled) autoSave(currentTime);
           playerInstance.destroy();
         }
       } catch (_) {}
@@ -530,7 +579,7 @@ function LearnPage() {
         container.innerHTML = "";
       }
     };
-  }, [videoUrl, activeId, user?.id, course?.id, completed]);
+  }, [videoUrl, activeId, user?.id, course?.id, completed, isEnrolled, isAdmin, activeLesson]);
 
   if (courseLoading || authLoading || !activeId) {
     return (
@@ -540,8 +589,8 @@ function LearnPage() {
     );
   }
 
-  // Not enrolled and not admin: Show Protected Locked Screen
-  if (!isAdmin && isEnrolled === false) {
+  // Not enrolled and no free previews: Show Protected Locked Screen
+  if (!isAdmin && isEnrolled === false && !hasAnyFreePreview) {
     return (
       <div className="grid min-h-screen place-items-center bg-surface-soft p-4">
         <div className="max-w-md w-full rounded-2xl border border-border bg-card p-8 text-center shadow-elevated">
@@ -555,9 +604,9 @@ function LearnPage() {
           <div className="mt-6 flex flex-col gap-3">
             <Button
               className="w-full bg-gradient-primary text-primary-foreground font-semibold"
-              onClick={() => navigate({ to: "/checkout", search: { course: courseId } })}
+              onClick={() => navigate({ to: "/checkout", search: { course: course?.slug || courseId } })}
             >
-              Enroll Now for {course?.currency || "₹"}{course?.price}
+              Enroll Now for {course?.currency || "₹"}{course?.price?.toLocaleString()}
             </Button>
             <Button
               variant="outline"
@@ -877,8 +926,46 @@ function LearnPage() {
                   </div>
                 )}
 
-                {/* Error State */}
-                {videoError && (
+                {/* Locked Lesson State */}
+                {videoError === "LOCKED_LESSON" && (
+                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-br from-[#0B0B12] via-[#14141F] to-[#1A1A2A] p-6 text-center text-white">
+                    <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-primary/15 text-primary border border-primary/20 mb-3 sm:mb-4 shadow-glow">
+                      <Lock className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+                    </div>
+                    <span className="rounded-full bg-amber-500/15 text-amber-400 px-3 py-1 text-[11px] font-bold uppercase tracking-wider mb-2">
+                      Enrolled Members Only
+                    </span>
+                    <h2 className="font-display text-base sm:text-xl font-bold text-white max-w-md">
+                      {activeLesson?.title || "Lesson Locked"}
+                    </h2>
+                    <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-md leading-relaxed">
+                      Enroll in <span className="text-foreground font-semibold">{course?.title}</span> to unlock this lesson and get instant access to the entire curriculum, downloadable templates, and certificate.
+                    </p>
+                    <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                      <Button
+                        className="bg-gradient-primary text-primary-foreground font-bold px-6 h-10 sm:h-11 shadow-glow hover:brightness-110"
+                        onClick={() => navigate({ to: "/checkout", search: { course: course?.slug || courseId } })}
+                      >
+                        Enroll Now for {course?.currency || "₹"}{course?.price?.toLocaleString()}
+                      </Button>
+                      {flatLessons.some((l) => l.is_free && l.id !== activeLesson?.id) && (
+                        <Button
+                          variant="outline"
+                          className="border-white/20 bg-white/5 text-white hover:bg-white/10 h-10 sm:h-11"
+                          onClick={() => {
+                            const firstFree = flatLessons.find((l) => l.is_free);
+                            if (firstFree) handleSelectLesson(firstFree.id);
+                          }}
+                        >
+                          Watch Free Preview
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Generic Video Error State */}
+                {videoError && videoError !== "LOCKED_LESSON" && (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/90 p-4 sm:p-6 text-center">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/15 text-destructive mb-2">
                       <PlayCircle className="h-7 w-7" />
@@ -909,12 +996,46 @@ function LearnPage() {
             )}
           </div>
 
+          {/* Persistent Free Preview Banner & High-Converting CTA (when not enrolled) */}
+          {!isEnrolled && (
+            <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 p-4 sm:p-5 shadow-soft">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <Sparkles className="h-3 w-3" />
+                    Free Preview Mode
+                  </div>
+                  <h3 className="font-display text-sm sm:text-base font-bold text-foreground">
+                    Enjoying this lesson? Get full lifetime access today.
+                  </h3>
+                  <p className="text-xs text-muted-foreground max-w-xl">
+                    Enroll now to unlock all {flatLessons.length} lessons, CAD & BIM exercise files, personal feedback, and your verified certificate of completion.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="hidden md:block text-right">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Course Fee</div>
+                    <div className="font-display text-lg font-extrabold text-foreground">
+                      {course?.currency || "₹"}{course?.price?.toLocaleString()}
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => navigate({ to: "/checkout", search: { course: course?.slug || courseId } })}
+                    className="w-full sm:w-auto bg-gradient-primary text-primary-foreground font-bold px-5 h-10 sm:h-11 shadow-glow hover:brightness-110 shrink-0"
+                  >
+                    Enroll Now
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Now Playing Details & Action Bar */}
           <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-soft">
              <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-md">
-                  Now playing
+                  {activeLesson?.is_free && !isEnrolled ? "Free Preview" : "Now playing"}
                 </span>
                 {(liveDuration || activeLesson?.duration) && (
                   <span className="text-[11px] sm:text-xs font-mono font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
@@ -964,27 +1085,34 @@ function LearnPage() {
 
             {/* Action Buttons Row */}
             <div className="mt-4 sm:mt-5 flex items-center justify-between gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-border/50">
-              {/* Interactive Completion Toggle Pill */}
-              <button 
-                type="button"
-                onClick={() => toggleProgressMutation.mutate(activeId)} 
-                disabled={toggleProgressMutation.isPending}
-                aria-pressed={isDone}
-                className={`group inline-flex items-center gap-2 rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 ${
-                  isDone 
-                    ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15" 
-                    : "border border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted/60 hover:text-foreground"
-                }`}
-              >
-                <div className={`grid h-5 w-5 place-items-center rounded-md transition-colors ${
-                  isDone 
-                    ? "bg-emerald-500 text-white shadow-xs" 
-                    : "border border-muted-foreground/40 bg-background group-hover:border-primary/60"
-                }`}>
-                  <Check className={`h-3.5 w-3.5 stroke-[2.5] transition-transform ${isDone ? "scale-100" : "scale-0 text-primary"}`} />
+              {/* Interactive Completion Toggle Pill (or Free Preview Pill if not enrolled) */}
+              {isEnrolled ? (
+                <button 
+                  type="button"
+                  onClick={() => toggleProgressMutation.mutate(activeId)} 
+                  disabled={toggleProgressMutation.isPending}
+                  aria-pressed={isDone}
+                  className={`group inline-flex items-center gap-2 rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 ${
+                    isDone 
+                      ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15" 
+                      : "border border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted/60 hover:text-foreground"
+                  }`}
+                >
+                  <div className={`grid h-5 w-5 place-items-center rounded-md transition-colors ${
+                    isDone 
+                      ? "bg-emerald-500 text-white shadow-xs" 
+                      : "border border-muted-foreground/40 bg-background group-hover:border-primary/60"
+                  }`}>
+                    <Check className={`h-3.5 w-3.5 stroke-[2.5] transition-transform ${isDone ? "scale-100" : "scale-0 text-primary"}`} />
+                  </div>
+                  <span>{isDone ? "Completed" : "Mark Complete"}</span>
+                </button>
+              ) : (
+                <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs font-semibold text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  Free Preview Lesson
                 </div>
-                <span>{isDone ? "Completed" : "Mark Complete"}</span>
-              </button>
+              )}
 
               {/* Navigation Controls: Clean Symbols + Responsive Labels */}
               <div className="flex items-center gap-1.5 sm:gap-2">
@@ -1018,7 +1146,7 @@ function LearnPage() {
         <aside className="hidden lg:block h-fit rounded-2xl border border-border bg-card p-3.5 shadow-soft sticky top-20">
           <div className="px-3 py-2 border-b border-border/60 mb-2">
             <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Course content</div>
-            <div className="text-xs text-muted-foreground">{flatLessons.length} lessons • {course.total_duration}</div>
+            <div className="text-xs text-muted-foreground">{flatLessons.length} lessons • {course?.total_duration}</div>
           </div>
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             {sortedModules.map((m: any) => (
@@ -1029,15 +1157,33 @@ function LearnPage() {
                     const done = completed.includes(l.id || "");
                     const active = activeId === l.id;
                     const isLessonPdf = !!l.pdf_url && !l.video_url;
+                    const isLessonLocked = !isEnrolled && !l.is_free;
+
                     return (
                       <button 
                         key={l.id} 
                         onClick={() => { if (l.id) handleSelectLesson(l.id); }} 
-                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition ${active ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted text-foreground"}`}
+                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition ${
+                          active 
+                            ? "bg-primary/10 text-primary font-medium" 
+                            : isLessonLocked 
+                            ? "hover:bg-muted/60 text-muted-foreground/80 opacity-85" 
+                            : "hover:bg-muted text-foreground"
+                        }`}
                       >
-                        <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] ${done ? "bg-success text-success-foreground" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                        <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] ${
+                          done 
+                            ? "bg-success text-success-foreground" 
+                            : active 
+                            ? "bg-primary text-primary-foreground" 
+                            : isLessonLocked
+                            ? "bg-muted text-muted-foreground"
+                            : "bg-muted text-muted-foreground"
+                        }`}>
                           {done ? (
                             <Check className="h-3 w-3" />
+                          ) : isLessonLocked ? (
+                            <Lock className="h-2.5 w-2.5" />
                           ) : isLessonPdf ? (
                             (() => {
                               const ext = l.pdf_url?.split(".").pop()?.toLowerCase() || "";
@@ -1051,6 +1197,11 @@ function LearnPage() {
                           )}
                         </span>
                         <span className="min-w-0 flex-1 truncate">{l.title}</span>
+                        {l.is_free && !isEnrolled && (
+                          <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 text-[9px] font-bold shrink-0">
+                            Free
+                          </span>
+                        )}
                         {((active ? liveDuration : null) || l.duration) && (
                           <span className="text-xs text-muted-foreground font-mono shrink-0">
                             {(active ? liveDuration : null) || l.duration}
@@ -1096,6 +1247,8 @@ function LearnPage() {
                         const done = completed.includes(l.id || "");
                         const active = activeId === l.id;
                         const isLessonPdf = !!l.pdf_url && !l.video_url;
+                        const isLessonLocked = !isEnrolled && !l.is_free;
+
                         return (
                           <button 
                             key={l.id} 
@@ -1103,11 +1256,27 @@ function LearnPage() {
                               if (l.id) handleSelectLesson(l.id); 
                               setSidebarOpen(false);
                             }} 
-                            className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs sm:text-sm transition ${active ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted text-foreground"}`}
+                            className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs sm:text-sm transition ${
+                              active 
+                                ? "bg-primary/10 text-primary font-medium" 
+                                : isLessonLocked 
+                                ? "hover:bg-muted/60 text-muted-foreground/80 opacity-85" 
+                                : "hover:bg-muted text-foreground"
+                            }`}
                           >
-                            <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] ${done ? "bg-success text-success-foreground" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                            <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] ${
+                              done 
+                                ? "bg-success text-success-foreground" 
+                                : active 
+                                ? "bg-primary text-primary-foreground" 
+                                : isLessonLocked
+                                ? "bg-muted text-muted-foreground"
+                                : "bg-muted text-muted-foreground"
+                            }`}>
                               {done ? (
                                 <Check className="h-3 w-3" />
+                              ) : isLessonLocked ? (
+                                <Lock className="h-2.5 w-2.5" />
                               ) : isLessonPdf ? (
                                 (() => {
                                   const ext = l.pdf_url?.split(".").pop()?.toLowerCase() || "";
@@ -1121,6 +1290,11 @@ function LearnPage() {
                               )}
                             </span>
                             <span className="min-w-0 flex-1 truncate">{l.title}</span>
+                            {l.is_free && !isEnrolled && (
+                              <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 text-[9px] font-bold shrink-0">
+                                Free
+                              </span>
+                            )}
                             {((active ? liveDuration : null) || l.duration) && (
                               <span className="text-xs text-muted-foreground font-mono shrink-0">
                                 {(active ? liveDuration : null) || l.duration}

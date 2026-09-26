@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState, redirect, isRedirect, useNavigate } from "@tanstack/react-router";
-import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2, MessageSquareQuote, Tag, ChevronRight, Globe, LogOut } from "lucide-react";
+import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2, MessageSquareQuote, Tag, ChevronRight, Globe, LogOut, UserCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
@@ -46,6 +46,7 @@ function AdminShell({ children }: { children: ReactNode }) {
 
   const nav = [
     { to: "/admin", label: "Overview", icon: LayoutDashboard },
+    { to: "/admin/leads", label: "Preview Leads", icon: UserCheck },
     { to: "/admin/students", label: "Students", icon: Users },
     { to: "/admin/payments", label: "Payments", icon: CreditCard },
     { to: "/admin/courses", label: "Courses", icon: BookOpen },
@@ -112,17 +113,17 @@ function AdminShell({ children }: { children: ReactNode }) {
 
       {/* Mobile Bottom Nav */}
       <nav aria-label="Admin Mobile Navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-6">
+        <div className="flex items-center justify-around overflow-x-auto no-scrollbar py-1">
           {nav.map((n) => {
             const active = n.to === "/admin" ? path === "/admin" : path.startsWith(n.to);
             return (
               <Link
                 key={n.to}
                 to={n.to}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 py-1.5 text-xs transition-colors ${active ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+                className={`flex min-h-[52px] min-w-[50px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-xs transition-colors ${active ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"}`}
               >
-                <n.icon className="h-5 w-5" />
-                <span className="text-[10px] leading-tight">{n.label.split(" ")[0]}</span>
+                <n.icon className="h-4.5 w-4.5" />
+                <span className="text-[9px] leading-tight font-medium truncate max-w-[56px]">{n.label.split(" ")[0]}</span>
               </Link>
             );
           })}

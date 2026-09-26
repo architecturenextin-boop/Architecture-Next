@@ -585,29 +585,64 @@ function CourseDetailPage() {
 
                         {isOpen && (
                           <div className="border-t border-border/60 bg-muted/20 px-3.5 py-2.5 sm:px-6">
-                            {(module.lessons_safe || []).map((lesson, lessonIndex) => (
-                              <div
-                                key={lesson.id}
-                                className="flex items-center justify-between gap-3 border-b border-border/60 py-3 sm:pl-[58px] last:border-b-0"
-                              >
-                                <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-                                  <span className="grid h-6 w-6 sm:h-7 sm:w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-                                    <Play className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-current" />
-                                  </span>
-                                  <span className="truncate text-xs sm:text-sm font-medium text-foreground">
-                                    {lessonIndex + 1}. {lesson.title}
-                                  </span>
-                                  {lesson.is_free && (
-                                    <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-bold shrink-0">
-                                      Free Preview
+                            {(module.lessons_safe || []).map((lesson, lessonIndex) => {
+                              const canWatch = !!enrollment || !!lesson.is_free;
+                              return (
+                                <div
+                                  key={lesson.id}
+                                  onClick={() => {
+                                    if (canWatch) {
+                                      if (!user) {
+                                        navigate({
+                                          to: "/auth",
+                                          search: { redirect: `/learn/${course.slug || course.id}?lessonId=${lesson.id}` },
+                                        });
+                                      } else {
+                                        navigate({
+                                          to: "/learn/$courseId",
+                                          params: { courseId: course.slug || course.id },
+                                          search: { lessonId: lesson.id },
+                                        });
+                                      }
+                                    }
+                                  }}
+                                  className={`group flex items-center justify-between gap-3 border-b border-border/60 py-3 sm:pl-[58px] last:border-b-0 rounded-lg px-2 transition ${
+                                    canWatch ? "cursor-pointer hover:bg-primary/5" : ""
+                                  }`}
+                                >
+                                  <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                                    <span className={`grid h-6 w-6 sm:h-7 sm:w-7 shrink-0 place-items-center rounded-full transition ${
+                                      canWatch 
+                                        ? "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105" 
+                                        : "bg-muted text-muted-foreground/60"
+                                    }`}>
+                                      <Play className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-current" />
                                     </span>
-                                  )}
+                                    <span className={`truncate text-xs sm:text-sm font-medium transition ${
+                                      canWatch ? "text-foreground group-hover:text-primary" : "text-foreground"
+                                    }`}>
+                                      {lessonIndex + 1}. {lesson.title}
+                                    </span>
+                                    {lesson.is_free && (
+                                      <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-bold shrink-0 flex items-center gap-1">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        Free Preview
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground">
+                                      {lesson.duration}
+                                    </span>
+                                    {lesson.is_free && (
+                                      <span className="hidden sm:inline-flex text-[11px] font-bold text-primary opacity-0 group-hover:opacity-100 transition">
+                                        Watch Preview →
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                <span className="shrink-0 text-[11px] sm:text-xs font-semibold text-muted-foreground">
-                                  {lesson.duration}
-                                </span>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
