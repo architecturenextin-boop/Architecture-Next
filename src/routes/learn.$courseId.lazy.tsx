@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, RotateCw, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -60,6 +60,19 @@ function LearnPage() {
   const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [liveDuration, setLiveDuration] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement || (playerRef.current?.fullscreen && playerRef.current.fullscreen.active)));
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, []);
 
   // Dedicated unmanaged container for the video/iframe player
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -632,7 +645,7 @@ function LearnPage() {
     if (next && next.id) handleSelectLesson(next.id);
   };
 
-  const handleRotateScreen = async () => {
+  const handleToggleFullscreen = async () => {
     try {
       if (playerRef.current?.fullscreen) {
         if (playerRef.current.fullscreen.active) {
@@ -642,6 +655,7 @@ function LearnPage() {
               (screen.orientation as any).unlock();
             } catch (_) {}
           }
+          setIsFullscreen(false);
           return;
         }
         await playerRef.current.fullscreen.enter();
@@ -650,6 +664,7 @@ function LearnPage() {
             await (screen.orientation as any).lock("landscape");
           } catch (_) {}
         }
+        setIsFullscreen(true);
         return;
       }
 
@@ -665,18 +680,22 @@ function LearnPage() {
             await (screen.orientation as any).lock("landscape");
           } catch (_) {}
         }
+        setIsFullscreen(true);
       } else if (document.fullscreenElement) {
         if (document.exitFullscreen) {
           await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
         }
         if ("orientation" in screen && "unlock" in (screen.orientation as any)) {
           try {
             (screen.orientation as any).unlock();
           } catch (_) {}
         }
+        setIsFullscreen(false);
       }
     } catch (err) {
-      console.warn("Screen rotate error:", err);
+      console.warn("Fullscreen toggle error:", err);
     }
   };
 
@@ -1045,17 +1064,26 @@ function LearnPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Rotate Screen Option */}
+                {/* Full Screen Mode Option */}
                 {!isPdfLesson && (
                   <button
                     type="button"
-                    onClick={handleRotateScreen}
-                    title="Rotate Screen to Landscape / Fullscreen"
-                    aria-label="Rotate Screen to Landscape"
+                    onClick={handleToggleFullscreen}
+                    title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
+                    aria-label={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
                     className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card/90 px-3 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40 hover:bg-muted shadow-xs transition active:scale-95"
                   >
-                    <RotateCw className="h-3.5 w-3.5 text-primary" />
-                    <span>Rotate Screen</span>
+                    {isFullscreen ? (
+                      <>
+                        <Minimize2 className="h-3.5 w-3.5 text-primary" />
+                        <span>Exit Full Screen</span>
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 className="h-3.5 w-3.5 text-primary" />
+                        <span>Full Screen</span>
+                      </>
+                    )}
                   </button>
                 )}
 
