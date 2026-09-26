@@ -1,5 +1,31 @@
 import { createLazyFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  PlayCircle,
+  Loader2,
+  Lock,
+  BookOpen,
+  X,
+  FileText,
+  Download,
+  Headphones,
+  Palette,
+  Archive,
+  Layers,
+  Image,
+  Maximize2,
+  Minimize2,
+  Sparkles,
+  DownloadCloud,
+  CheckCircle,
+  Trash2,
+  WifiOff,
+  ShieldCheck,
+  AlertCircle,
+} from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -7,10 +33,13 @@ import { ProfileCard } from "@/components/profile-card";
 import { useAuth } from "@/hooks/use-auth";
 import { courseService } from "@/lib/services/course.service";
 import { leadService } from "@/lib/services/lead.service";
+import { offlineVideoService, type OfflineLicense } from "@/lib/offline/offline-video.service";
 import { tokenStorage } from "@/lib/api-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CourseWithContent } from "@/lib/database.types";
 import { getMediaUrl } from "@/lib/utils";
+import { toast } from "sonner";
+import Hls from "hls.js";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 
@@ -61,6 +90,26 @@ function LearnPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [liveDuration, setLiveDuration] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // HLS and Offline State Management
+  const hlsRef = useRef<Hls | null>(null);
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadStatusText, setDownloadStatusText] = useState("");
+  const [offlineLicense, setOfflineLicense] = useState<OfflineLicense | null>(null);
+  const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOfflineMode(false);
+    const handleOffline = () => setIsOfflineMode(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -196,6 +245,82 @@ function LearnPage() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
+  // Check offline status for current active lesson
+  useEffect(() => {
+    if (!activeId || !user?.id) return;
+    let active = true;
+    async function checkOffline() {
+      try {
+        const downloaded = await offlineVideoService.isLessonDownloaded(activeId, user.id);
+        const lic = await offlineVideoService.getLessonLicense(activeId);
+        if (active) {
+          setIsDownloaded(downloaded);
+          setOfflineLicense(lic);
+        }
+      } catch (_) {}
+    }
+    checkOffline();
+    return () => {
+      active = false;
+    };
+  }, [activeId, user?.id]);
+
+  const handleDownloadOffline = async () => {
+    if (!activeLesson || !course || !user?.id) {
+      toast.error("Sign in and active enrollment required to download for offline viewing.");
+      return;
+    }
+
+    const hlsSource =
+      activeLesson.hls_url ||
+      (activeLesson as any).hls_path ||
+      (activeLesson.video_url?.includes(".m3u8") ? activeLesson.video_url : `/api/v1/media/hls/${activeLesson.id}/master.m3u8`);
+
+    try {
+      setIsDownloading(true);
+      setDownloadProgress(0);
+      setDownloadStatusText("Initializing secure download...");
+
+      await offlineVideoService.downloadLessonForOffline({
+        lessonId: activeLesson.id,
+        courseId: course.id,
+        courseTitle: course.title,
+        lessonTitle: activeLesson.title,
+        duration: activeLesson.duration,
+        userId: user.id,
+        hlsUrl: hlsSource,
+        onProgress: (percent, status) => {
+          setDownloadProgress(percent);
+          setDownloadStatusText(status);
+        },
+      });
+
+      setIsDownloaded(true);
+      const lic = await offlineVideoService.getLessonLicense(activeLesson.id);
+      setOfflineLicense(lic);
+      toast.success("Lesson encrypted and saved for offline viewing (7-day license active)!");
+    } catch (err: any) {
+      console.error("Offline download failed:", err);
+      toast.error(err.message || "Failed to download lesson for offline viewing");
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress(0);
+      setDownloadStatusText("");
+    }
+  };
+
+  const handleDeleteOffline = async () => {
+    if (!activeLesson) return;
+    try {
+      await offlineVideoService.deleteOfflineLesson(activeLesson.id);
+      setIsDownloaded(false);
+      setOfflineLicense(null);
+      toast.success("Offline lesson removed from device storage.");
+    } catch (err) {
+      toast.error("Failed to delete offline lesson");
+    }
+  };
+
   // Fetch video URL or PDF blob whenever activeId changes
   useEffect(() => {
     if (!activeId) return;
@@ -230,6 +355,33 @@ function LearnPage() {
           return;
         }
 
+        // 1. Check if downloaded offline in encrypted vault
+        if (user?.id) {
+          const downloaded = await offlineVideoService.isLessonDownloaded(activeId, user.id);
+          if (downloaded) {
+            const offlineStream = await offlineVideoService.createOfflineStreamUrl(activeId, user.id);
+            if (offlineStream) {
+              if (active) {
+                setVideoUrl(offlineStream);
+              }
+              return;
+            }
+          }
+        }
+
+        // 2. Prioritize HLS adaptive stream URL
+        const rawHls = currentLesson.hls_url || (currentLesson as any).hls_path;
+        if (rawHls) {
+          let resolved = getMediaUrl(rawHls);
+          const token = tokenStorage.get();
+          if (token && resolved.includes("/api/v1/media/") && !resolved.includes("token=")) {
+            resolved = `${resolved}${resolved.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+          }
+          if (active) setVideoUrl(resolved);
+          return;
+        }
+
+        // 3. Fallback to direct video stream / MP4 / YouTube
         const rawVideo = currentLesson.video_url || (currentLesson as any).video_path;
         if (rawVideo) {
           let resolved = getMediaUrl(rawVideo);
@@ -415,6 +567,8 @@ function LearnPage() {
       }
     };
 
+    const isHls = videoUrl.includes(".m3u8") || videoUrl.includes("/hls/") || videoUrl.includes("/offline-stream/");
+
     if (isYouTube) {
       const videoId = getYouTubeVideoId(videoUrl);
       const embedDiv = document.createElement("div");
@@ -429,8 +583,90 @@ function LearnPage() {
       } catch (e) {
         console.warn("Plyr YouTube init warning:", e);
       }
+    } else if (isHls && Hls.isSupported()) {
+      // 1. Adaptive HLS Streaming with hls.js (MSE supported on Chrome, Firefox, Edge, Safari MSE)
+      const videoEl = document.createElement("video");
+      videoEl.className = "plyr w-full h-full";
+      videoEl.playsInline = true;
+      videoEl.controls = true;
+      videoEl.preload = "auto";
+      container.appendChild(videoEl);
+
+      const hls = new Hls({
+        xhrSetup: (xhr, url) => {
+          const token = tokenStorage.get();
+          if (token && !url.includes("token=") && !url.startsWith("blob:") && !url.includes("/offline-stream/")) {
+            xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+          }
+        },
+        enableWorker: true,
+        lowLatencyMode: false,
+      });
+      hlsRef.current = hls;
+
+      hls.loadSource(videoUrl);
+      hls.attachMedia(videoEl);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        const availableQualities = hls.levels.map((l) => l.height).filter(Boolean);
+        const optionsWithQuality: Plyr.Options = {
+          ...playerOptions,
+          quality: availableQualities.length > 0 ? {
+            default: availableQualities[availableQualities.length - 1] || 480,
+            options: availableQualities,
+            forced: true,
+            onChange: (newQuality: number) => {
+              hls.levels.forEach((level, levelIndex) => {
+                if (level.height === newQuality) {
+                  hls.currentLevel = levelIndex;
+                }
+              });
+            },
+          } : undefined,
+        };
+
+        try {
+          playerInstance = new Plyr(videoEl, optionsWithQuality);
+          playerRef.current = playerInstance;
+        } catch (e) {
+          console.warn("Plyr HLS init warning:", e);
+        }
+      });
+
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              break;
+          }
+        }
+      });
+
+      videoEl.oncanplay = handleReady;
+      videoEl.onloadeddata = handleReady;
+      videoEl.onerror = (e) => {
+        console.error("HLS Video Error Event:", e, "Source URL:", videoUrl);
+        if (active) {
+          setVideoError("Unable to load adaptive video stream. If this is a private lesson, ensure your enrollment is active.");
+          setPlayerReady(true);
+        }
+      };
+      videoEl.onended = () => {
+        try {
+          triggerAutoCompletion(Math.floor(videoEl.currentTime || 0));
+        } catch (_) {}
+      };
     } else {
-      // MP4 / Storage Video element with Plyr
+      // 2. Direct MP4 or Safari Native HLS (AVFoundation engine)
+      /* Safari note: Safari natively supports HLS streaming via AVFoundation on <video src="...">,
+         and supports encrypted in-memory blobs via Web Crypto API. */
       const videoEl = document.createElement("video");
       videoEl.className = "plyr w-full h-full";
       videoEl.playsInline = true;
@@ -580,6 +816,10 @@ function LearnPage() {
       clearTimeout(safetyTimer);
       document.removeEventListener("visibilitychange", handleVisibility);
       try {
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
+        }
         if (playerInstance) {
           const currentTime = playerInstance.currentTime ? Math.floor(playerInstance.currentTime) : 0;
           if (currentTime > 0 && isEnrolled) autoSave(currentTime);
@@ -1063,7 +1303,59 @@ function LearnPage() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Offline Mode Indicator */}
+                {isOfflineMode && (
+                  <span className="inline-flex items-center gap-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-500 px-2.5 py-1 text-xs font-semibold">
+                    <WifiOff className="h-3 w-3" /> Offline Mode
+                  </span>
+                )}
+
+                {/* Offline Download Button & Controls */}
+                {!isPdfLesson && isEnrolled && (
+                  <>
+                    {isDownloading ? (
+                      <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary shadow-xs">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
+                        <span className="font-mono">{downloadProgress}%</span>
+                        <span className="text-[11px] text-muted-foreground hidden sm:inline">{downloadStatusText}</span>
+                      </div>
+                    ) : isDownloaded ? (
+                      <div className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 shadow-xs">
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                        <span className="text-[11px]">Offline Ready</span>
+                        {offlineLicense?.expiresAt && (
+                          <span
+                            className="text-[9px] font-mono bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-md"
+                            title={`Encrypted offline license valid until ${new Date(offlineLicense.expiresAt).toLocaleDateString()}`}
+                          >
+                            {Math.max(0, Math.ceil((offlineLicense.expiresAt - Date.now()) / (24 * 60 * 60 * 1000)))}d license
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleDeleteOffline}
+                          className="ml-1 text-muted-foreground hover:text-destructive p-0.5 transition"
+                          title="Delete downloaded offline copy"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleDownloadOffline}
+                        title="Encrypt and save video to device for offline playback (7-day license)"
+                        aria-label="Download for offline viewing"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card/90 px-3 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40 hover:bg-muted shadow-xs transition active:scale-95"
+                      >
+                        <DownloadCloud className="h-3.5 w-3.5 text-primary" />
+                        <span>Download Offline</span>
+                      </button>
+                    )}
+                  </>
+                )}
+
                 {/* Full Screen Mode Option */}
                 {!isPdfLesson && (
                   <button
