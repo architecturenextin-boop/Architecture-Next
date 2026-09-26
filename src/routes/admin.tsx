@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState, redirect, isRedirect, useNavigate } from "@tanstack/react-router";
-import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2, MessageSquareQuote, Tag, ChevronRight, Globe, LogOut, UserCheck } from "lucide-react";
+import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2, MessageSquareQuote, Tag, ChevronRight, Globe, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
@@ -46,7 +46,6 @@ function AdminShell({ children }: { children: ReactNode }) {
 
   const nav = [
     { to: "/admin", label: "Overview", icon: LayoutDashboard },
-    { to: "/admin/leads", label: "Preview Leads", icon: UserCheck },
     { to: "/admin/students", label: "Students", icon: Users },
     { to: "/admin/payments", label: "Payments", icon: CreditCard },
     { to: "/admin/courses", label: "Courses", icon: BookOpen },

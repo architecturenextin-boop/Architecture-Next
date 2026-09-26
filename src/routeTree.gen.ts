@@ -30,7 +30,6 @@ import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as AdminTestimonialsRouteImport } from './routes/admin.testimonials'
 import { Route as AdminStudentsRouteImport } from './routes/admin.students'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
-import { Route as AdminLeadsRouteImport } from './routes/admin.leads'
 import { Route as AdminCoursesRouteImport } from './routes/admin.courses'
 import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 
@@ -141,11 +140,6 @@ const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
   path: '/payments',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminLeadsRoute = AdminLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => AdminRoute,
-} as any).lazy(() => import('./routes/admin.leads.lazy').then((d) => d.Route))
 const AdminCoursesRoute = AdminCoursesRouteImport.update({
   id: '/courses',
   path: '/courses',
@@ -169,7 +163,6 @@ export interface FileRoutesByFullPath {
   '/verify-otp': typeof VerifyOtpRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRoute
-  '/admin/leads': typeof AdminLeadsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRoute
   '/admin/testimonials': typeof AdminTestimonialsRoute
@@ -193,7 +186,6 @@ export interface FileRoutesByTo {
   '/verify-otp': typeof VerifyOtpRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRoute
-  '/admin/leads': typeof AdminLeadsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRoute
   '/admin/testimonials': typeof AdminTestimonialsRoute
@@ -220,7 +212,6 @@ export interface FileRoutesById {
   '/verify-otp': typeof VerifyOtpRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRoute
-  '/admin/leads': typeof AdminLeadsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRoute
   '/admin/testimonials': typeof AdminTestimonialsRoute
@@ -248,7 +239,6 @@ export interface FileRouteTypes {
     | '/verify-otp'
     | '/admin/coupons'
     | '/admin/courses'
-    | '/admin/leads'
     | '/admin/payments'
     | '/admin/students'
     | '/admin/testimonials'
@@ -272,7 +262,6 @@ export interface FileRouteTypes {
     | '/verify-otp'
     | '/admin/coupons'
     | '/admin/courses'
-    | '/admin/leads'
     | '/admin/payments'
     | '/admin/students'
     | '/admin/testimonials'
@@ -298,7 +287,6 @@ export interface FileRouteTypes {
     | '/verify-otp'
     | '/admin/coupons'
     | '/admin/courses'
-    | '/admin/leads'
     | '/admin/payments'
     | '/admin/students'
     | '/admin/testimonials'
@@ -477,13 +465,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPaymentsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/leads': {
-      id: '/admin/leads'
-      path: '/leads'
-      fullPath: '/admin/leads'
-      preLoaderRoute: typeof AdminLeadsRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/courses': {
       id: '/admin/courses'
       path: '/courses'
@@ -504,7 +485,6 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminCouponsRoute: typeof AdminCouponsRoute
   AdminCoursesRoute: typeof AdminCoursesRoute
-  AdminLeadsRoute: typeof AdminLeadsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
   AdminTestimonialsRoute: typeof AdminTestimonialsRoute
@@ -514,7 +494,6 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCouponsRoute: AdminCouponsRoute,
   AdminCoursesRoute: AdminCoursesRoute,
-  AdminLeadsRoute: AdminLeadsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminStudentsRoute: AdminStudentsRoute,
   AdminTestimonialsRoute: AdminTestimonialsRoute,

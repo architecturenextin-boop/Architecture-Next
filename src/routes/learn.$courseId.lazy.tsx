@@ -6,7 +6,6 @@ import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
 import { useAuth } from "@/hooks/use-auth";
 import { courseService } from "@/lib/services/course.service";
-import { leadService } from "@/lib/services/lead.service";
 import { tokenStorage } from "@/lib/api-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CourseWithContent } from "@/lib/database.types";
