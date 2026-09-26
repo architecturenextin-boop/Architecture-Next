@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, Loader2, Users, BookOpen, ShieldCheck, GraduationCap, Phone, Mail, Calendar, Eye, X, PlusCircle, CheckCircle2 } from "lucide-react";
+import { Search, Loader2, Users, BookOpen, ShieldCheck, GraduationCap, Phone, Mail, Calendar, Eye, X, PlusCircle, CheckCircle2, UserMinus, Trash2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,21 @@ function StudentsPage() {
     },
   });
 
-  // 4. Mutation: Update User Role (Student <-> Admin)
+  // 4. Mutation: Revoke / Remove Course Access
+  const revokeEnrollmentMutation = useMutation({
+    mutationFn: async ({ userId, courseId, enrollmentId }: { userId: string; courseId?: string; enrollmentId?: string }) => {
+      return adminService.revokeStudentEnrollment({ userId, courseId, enrollmentId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-students"] });
+      toast.success("Course access removed successfully!");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to remove course access.");
+    },
+  });
+
+  // 5. Mutation: Update User Role (Student <-> Admin)
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "student" }) => {
       return adminService.updateStudentRole(userId, role);
@@ -477,20 +491,59 @@ function StudentsPage() {
                   This student is not enrolled in any courses yet.
                 </div>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                   {selectedStudent.enrollments.map((en: any) => (
                     <div key={en.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-3 shadow-xs">
-                      <div>
-                        <span className="font-semibold text-xs text-foreground block">
+                      <div className="flex-1 pr-2">
+                        <span className="font-semibold text-xs text-foreground block line-clamp-1">
                           {en.course?.title || "Course"}
                         </span>
                         <span className="text-[10px] text-muted-foreground">
                           Enrolled on {new Date(en.enrolled_at || en.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success uppercase">
-                        {en.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success uppercase">
+                          {en.status}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={revokeEnrollmentMutation.isPending}
+                          className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                          title="Revoke course access"
+                          onClick={() => {
+                            confirmAction({
+                              title: "Revoke Course Access?",
+                              description: `Are you sure you want to remove access to "${en.course?.title || "this course"}" for ${selectedStudent.full_name || selectedStudent.email}? They will no longer be able to view course lessons.`,
+                              confirmLabel: "Revoke Access",
+                              variant: "destructive",
+                              onConfirm: () => {
+                                revokeEnrollmentMutation.mutate(
+                                  {
+                                    userId: selectedStudent.id,
+                                    courseId: en.course?.id,
+                                    enrollmentId: en.id,
+                                  },
+                                  {
+                                    onSuccess: () => {
+                                      setSelectedStudent({
+                                        ...selectedStudent,
+                                        coursesCount: Math.max(0, (selectedStudent.coursesCount || 1) - 1),
+                                        enrollments: (selectedStudent.enrollments || []).filter(
+                                          (item: any) => item.id !== en.id
+                                        ),
+                                      });
+                                    },
+                                  }
+                                );
+                              },
+                            });
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -1,8 +1,8 @@
 import { createLazyFileRoute } from "@tanstack/react-router";
 import { 
   Edit3, Plus, Trash2, Upload, Video, Loader2, ArrowUp, ArrowDown, Image, Info,
-  Pause, Play, RefreshCw, XCircle, CheckCircle2, PlayCircle, Eye, AlertCircle, FileVideo,
-  UploadCloud, Link2, FileText
+  Pause, Play, RefreshCw, XCircle, CheckCircle2, PlayCircle, Eye, EyeOff, AlertCircle, FileVideo,
+  UploadCloud, Link2, FileText, X
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -39,13 +39,22 @@ function AdminCourses() {
     }
   });
 
+  const invalidateAllCourseQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+    queryClient.invalidateQueries({ queryKey: ["courses"] });
+    queryClient.invalidateQueries({ queryKey: ["courses", "published"] });
+    queryClient.invalidateQueries({ queryKey: ["landing-courses"] });
+    queryClient.invalidateQueries({ queryKey: ["landing-main-course"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-recommended"] });
+  };
+
   // 2. Delete Course Mutation
   const deleteCourseMutation = useMutation({
     mutationFn: async (id: string) => {
       return adminService.deleteCourse(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+      invalidateAllCourseQueries();
       toast.success("Course deleted successfully!");
     },
     onError: (err: any) => {
@@ -53,7 +62,30 @@ function AdminCourses() {
     }
   });
 
-  // 3. Upsert Course Mutation (atomic REST endpoint)
+  // 3. Quick Toggle Publish / Unpublish Mutation
+  const togglePublishMutation = useMutation({
+    mutationFn: async ({ course, targetStatus }: { course: any; targetStatus: "published" | "draft" }) => {
+      const courseObj = {
+        ...course,
+        status: targetStatus,
+        published: targetStatus === "published",
+      };
+      return adminService.upsertCourse(courseObj, course.modules || []);
+    },
+    onSuccess: (_, vars) => {
+      invalidateAllCourseQueries();
+      toast.success(
+        vars.targetStatus === "published"
+          ? "Course published live to student catalog!"
+          : "Course unpublished (set to draft)!"
+      );
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to update course visibility.");
+    }
+  });
+
+  // 4. Upsert Course Mutation (atomic REST endpoint)
   const upsertCourseMutation = useMutation({
     mutationFn: async (formData: any) => {
       const courseId = formData.id || crypto.randomUUID();
@@ -108,7 +140,7 @@ function AdminCourses() {
       return adminService.upsertCourse(courseObj, formattedModules);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+      invalidateAllCourseQueries();
       setEditing(null);
       setAdding(false);
       toast.success("Course saved successfully!");
@@ -139,49 +171,78 @@ function AdminCourses() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {(Array.isArray(courses) ? courses : []).map((c: any) => (
-          <article key={c.id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft flex flex-col justify-between">
-            <div className="relative">
-              <img src={getMediaUrl(c.cover_url)} alt={c.title} loading="lazy" className="aspect-video w-full object-cover" />
-              <span className={`absolute top-3 right-3 text-xs px-2.5 py-1 rounded-full font-bold uppercase ${
-                c.status === "published" ? "bg-emerald-500 text-white" :
-                c.status === "archived" ? "bg-zinc-500 text-white" : "bg-amber-500 text-white"
-              }`}>
-                {c.status}
-              </span>
-            </div>
-            <div className="p-5 flex-1 flex flex-col justify-between">
-              <div>
-                <h3 className="font-display text-base font-bold leading-snug">{c.title}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">{c.total_lessons || 0} lessons • {c.level || "Beginner"}</p>
+        {(Array.isArray(courses) ? courses : []).map((c: any) => {
+          const isPublished = c.status === "published" || (c.published && c.status !== "draft" && c.status !== "archived");
+          return (
+            <article key={c.id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft flex flex-col justify-between">
+              <div className="relative">
+                <img src={getMediaUrl(c.cover_url)} alt={c.title} loading="lazy" className="aspect-video w-full object-cover" />
+                <span className={`absolute top-3 right-3 text-xs px-2.5 py-1 rounded-full font-bold uppercase shadow-sm ${
+                  isPublished ? "bg-emerald-500 text-white" :
+                  c.status === "archived" ? "bg-zinc-500 text-white" : "bg-amber-500 text-white"
+                }`}>
+                  {isPublished ? "Published" : (c.status || "Draft")}
+                </span>
               </div>
-              <div className="mt-5 flex gap-2">
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => setEditing(c)}>
-                  <Edit3 className="mr-1 h-3.5 w-3.5" /> Edit Builder
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  disabled={deleteCourseMutation.isPending}
-                  className="flex-1 text-destructive hover:bg-destructive/10 cursor-pointer" 
-                  onClick={() => {
-                    confirmAction({
-                      title: "Delete Course?",
-                      description: `Are you sure you want to delete "${c.title}" and all its associated modules and lessons? This action cannot be undone.`,
-                      confirmLabel: "Delete Course",
-                      variant: "destructive",
-                      onConfirm: () => {
-                        deleteCourseMutation.mutate(c.id);
-                      },
-                    });
-                  }}
-                >
-                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
-                </Button>
+              <div className="p-5 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-display text-base font-bold leading-snug">{c.title}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">{c.total_lessons || 0} lessons • {c.level || "Beginner"}</p>
+                </div>
+                <div className="mt-5 space-y-2">
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant={isPublished ? "secondary" : "default"}
+                      disabled={togglePublishMutation.isPending}
+                      className="flex-1 font-semibold cursor-pointer"
+                      onClick={() => {
+                        togglePublishMutation.mutate({
+                          course: c,
+                          targetStatus: isPublished ? "draft" : "published",
+                        });
+                      }}
+                    >
+                      {isPublished ? (
+                        <>
+                          <EyeOff className="mr-1.5 h-3.5 w-3.5 text-amber-500" /> Unpublish
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="mr-1.5 h-3.5 w-3.5 text-emerald-300" /> Publish Live
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setEditing(c)}>
+                      <Edit3 className="mr-1 h-3.5 w-3.5" /> Edit Builder
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      disabled={deleteCourseMutation.isPending}
+                      className="flex-1 text-destructive hover:bg-destructive/10 cursor-pointer" 
+                      onClick={() => {
+                        confirmAction({
+                          title: "Delete Course?",
+                          description: `Are you sure you want to delete "${c.title}" and all its associated modules and lessons? This action cannot be undone.`,
+                          confirmLabel: "Delete Course",
+                          variant: "destructive",
+                          onConfirm: () => {
+                            deleteCourseMutation.mutate(c.id);
+                          },
+                        });
+                      }}
+                    >
+                      <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
         <button onClick={() => setAdding(true)} className="flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card/50 text-sm font-medium text-muted-foreground transition hover:border-primary hover:text-primary">
           <Plus className="h-6 w-6" /> Add new course
         </button>
@@ -203,16 +264,41 @@ function AdminCourses() {
 }
 
 function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
+  // Lock background body scroll so wheel events belong 100% to the modal
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/40 p-4 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-3xl max-h-[95vh] overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-elevated" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-5 flex items-center justify-between border-b border-border/60 pb-3">
-          <h2 className="font-display text-xl font-bold text-foreground">{title}</h2>
-          <button onClick={onClose} className="rounded-lg px-2.5 py-1 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-            Close
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-xs animate-fade-in" 
+      onClick={onClose}
+    >
+      <div 
+        className="relative flex flex-col w-full max-w-4xl max-h-[92vh] rounded-3xl border border-border bg-card shadow-elevated overflow-hidden animate-scale-in" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sticky Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-6 py-4 bg-card/95 backdrop-blur-xs z-10">
+          <h2 className="font-display text-lg sm:text-xl font-bold text-foreground">{title}</h2>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+            aria-label="Close modal"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
-        {children}
+
+        {/* Scrollable Content Body - mouse wheel anywhere inside scrolls smoothly */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 md:p-8 space-y-6">
+          {children}
+        </div>
       </div>
     </div>
   );

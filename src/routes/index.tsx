@@ -66,7 +66,12 @@ function Landing() {
     queryKey: ["landing-courses"],
     queryFn: async () => {
       try {
-        return await courseService.getCourses();
+        const raw = await courseService.getCourses();
+        return (Array.isArray(raw) ? raw : []).filter((c: any) => {
+          if (c.status === "draft" || c.status === "archived") return false;
+          if (typeof c.published === "boolean" && !c.published) return false;
+          return true;
+        });
       } catch {
         return [];
       }
@@ -78,6 +83,9 @@ function Landing() {
     queryFn: async () => {
       try {
         const data = await courseService.getCourse("architecture-plan-presentation-animation");
+        if (data && (data.status === "draft" || data.status === "archived" || data.published === false)) {
+          return null;
+        }
         return data;
       } catch {
         return null;

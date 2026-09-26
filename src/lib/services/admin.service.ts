@@ -127,6 +127,13 @@ export const adminService = {
     });
   },
 
+  revokeStudentEnrollment: async (payload: { userId: string; courseId?: string; enrollmentId?: string }): Promise<any> => {
+    return apiClient("/admin/students/revoke-enrollment", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
   updateStudentRole: async (userId: string, role: "admin" | "student"): Promise<any> => {
     return apiClient(`/admin/students/${userId}/role`, {
       method: "PUT",

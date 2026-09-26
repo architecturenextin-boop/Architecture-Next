@@ -176,36 +176,14 @@ function CheckoutPage() {
         return;
       }
 
-      // 3. Check if fake payment simulation is explicitly enabled in .env
-      const isFakePaymentEnabled = import.meta.env.VITE_FAKE_PAYMENT === "true";
-
-      if (isFakePaymentEnabled) {
-        setTimeout(async () => {
-          try {
-            const mockPaymentId = `pay_dev_${Date.now()}`;
-            const verifyResult = await verifyPayment({
-              purchaseId: order.paymentId,
-              razorpayPaymentId: mockPaymentId,
-              razorpaySignature: "mock_dev_signature",
-            });
-            if (!verifyResult.success) throw new Error("Payment verification failed.");
-            navigate({ to: "/payment-success", search: { purchase_id: order.paymentId } });
-          } catch (verifyError: any) {
-            setPaymentError(verifyError?.message || "Payment verification failed.");
-            setProcessing(false);
-          }
-        }, 1000);
-        return;
-      }
-
-      // 4. If fake payment is NOT enabled, ensure valid Razorpay key is present
+      // 3. Ensure valid Razorpay key is present
       if (!order.keyId || order.keyId === "rzp_test_mock_key" || order.keyId.includes("mock")) {
         throw new Error(
-          "Payment gateway key is not configured. Please add your real Razorpay Key ID and Secret in backend/.env (or set VITE_FAKE_PAYMENT=true in .env to simulate test payments)."
+          "Payment gateway key is not configured. Please ensure your Razorpay Key ID and Secret are configured on the backend server."
         );
       }
 
-      // 5. Real Razorpay production / test checkout
+      // 4. Real Razorpay checkout
       const Razorpay = await loadRazorpayCheckout();
       const checkout = new Razorpay({
         key: order.keyId,

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Sparkles, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/courses/")({
 
 function CoursesCatalogPage() {
   const {
-    data: allCourses = [],
+    data: allCoursesRaw = [],
     isLoading,
     error,
   } = useQuery({
@@ -32,6 +33,14 @@ function CoursesCatalogPage() {
       return courseService.getCourses();
     },
   });
+
+  const allCourses = useMemo(() => {
+    return (Array.isArray(allCoursesRaw) ? allCoursesRaw : []).filter((c: any) => {
+      if (c.status === "draft" || c.status === "archived") return false;
+      if (typeof c.published === "boolean" && !c.published) return false;
+      return true;
+    });
+  }, [allCoursesRaw]);
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-clip">
