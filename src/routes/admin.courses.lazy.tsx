@@ -5,6 +5,7 @@ import {
   UploadCloud, Link2, FileText, X
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -264,6 +265,8 @@ function AdminCourses() {
 }
 
 function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -275,23 +278,32 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
     };
     window.addEventListener("keydown", handleKeyDown);
 
+    // Ensure scroll container is active for keyboard and wheel input
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.focus();
+    }
+
     return () => {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [onClose]);
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 bg-black/60 backdrop-blur-xs animate-fade-in" 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 md:p-8 bg-black/70 backdrop-blur-xs animate-fade-in" 
       onClick={onClose}
+      style={{ touchAction: "none" }}
     >
       <div 
-        className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border border-border bg-card shadow-elevated overflow-hidden animate-fade-up" 
+        className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border border-border bg-card shadow-2xl overflow-hidden animate-fade-up" 
         onClick={(e) => e.stopPropagation()}
+        style={{ touchAction: "pan-y" }}
       >
         {/* Sticky Modal Header */}
-        <div className="flex items-center justify-between border-b border-border/60 bg-card/95 backdrop-blur-sm px-6 sm:px-8 py-4 shrink-0 z-10">
+        <div className="flex items-center justify-between border-b border-border/60 bg-card px-6 sm:px-8 py-4 shrink-0 z-10 select-none">
           <h2 className="font-display text-lg sm:text-xl font-bold text-foreground">{title}</h2>
           <button 
             type="button" 
@@ -304,11 +316,21 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
         </div>
 
         {/* Dedicated Scrollable Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 overscroll-contain">
+        <div 
+          ref={scrollContainerRef}
+          tabIndex={0}
+          className="flex-1 overflow-y-auto p-6 sm:p-8 outline-none overscroll-contain"
+          style={{ 
+            WebkitOverflowScrolling: "touch",
+            overscrollBehavior: "contain",
+            touchAction: "pan-y"
+          }}
+        >
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
