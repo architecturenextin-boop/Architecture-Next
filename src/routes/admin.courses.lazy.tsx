@@ -264,6 +264,8 @@ function AdminCourses() {
 }
 
 function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+
   // Lock background body scroll so wheel events belong 100% to the modal
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -275,11 +277,11 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-xs animate-fade-in" 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-xs animate-fade-in pointer-events-auto" 
       onClick={onClose}
     >
       <div 
-        className="relative flex flex-col w-full max-w-4xl max-h-[92vh] rounded-3xl border border-border bg-card shadow-elevated overflow-hidden animate-scale-in" 
+        className="relative flex flex-col w-full max-w-4xl max-h-[92vh] min-h-0 rounded-3xl border border-border bg-card shadow-elevated overflow-hidden animate-scale-in pointer-events-auto" 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky Header */}
@@ -296,7 +298,11 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
         </div>
 
         {/* Scrollable Content Body - mouse wheel anywhere inside scrolls smoothly */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 md:p-8 space-y-6">
+        <div 
+          ref={contentRef}
+          tabIndex={0}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-4 sm:p-6 md:p-8 space-y-6 touch-pan-y pointer-events-auto outline-none"
+        >
           {children}
         </div>
       </div>
