@@ -271,6 +271,11 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    // Pause global Lenis smooth scroll while modal is open
+    try {
+      (window as any).lenis?.stop();
+    } catch (_) {}
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
@@ -278,14 +283,41 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
     };
     window.addEventListener("keydown", handleKeyDown);
 
-    // Ensure scroll container is active for keyboard and wheel input
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.focus();
+    // Direct wheel handler on scroll container to ensure 100% reliable wheel scrolling
+    const container = scrollContainerRef.current;
+    let onWheelHandler: ((e: WheelEvent) => void) | null = null;
+
+    if (container) {
+      container.focus();
+
+      onWheelHandler = (e: WheelEvent) => {
+        if (!container) return;
+        const { deltaY, deltaX } = e;
+        const prevScrollTop = container.scrollTop;
+        container.scrollTop += deltaY;
+        if (deltaX) container.scrollLeft += deltaX;
+
+        // If container scrolled, prevent window event propagation
+        if (container.scrollTop !== prevScrollTop) {
+          e.stopPropagation();
+        }
+      };
+
+      container.addEventListener("wheel", onWheelHandler, { passive: false });
     }
 
     return () => {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", handleKeyDown);
+
+      if (container && onWheelHandler) {
+        container.removeEventListener("wheel", onWheelHandler);
+      }
+
+      // Resume global Lenis smooth scroll
+      try {
+        (window as any).lenis?.start();
+      } catch (_) {}
     };
   }, [onClose]);
 
@@ -295,11 +327,13 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
     <div 
       className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 md:p-8 bg-black/70 backdrop-blur-xs animate-fade-in" 
       onClick={onClose}
+      data-lenis-prevent="true"
       style={{ touchAction: "none" }}
     >
       <div 
         className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border border-border bg-card shadow-2xl overflow-hidden animate-fade-up" 
         onClick={(e) => e.stopPropagation()}
+        data-lenis-prevent="true"
         style={{ touchAction: "pan-y" }}
       >
         {/* Sticky Modal Header */}
@@ -319,6 +353,7 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
         <div 
           ref={scrollContainerRef}
           tabIndex={0}
+          data-lenis-prevent="true"
           className="flex-1 overflow-y-auto p-6 sm:p-8 outline-none overscroll-contain"
           style={{ 
             WebkitOverflowScrolling: "touch",
