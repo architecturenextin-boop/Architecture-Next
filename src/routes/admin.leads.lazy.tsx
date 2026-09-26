@@ -5,7 +5,6 @@ import {
   Users,
   Search,
   Download,
-  Flame,
   CheckCircle2,
   Phone,
   Mail,
@@ -35,7 +34,7 @@ function AdminLeads() {
   const [selectedCourse, setSelectedCourse] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [purchaseFilter, setPurchaseFilter] = useState("all");
-  const [hotLeadsOnly, setHotLeadsOnly] = useState(false);
+  const [leadTypeFilter, setLeadTypeFilter] = useState<"all" | "high_intent" | "repeat" | "single">("all");
   const [sortBy, setSortBy] = useState<"recent" | "views">("recent");
 
   // Fetch all leads
@@ -96,8 +95,15 @@ function AdminLeads() {
           return false;
         }
 
-        // Hot leads filter (>= 3 views)
-        if (hotLeadsOnly && (l.view_count || 1) < 3) {
+        // Lead Engagement Type filter
+        const count = l.view_count || 1;
+        if (leadTypeFilter === "high_intent" && count < 3) {
+          return false;
+        }
+        if (leadTypeFilter === "repeat" && count !== 2) {
+          return false;
+        }
+        if (leadTypeFilter === "single" && count !== 1) {
           return false;
         }
 
@@ -109,13 +115,7 @@ function AdminLeads() {
         }
         return new Date(b.last_viewed_at).getTime() - new Date(a.last_viewed_at).getTime();
       });
-  }, [leads, searchTerm, selectedCourse, statusFilter, purchaseFilter, hotLeadsOnly, sortBy]);
-
-  // Overview KPIs
-  const totalLeads = leads.length;
-  const hotLeadsCount = leads.filter((l) => (l.view_count || 1) >= 3).length;
-  const convertedCount = leads.filter((l) => l.purchase_status === "purchased" || l.status === "converted").length;
-  const conversionRate = totalLeads > 0 ? Math.round((convertedCount / totalLeads) * 100) : 0;
+  }, [leads, searchTerm, selectedCourse, statusFilter, purchaseFilter, leadTypeFilter, sortBy]);
 
   const handleExportCsv = () => {
     leadService.exportCsv(filteredLeads);
@@ -145,35 +145,19 @@ function AdminLeads() {
 
       {/* Minimal Filter and Search Bar */}
       <div className="rounded-2xl border border-border bg-card p-3 sm:p-4 shadow-soft space-y-2.5">
-        <div className="flex flex-col sm:flex-row gap-2.5">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, email, phone, or course..."
-              className="pl-9 h-9 bg-surface text-xs sm:text-sm"
-            />
-          </div>
-
-          {/* Hot leads quick toggle */}
-          <button
-            type="button"
-            onClick={() => setHotLeadsOnly(!hotLeadsOnly)}
-            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 h-9 text-xs font-bold transition-all cursor-pointer shrink-0 ${
-              hotLeadsOnly
-                ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-2xs"
-                : "border-border bg-surface text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Flame className="h-3.5 w-3.5" />
-            <span>🔥 Hot Leads</span>
-          </button>
+        {/* Full-width Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name, email, phone, or course..."
+            className="pl-9 h-9.5 bg-surface text-xs sm:text-sm"
+          />
         </div>
 
         {/* Dropdown Filters Row */}
-        <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
+        <div className="grid gap-2 grid-cols-2 sm:grid-cols-5">
           {/* Course filter */}
           <select
             value={selectedCourse}
@@ -186,6 +170,18 @@ function AdminLeads() {
                 {c}
               </option>
             ))}
+          </select>
+
+          {/* Lead Engagement Type Filter */}
+          <select
+            value={leadTypeFilter}
+            onChange={(e) => setLeadTypeFilter(e.target.value as any)}
+            className="h-8.5 w-full rounded-xl border border-input bg-surface px-2.5 text-xs shadow-2xs outline-none"
+          >
+            <option value="all">All Engagement Levels</option>
+            <option value="high_intent">High Intent (≥3 views)</option>
+            <option value="repeat">Repeat (2 views)</option>
+            <option value="single">First View (1 view)</option>
           </select>
 
           {/* Lead Status filter */}
@@ -253,7 +249,8 @@ function AdminLeads() {
               </thead>
               <tbody className="divide-y divide-border/50">
                 {filteredLeads.map((l) => {
-                  const isHot = (l.view_count || 1) >= 3;
+                  const views = l.view_count || 1;
+                  const isHighIntent = views >= 3;
                   const isPurchased = l.purchase_status === "purchased";
                   const cleanPhone = (l.phone_number || "").replace(/\D/g, "");
 
@@ -268,9 +265,9 @@ function AdminLeads() {
                           <div>
                             <div className="font-bold text-foreground flex items-center gap-1.5">
                               {l.user_name || "Learner"}
-                              {isHot && (
-                                <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 text-amber-600 px-1.5 py-0.2 text-[9px] font-bold">
-                                  <Flame className="h-2.5 w-2.5" /> Hot
+                              {isHighIntent && (
+                                <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[9px] font-semibold">
+                                  High Intent
                                 </span>
                               )}
                             </div>
@@ -319,10 +316,10 @@ function AdminLeads() {
 
                       {/* View Count */}
                       <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-flex items-center justify-center rounded-lg px-2 py-0.5 font-mono text-xs font-bold ${
-                          isHot ? "bg-amber-500/15 text-amber-600" : "bg-muted text-foreground"
+                        <span className={`inline-flex items-center justify-center rounded-lg px-2 py-0.5 font-mono text-xs font-semibold ${
+                          isHighIntent ? "bg-primary/10 text-primary font-bold" : "bg-muted text-foreground"
                         }`}>
-                          {l.view_count || 1}x
+                          {views}x
                         </span>
                       </td>
 
