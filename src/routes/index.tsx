@@ -144,7 +144,7 @@ function Hero() {
             >
               {user && hasAnyEnrollments ? (
                 <Link to="/dashboard/courses">
-                  Go to My Courses <ArrowRight className="ml-1.5 h-4 w-4" />
+                  Continue <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Link>
               ) : (
                 <Link to="/courses">
@@ -158,9 +158,9 @@ function Hero() {
               size="lg"
               className="h-12 border-foreground/15 bg-surface/70 px-6 font-semibold backdrop-blur transition-all hover:bg-surface"
             >
-              <a href="#instructor">
+              <Link to="/courses/$courseId" params={{ courseId: "architecture-plan-presentation-animation" }} hash="preview">
                 <PlayCircle className="mr-1.5 h-4 w-4" /> Watch Program Overview
-              </a>
+              </Link>
             </Button>
           </div>
           <dl className="grid max-w-xl grid-cols-2 gap-4 pt-6 sm:grid-cols-4">

@@ -298,7 +298,7 @@ function CourseDetailPage() {
               </div>
 
               {/* Dynamic Preview Media: YouTube iframe / Direct MP4 / Cover Image */}
-              <div className="mt-9 overflow-hidden rounded-[24px] border border-border/70 bg-black shadow-elevated">
+              <div id="preview" className="mt-9 scroll-mt-28 overflow-hidden rounded-[24px] border border-border/70 bg-black shadow-elevated">
                 <div className="aspect-video w-full">
                   {isYouTube ? (
                     <iframe
@@ -342,19 +342,19 @@ function CourseDetailPage() {
                   )}
                 </div>
 
-                <div className="mt-5 flex flex-wrap items-end gap-x-3 gap-y-2">
-                  <span className="font-display text-5xl font-extrabold leading-none tracking-[-0.05em] text-foreground">
+                <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
                     {course.currency || "₹"}
                     {course.price.toLocaleString()}
                   </span>
                   {originalPrice > price && (
-                    <span className="pb-1 text-sm font-semibold text-muted-foreground line-through">
+                    <span className="text-sm font-semibold text-muted-foreground line-through">
                       {course.currency || "₹"}
                       {originalPrice.toLocaleString()}
                     </span>
                   )}
                 </div>
-                <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                <p className="mt-3 text-xs sm:text-sm leading-relaxed text-muted-foreground">
                   One-time payment with lifetime access to lessons, resources, future updates, and certification.
                 </p>
 
