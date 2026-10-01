@@ -22,6 +22,7 @@ function parseListInput(input?: string | string[]): string[] {
   if (!input) return [];
   if (Array.isArray(input)) return input.filter(Boolean);
   return input
+  
     .split(/\r?\n/)
     .map((s) => s.trim())
     .filter(Boolean);

@@ -51,6 +51,9 @@ export interface AdminPaymentItem {
   user_id: string;
   course_id: string;
   amount: number;
+  originalAmount?: number;
+  discountAmount?: number;
+  finalAmount?: number;
   currency: string;
   gateway: string;
   gateway_order_id: string | null;
@@ -64,29 +67,42 @@ export interface AdminPaymentItem {
   courseTitle: string;
   orderId: string;
   paymentId: string;
+  couponCode?: string | null;
 }
 
 export const adminService = {
   getOverviewStats: async (): Promise<AdminOverviewStats> => {
     const raw = await apiClient<any>("/admin/overview");
-    // Backend returns { stats: {...}, recentUsers, recentEnrollments }
-    // Normalize to the flat shape the frontend Overview component expects
     if (raw?.stats) {
-      return {
-        profileCount: raw.stats.totalUsers ?? 0,
-        enrolledStudentsCount: raw.stats.totalEnrollments ?? 0,
-        totalPaymentsCount: 0,
-        totalRevenue: raw.stats.totalRevenue ?? 0,
-        courseCount: raw.stats.publishedCourses ?? raw.stats.totalCourses ?? 0,
-        recent: (raw.recentEnrollments ?? []).map((e: any) => ({
+      const recentList =
+        raw.recentTransactions ||
+        (raw.recentEnrollments ?? []).map((e: any) => ({
           id: e.id,
           amount: e.payment?.amount ?? e.course?.price ?? 0,
           currency: "₹",
-          status: "completed",
+          status: e.status ? e.status.toLowerCase() : "completed",
           studentName: e.user?.full_name || e.user?.email || "Learner",
-          courseTitle: e.course?.title || "Course",
+          courseTitle: e.course?.title || "Course Access",
           orderId: e.id?.substring(0, 8).toUpperCase(),
           created_at: e.enrolled_at ?? e.created_at,
+        }));
+
+      return {
+        profileCount: raw.stats.totalUsers ?? 0,
+        enrolledStudentsCount: raw.stats.totalEnrollments ?? 0,
+        totalPaymentsCount: raw.recentTransactions?.length ?? 0,
+        totalRevenue: raw.stats.totalRevenue ?? 0,
+        courseCount: raw.stats.publishedCourses ?? raw.stats.totalCourses ?? 0,
+        recent: recentList.map((r: any) => ({
+          id: r.id,
+          amount: Number(r.finalAmount ?? r.amount ?? 0),
+          currency: r.currency === "INR" || !r.currency ? "₹" : r.currency,
+          status: (r.status || "completed").toLowerCase(),
+          studentName: r.studentName || r.user?.full_name || r.user?.email || "Learner",
+          courseTitle: r.courseTitle || r.course?.title || "Course Access",
+          orderId: r.orderId || r.gateway_order_id || r.id?.substring(0, 10).toUpperCase(),
+          gateway: r.gateway || "razorpay",
+          created_at: r.paid_at || r.created_at || r.enrolled_at,
         })),
       };
     }

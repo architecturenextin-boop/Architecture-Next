@@ -68,6 +68,17 @@ export const authService = {
     return data;
   },
 
+  googleLogin: async (credential: string): Promise<AuthResponse & { isNewUser?: boolean }> => {
+    const data = await apiClient<AuthResponse & { isNewUser?: boolean }>("/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential }),
+    });
+    if (data?.token) {
+      tokenStorage.set(data.token);
+    }
+    return data;
+  },
+
   getMe: async (): Promise<{ user: Profile; profile: Profile }> => {
     return apiClient<{ user: Profile; profile: Profile }>("/auth/me");
   },

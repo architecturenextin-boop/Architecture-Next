@@ -10,8 +10,10 @@ import { tokenStorage } from "@/lib/api-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CourseWithContent } from "@/lib/database.types";
 import { getMediaUrl } from "@/lib/utils";
+import Hls from "hls.js";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
+import { getApiConfig } from "@/lib/api-client";
 
 export const Route = createLazyFileRoute("/learn/$courseId")({
   component: LearnPage,
@@ -336,8 +338,34 @@ function LearnPage() {
     setPlayerReady(false);
     let active = true;
     let hasAutoCompleted = false;
+    let hlsInstance: Hls | null = null;
+    let syncTimeout: any = null;
 
-    const autoSave = async (seconds: number, markCompleted: boolean = false) => {
+    // Prompt 1: Resume Playback key & saved position (localStorage with backend fallback)
+    const storageKey = `anext_${activeId}`;
+    const localSaved = (() => {
+      try {
+        const val = localStorage.getItem(storageKey);
+        return val ? parseFloat(val) : NaN;
+      } catch {
+        return NaN;
+      }
+    })();
+
+    const previousProgress = progressList.find((p) => p.lesson_id === activeId);
+    const backendSaved = previousProgress ? previousProgress.progress_seconds : 0;
+    const initialSavedSeconds = !isNaN(localSaved) && localSaved > 0 ? localSaved : backendSaved;
+
+    // Save position to localStorage (throttled/called on pause and timeupdate)
+    const saveToLocalStorage = (seconds: number) => {
+      if (!activeId || isNaN(seconds) || seconds <= 0) return;
+      try {
+        localStorage.setItem(storageKey, Math.floor(seconds).toString());
+      } catch (_) {}
+    };
+
+    // Prompt 2: Debounced progress sync to backend with navigator.sendBeacon fallback
+    const syncBackendProgress = async (seconds: number, markCompleted: boolean = false) => {
       if (!user || !course || !activeId) return;
 
       try {
@@ -345,7 +373,7 @@ function LearnPage() {
         const shouldBeCompleted = markCompleted || isAlreadyCompleted;
 
         await courseService.saveLessonProgress(course.id, activeId, {
-          progress_seconds: Math.max(0, seconds),
+          progress_seconds: Math.max(0, Math.floor(seconds)),
           completed: shouldBeCompleted,
         });
 
@@ -353,11 +381,40 @@ function LearnPage() {
           queryClient.invalidateQueries({ queryKey: ["learn-course", courseId] });
         }
       } catch (err) {
-        console.error("Failed to save learning progress:", err);
+        console.error("[Progress Sync] Failed to save backend progress:", err);
       }
     };
 
+    // Best-effort sendBeacon for reliable progress saving on tab close / unload
+    const sendBeaconProgress = (seconds: number) => {
+      if (!user || !course || !activeId || !isEnrolled) return;
+      try {
+        const { url } = getApiConfig(`/courses/${course.id}/lessons/${activeId}/progress`);
+        const token = tokenStorage.get();
+        const payload = JSON.stringify({
+          progress_seconds: Math.max(0, Math.floor(seconds)),
+          completed: completed.includes(activeId),
+        });
+
+        if (navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: "application/json" });
+          navigator.sendBeacon(url, blob);
+        } else {
+          fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: payload,
+            keepalive: true,
+          }).catch(() => {});
+        }
+      } catch (_) {}
+    };
+
     const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
+    const isHlsStream = videoUrl.includes(".m3u8") || videoUrl.includes("/manifest/");
 
     const playerOptions: Plyr.Options = {
       controls: [
@@ -372,7 +429,7 @@ function LearnPage() {
       seekTime: 10,
       invertTime: false,
       tooltips: { controls: true, seek: true },
-      settings: ["speed"],
+      settings: ["speed", "quality"],
       speed: { selected: 1, options: [0.75, 1, 1.25, 1.5, 2] },
       keyboard: { global: true, focused: true },
       youtube: {
@@ -385,23 +442,26 @@ function LearnPage() {
     };
 
     let playerInstance: Plyr | null = null;
+    let hasRestoredPosition = false;
 
-    // Seek to previous watched position
-    const previousProgress = progressList.find((p) => p.lesson_id === activeId);
-    const savedSeconds = previousProgress ? previousProgress.progress_seconds : 0;
-    let hasSeeked = false;
-
-    const performSeek = () => {
+    // Prompt 1: Restore playback position
+    const restoreSavedPosition = (videoElement?: HTMLVideoElement) => {
+      if (hasRestoredPosition || initialSavedSeconds <= 0) return;
       try {
-        if (savedSeconds > 0 && !hasSeeked && playerInstance) {
-          playerInstance.currentTime = savedSeconds;
-          hasSeeked = true;
+        if (videoElement && !isNaN(videoElement.duration) && videoElement.duration > 0) {
+          if (initialSavedSeconds < videoElement.duration - 2) {
+            videoElement.currentTime = initialSavedSeconds;
+            hasRestoredPosition = true;
+          }
+        } else if (playerInstance) {
+          playerInstance.currentTime = initialSavedSeconds;
+          hasRestoredPosition = true;
         }
       } catch (_) {}
     };
 
-    const handleReady = () => {
-      performSeek();
+    const handleReady = (videoElement?: HTMLVideoElement) => {
+      restoreSavedPosition(videoElement);
       if (active) {
         setPlayerReady(true);
       }
@@ -410,7 +470,8 @@ function LearnPage() {
     const triggerAutoCompletion = (seconds: number) => {
       if (!hasAutoCompleted) {
         hasAutoCompleted = true;
-        autoSave(seconds, true);
+        saveToLocalStorage(seconds);
+        syncBackendProgress(seconds, true);
       }
     };
 
@@ -429,24 +490,116 @@ function LearnPage() {
         console.warn("Plyr YouTube init warning:", e);
       }
     } else {
-      // MP4 / Storage Video element with Plyr
+      // HTML5 Video element
       const videoEl = document.createElement("video");
       videoEl.className = "plyr w-full h-full";
       videoEl.playsInline = true;
       videoEl.controls = true;
       videoEl.preload = "metadata";
-      videoEl.src = videoUrl;
       container.appendChild(videoEl);
 
-      try {
-        playerInstance = new Plyr(videoEl, playerOptions);
-        playerRef.current = playerInstance;
-      } catch (e) {
-        console.warn("Plyr HTML5 init warning:", e);
+      // Check if HLS.js streaming is needed
+      if (isHlsStream && Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: true,
+          autoStartLoad: false, // Prompt 1: We will call hls.startLoad(savedPosition)
+        });
+        hlsInstance = hls;
+
+        hls.attachMedia(videoEl);
+
+        hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+          hls.loadSource(videoUrl);
+          // Prompt 1: Call hls.startLoad(savedPosition) to restart HLS fragment loading at saved timestamp
+          const startPosition = initialSavedSeconds > 0 ? initialSavedSeconds : -1;
+          hls.startLoad(startPosition);
+        });
+
+        hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+          // Setup Plyr quality options from HLS levels if available
+          const availableQualities = data.levels.map((l) => l.height).filter(Boolean);
+          const customOptions: Plyr.Options = {
+            ...playerOptions,
+            quality: availableQualities.length
+              ? {
+                  default: availableQualities[0],
+                  options: availableQualities,
+                  forced: true,
+                  onChange: (newQuality: number) => {
+                    data.levels.forEach((level, levelIndex) => {
+                      if (level.height === newQuality) {
+                        hls.currentLevel = levelIndex;
+                      }
+                    });
+                  },
+                }
+              : undefined,
+          };
+
+          try {
+            playerInstance = new Plyr(videoEl, customOptions);
+            playerRef.current = playerInstance;
+            attachPlayerEvents(playerInstance, videoEl);
+          } catch (e) {
+            console.warn("Plyr HLS init warning:", e);
+          }
+
+          restoreSavedPosition(videoEl);
+        });
+
+        // Prompt 3: Add HLS.js Error Recovery & Logging
+        hls.on(Hls.Events.ERROR, (_, errorData) => {
+          if (errorData.fatal) {
+            console.error("[HLS.js Fatal Error]", {
+              type: errorData.type,
+              details: errorData.details,
+              fatal: errorData.fatal,
+              url: videoUrl,
+            });
+
+            switch (errorData.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.warn("[HLS.js] Fatal network error encountered, attempting recovery via startLoad()...");
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.warn("[HLS.js] Fatal media error encountered, attempting recovery via recoverMediaError()...");
+                hls.recoverMediaError();
+                break;
+              default:
+                console.error("[HLS.js] Unrecoverable fatal error, destroying HLS instance.", errorData);
+                hls.destroy();
+                if (active) {
+                  setVideoError("A fatal playback error occurred. Please refresh or contact support.");
+                  setPlayerReady(true);
+                }
+                break;
+            }
+          } else {
+            console.warn("[HLS.js Non-Fatal Error]", errorData.type, errorData.details);
+          }
+        });
+      } else {
+        // Direct MP4 or native Safari HLS
+        videoEl.src = videoUrl;
+
+        try {
+          playerInstance = new Plyr(videoEl, playerOptions);
+          playerRef.current = playerInstance;
+          attachPlayerEvents(playerInstance, videoEl);
+        } catch (e) {
+          console.warn("Plyr HTML5 init warning:", e);
+        }
       }
 
-      videoEl.oncanplay = handleReady;
-      videoEl.onloadeddata = handleReady;
+      // Prompt 1: On loadedmetadata, restore saved position
+      videoEl.onloadedmetadata = () => {
+        handleReady(videoEl);
+        updateDurationFromPlayer();
+      };
+      videoEl.oncanplay = () => handleReady(videoEl);
+      videoEl.onloadeddata = () => handleReady(videoEl);
+
       videoEl.onerror = (e) => {
         console.error("HTML5 Video Error Event:", e, "MediaError code:", videoEl.error?.code, videoEl.error?.message, "Source URL:", videoUrl);
         if (active) {
@@ -454,6 +607,7 @@ function LearnPage() {
           setPlayerReady(true);
         }
       };
+
       videoEl.onended = () => {
         try {
           triggerAutoCompletion(Math.floor(videoEl.currentTime || 0));
@@ -461,39 +615,37 @@ function LearnPage() {
       };
     }
 
-    let lastSavedSeconds = 0;
+    let lastLocalSavedSeconds = 0;
+    let lastBackendSyncSeconds = 0;
     let leadTracked = false;
 
-    const updateDurationFromPlayer = async () => {
+    const updateDurationFromPlayer = () => {
       try {
         const dur = Math.floor(playerInstance?.duration || 0);
         if (dur && !isNaN(dur) && dur > 0) {
-          const formatted = formatVideoDuration(dur);
-          setLiveDuration(formatted);
+          setLiveDuration(formatVideoDuration(dur));
         }
       } catch (_) {}
     };
 
-    if (playerInstance) {
-      playerInstance.on("ready", () => {
-        handleReady();
-        updateDurationFromPlayer();
-      });
-      playerInstance.on("loadedmetadata", () => {
-        handleReady();
-        updateDurationFromPlayer();
-      });
-      playerInstance.on("canplay", () => {
-        handleReady();
-        updateDurationFromPlayer();
-      });
-      playerInstance.on("loadeddata", () => {
-        handleReady();
+    function attachPlayerEvents(instance: Plyr, videoEl?: HTMLVideoElement) {
+      instance.on("ready", () => {
+        handleReady(videoEl);
         updateDurationFromPlayer();
       });
 
-      // Free preview lead tracking on actual confirmed video play
-      playerInstance.on("play", () => {
+      instance.on("loadedmetadata", () => {
+        handleReady(videoEl);
+        updateDurationFromPlayer();
+      });
+
+      instance.on("canplay", () => {
+        handleReady(videoEl);
+        updateDurationFromPlayer();
+      });
+
+      // Free preview lead tracking
+      instance.on("play", () => {
         if (!isEnrolled && !isAdmin && activeLesson?.is_free && !leadTracked && course?.id && activeLesson?.id) {
           leadTracked = true;
           leadService
@@ -506,36 +658,50 @@ function LearnPage() {
         }
       });
 
-      playerInstance.on("timeupdate", () => {
+      // Throttled timeupdate:
+      // - Prompt 1: Save to localStorage every 5s
+      // - Prompt 2: Debounced progress sync to backend every 10s
+      instance.on("timeupdate", () => {
         try {
-          const current = Math.floor(playerInstance?.currentTime || 0);
-          const duration = Math.floor(playerInstance?.duration || 0);
+          const current = Math.floor(instance.currentTime || 0);
+          const duration = Math.floor(instance.duration || 0);
 
           if (duration > 0 && !liveDuration) {
             updateDurationFromPlayer();
           }
 
-          // Auto-mark completed when video reaches >= 90% or within 3 seconds of end (for enrolled users)
+          // Auto-mark completed at >= 90% or within 3 seconds of end
           if (isEnrolled && duration > 5 && !hasAutoCompleted && !completed.includes(activeId)) {
             if (current >= duration - 3 || (duration > 0 && current / duration >= 0.90)) {
               triggerAutoCompletion(current);
             }
           }
 
-          if (Math.abs(current - lastSavedSeconds) >= 7) {
-            lastSavedSeconds = current;
-            if (isEnrolled) {
-              autoSave(current);
-            }
+          // Prompt 1: Save to localStorage throttled to 5 seconds
+          if (Math.abs(current - lastLocalSavedSeconds) >= 5) {
+            lastLocalSavedSeconds = current;
+            saveToLocalStorage(current);
+          }
+
+          // Prompt 2: Sync to Backend throttled/debounced to 10 seconds
+          if (isEnrolled && Math.abs(current - lastBackendSyncSeconds) >= 10) {
+            lastBackendSyncSeconds = current;
+            clearTimeout(syncTimeout);
+            syncTimeout = setTimeout(() => {
+              syncBackendProgress(current);
+            }, 300);
           }
         } catch (_) {}
       });
 
-      playerInstance.on("pause", () => {
+      // Prompt 1 & 2: Save on pause
+      instance.on("pause", () => {
         try {
-          const cur = Math.floor(playerInstance?.currentTime || 0);
+          const cur = Math.floor(instance.currentTime || 0);
+          saveToLocalStorage(cur);
+
           if (isEnrolled) {
-            autoSave(cur);
+            syncBackendProgress(cur);
           } else if (activeLesson?.is_free && course?.id && activeLesson?.id && cur > 0) {
             leadService
               .trackFreePreview({
@@ -549,26 +715,47 @@ function LearnPage() {
         } catch (_) {}
       });
 
-      playerInstance.on("ended", () => {
+      instance.on("ended", () => {
         try {
+          const cur = Math.floor(instance.currentTime || 0);
+          saveToLocalStorage(cur);
           if (isEnrolled) {
-            triggerAutoCompletion(Math.floor(playerInstance?.currentTime || 0));
+            triggerAutoCompletion(cur);
           }
         } catch (_) {}
       });
     }
 
+    // Attach to YouTube instance if present
+    if (isYouTube && playerInstance) {
+      attachPlayerEvents(playerInstance);
+    }
+
+    // Prompt 2: Unload / Visibilitychange with sendBeacon
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
         try {
-          if (playerInstance?.currentTime && isEnrolled) {
-            autoSave(Math.floor(playerInstance.currentTime));
+          const cur = Math.floor(playerInstance?.currentTime || 0);
+          if (cur > 0) {
+            saveToLocalStorage(cur);
+            sendBeaconProgress(cur);
           }
         } catch (_) {}
       }
     };
 
+    const handleBeforeUnload = () => {
+      try {
+        const cur = Math.floor(playerInstance?.currentTime || 0);
+        if (cur > 0) {
+          saveToLocalStorage(cur);
+          sendBeaconProgress(cur);
+        }
+      } catch (_) {}
+    };
+
     document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     const safetyTimer = setTimeout(() => {
       if (active) setPlayerReady(true);
@@ -577,14 +764,28 @@ function LearnPage() {
     return () => {
       active = false;
       clearTimeout(safetyTimer);
+      clearTimeout(syncTimeout);
       document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+
       try {
         if (playerInstance) {
           const currentTime = playerInstance.currentTime ? Math.floor(playerInstance.currentTime) : 0;
-          if (currentTime > 0 && isEnrolled) autoSave(currentTime);
+          if (currentTime > 0) {
+            saveToLocalStorage(currentTime);
+            if (isEnrolled) syncBackendProgress(currentTime);
+          }
           playerInstance.destroy();
         }
       } catch (_) {}
+
+      if (hlsInstance) {
+        try {
+          hlsInstance.destroy();
+        } catch (_) {}
+        hlsInstance = null;
+      }
+
       playerRef.current = null;
       setPlayerReady(false);
       if (container) {

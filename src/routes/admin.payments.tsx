@@ -171,6 +171,8 @@ function PaymentsPage() {
           <div className="space-y-3.5 sm:hidden">
             {filteredPayments.map((r: any) => {
               const date = r.created_at ? new Date(r.created_at).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "N/A";
+              const currSymbol = r.currency === "INR" || !r.currency ? "₹" : r.currency;
+              const isManual = r.gateway === "manual";
               return (
                 <article key={r.id} className="rounded-2xl border border-border bg-card p-4 shadow-soft space-y-3">
                   <div className="flex items-start justify-between gap-2">
@@ -178,8 +180,14 @@ function PaymentsPage() {
                       <span className="font-mono text-[11px] font-bold text-foreground block truncate">
                         {r.orderId}
                       </span>
-                      <span className="text-[10px] text-muted-foreground uppercase font-semibold">
-                        {r.gateway || "Razorpay"}
+                      <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md inline-block mt-0.5 ${
+                        isManual
+                          ? "bg-purple-500/10 text-purple-600 border border-purple-500/20"
+                          : r.gateway === "COUPON"
+                          ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                          : "bg-muted text-muted-foreground"
+                      }`}>
+                        {isManual ? "Direct Enrollment" : r.gateway || "Razorpay"}
                       </span>
                     </div>
 
@@ -201,9 +209,16 @@ function PaymentsPage() {
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="font-display font-bold text-base text-foreground">
-                      {r.currency}{Number(r.amount).toLocaleString()}
-                    </span>
+                    <div>
+                      <span className="font-display font-bold text-base text-foreground">
+                        {currSymbol}{Number(r.finalAmount ?? r.amount).toLocaleString()}
+                      </span>
+                      {r.discountAmount > 0 && (
+                        <span className="ml-1.5 text-[11px] text-muted-foreground line-through">
+                          {currSymbol}{Number(r.originalAmount ?? (r.amount + r.discountAmount)).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                     <Button
                       size="sm"
                       variant="outline"
@@ -236,6 +251,8 @@ function PaymentsPage() {
                 <tbody className="divide-y divide-border">
                   {filteredPayments.map((r: any) => {
                     const date = r.created_at ? new Date(r.created_at).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "N/A";
+                    const currSymbol = r.currency === "INR" || !r.currency ? "₹" : r.currency;
+                    const isManual = r.gateway === "manual";
                     return (
                       <tr key={r.id} className="hover:bg-muted/20 transition-colors">
                         <td className="px-5 py-3.5">
@@ -243,8 +260,14 @@ function PaymentsPage() {
                             <span className="font-mono text-xs font-bold text-foreground block truncate max-w-[180px]">
                               {r.orderId}
                             </span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                              {r.gateway || "Razorpay"}
+                            <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md inline-block ${
+                              isManual
+                                ? "bg-purple-500/10 text-purple-600 border border-purple-500/20"
+                                : r.gateway === "COUPON"
+                                ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                                : "bg-muted text-muted-foreground"
+                            }`}>
+                              {isManual ? "Direct Enrollment" : r.gateway || "Razorpay"}
                             </span>
                           </div>
                         </td>
@@ -277,7 +300,14 @@ function PaymentsPage() {
                         </td>
 
                         <td className="px-5 py-3.5 text-right font-display font-bold text-base text-foreground whitespace-nowrap">
-                          {r.currency}{Number(r.amount).toLocaleString()}
+                          <div>
+                            <span>{currSymbol}{Number(r.finalAmount ?? r.amount).toLocaleString()}</span>
+                            {r.discountAmount > 0 && (
+                              <span className="block text-[11px] text-muted-foreground line-through font-normal">
+                                {currSymbol}{Number(r.originalAmount ?? (r.amount + r.discountAmount)).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         <td className="px-5 py-3.5 text-right">
@@ -321,9 +351,23 @@ function PaymentsPage() {
               <div className="rounded-2xl bg-muted/20 p-4 border border-border flex items-center justify-between">
                 <div>
                   <span className="text-muted-foreground block">Amount Paid</span>
-                  <span className="font-display text-2xl font-extrabold text-foreground">
-                    {selectedPayment.currency}{Number(selectedPayment.amount).toLocaleString()}
-                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-display text-2xl font-extrabold text-foreground">
+                      {selectedPayment.currency === "INR" || !selectedPayment.currency ? "₹" : selectedPayment.currency}
+                      {Number(selectedPayment.finalAmount ?? selectedPayment.amount).toLocaleString()}
+                    </span>
+                    {selectedPayment.discountAmount > 0 && (
+                      <span className="text-xs text-muted-foreground line-through">
+                        {selectedPayment.currency === "INR" || !selectedPayment.currency ? "₹" : selectedPayment.currency}
+                        {Number(selectedPayment.originalAmount ?? (selectedPayment.amount + selectedPayment.discountAmount)).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  {selectedPayment.couponCode && (
+                    <span className="inline-block mt-1 text-[11px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                      Coupon Applied: {selectedPayment.couponCode}
+                    </span>
+                  )}
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
                   selectedPayment.status === "completed" 
@@ -338,18 +382,25 @@ function PaymentsPage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-border p-3">
-                  <span className="text-muted-foreground block font-medium">Gateway Order ID</span>
-                  <span className="font-mono font-semibold text-foreground text-xs break-all">
-                    {selectedPayment.orderId}
+                  <span className="text-muted-foreground block font-medium">Gateway / Method</span>
+                  <span className="font-semibold text-foreground text-xs uppercase">
+                    {selectedPayment.gateway === "manual" ? "Direct / Admin Enrollment" : selectedPayment.gateway || "Razorpay"}
                   </span>
                 </div>
 
                 <div className="rounded-xl border border-border p-3">
-                  <span className="text-muted-foreground block font-medium">Gateway Payment ID</span>
+                  <span className="text-muted-foreground block font-medium">Order ID</span>
                   <span className="font-mono font-semibold text-foreground text-xs break-all">
-                    {selectedPayment.paymentId || "N/A"}
+                    {selectedPayment.orderId}
                   </span>
                 </div>
+              </div>
+
+              <div className="rounded-xl border border-border p-3">
+                <span className="text-muted-foreground block font-medium">Payment ID</span>
+                <span className="font-mono font-semibold text-foreground text-xs break-all">
+                  {selectedPayment.paymentId || "N/A"}
+                </span>
               </div>
 
               <div className="rounded-xl border border-border p-3 space-y-1">

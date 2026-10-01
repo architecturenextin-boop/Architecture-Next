@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BrandLogo } from "@/components/brand-logo";
+import { GoogleAuthButton } from "@/components/google-auth-button";
 import { authService } from "@/lib/services/auth.service";
 import { dispatchAuthChange } from "@/hooks/use-auth";
 import { tokenStorage } from "@/lib/api-client";
@@ -258,6 +259,23 @@ function AuthPage() {
                   {isLoading ? "Signing in..." : "Sign In"} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </form>
+
+              {/* OR Divider */}
+              <div className="relative my-5">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border/80" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-3 font-semibold text-muted-foreground tracking-wider">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              {/* Google Sign In */}
+              <div className="w-full flex justify-center">
+                <GoogleAuthButton text="signin_with" shape="rectangular" size="large" />
+              </div>
             </>
           ) : (
             /* FORGOT PASSWORD FORM */
