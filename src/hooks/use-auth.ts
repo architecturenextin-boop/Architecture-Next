@@ -12,9 +12,10 @@ export function dispatchAuthChange() {
   }
 }
 
-// In-memory module cache to prevent flickering/buffering on route navigation
+// In-memory module cache & in-flight promise to prevent duplicate requests
 let memoryProfile: Profile | null = null;
 let memoryLoaded = false;
+let activeFetchPromise: Promise<Profile | null> | null = null;
 
 export function useAuth() {
   const [profile, setProfile] = useState<Profile | null>(memoryProfile);
@@ -34,20 +35,33 @@ export function useAuth() {
       return;
     }
 
-    try {
-      const data = await authService.getMe();
-      const userProfile = data.profile || data.user || null;
-      memoryProfile = userProfile;
-      memoryLoaded = true;
+    if (activeFetchPromise) {
+      const userProfile = await activeFetchPromise;
       setProfile(userProfile);
-    } catch (err) {
-      tokenStorage.clear();
-      memoryProfile = null;
-      memoryLoaded = true;
-      setProfile(null);
-    } finally {
       setIsLoading(false);
+      return;
     }
+
+    activeFetchPromise = (async () => {
+      try {
+        const data = await authService.getMe();
+        const userProfile = data.profile || data.user || null;
+        memoryProfile = userProfile;
+        memoryLoaded = true;
+        return userProfile;
+      } catch (err) {
+        tokenStorage.clear();
+        memoryProfile = null;
+        memoryLoaded = true;
+        return null;
+      } finally {
+        activeFetchPromise = null;
+      }
+    })();
+
+    const result = await activeFetchPromise;
+    setProfile(result);
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {

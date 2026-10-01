@@ -231,22 +231,28 @@ function LearnPage() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
+  const prevLessonIdRef = useRef<string>("");
+
   // Fetch video URL or PDF blob whenever activeId changes
   useEffect(() => {
     if (!activeId) return;
     let active = true;
 
     async function fetchUrl() {
-      setPlayerReady(false);
-      setVideoLoading(true);
-      setVideoError(null);
-      setVideoUrl(null);
-      setPdfBlobUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setPdfLoading(false);
-      setPdfError(null);
+      const isNewLesson = prevLessonIdRef.current !== activeId;
+      prevLessonIdRef.current = activeId;
+
+      if (isNewLesson) {
+        setPlayerReady(false);
+        setVideoLoading(true);
+        setVideoError(null);
+        setPdfBlobUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setPdfLoading(false);
+        setPdfError(null);
+      }
 
       try {
         const currentLesson = flatLessons.find((l) => l.id === activeId);
@@ -272,7 +278,10 @@ function LearnPage() {
           if (token && resolved.includes("/api/v1/media/") && !resolved.includes("token=")) {
             resolved = `${resolved}${resolved.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
           }
-          if (active) setVideoUrl(resolved);
+          if (active) {
+            setVideoUrl(resolved);
+            setVideoLoading(false);
+          }
           return;
         }
 
@@ -340,7 +349,7 @@ function LearnPage() {
     return () => {
       active = false;
     };
-  }, [activeId, flatLessons, isEnrolled]);
+  }, [activeId, isEnrolled]);
 
   // Keep mutable refs in sync with latest component state
   useEffect(() => {
@@ -513,6 +522,7 @@ function LearnPage() {
       restoreSavedPosition(videoElement);
       if (active) {
         setPlayerReady(true);
+        setVideoLoading(false);
       }
     };
 
@@ -543,9 +553,18 @@ function LearnPage() {
         updateDurationFromPlayer(videoEl);
       });
 
+      instance.on("play", () => {
+        handleReady(videoEl);
+      });
+
+      instance.on("playing", () => {
+        handleReady(videoEl);
+      });
+
       // Throttled timeupdate: save progress every 5s & auto-complete at >=90%
       instance.on("timeupdate", () => {
         try {
+          handleReady(videoEl);
           const current = instance.currentTime || videoEl?.currentTime || 0;
           const duration = instance.duration || videoEl?.duration || durationRef.current || 0;
           currentTimeRef.current = current;
@@ -620,7 +639,7 @@ function LearnPage() {
       videoEl.className = "plyr w-full h-full";
       videoEl.playsInline = true;
       videoEl.controls = true;
-      videoEl.preload = "metadata";
+      videoEl.preload = "auto";
       container.appendChild(videoEl);
 
       // Check if HLS.js streaming is supported
@@ -628,10 +647,14 @@ function LearnPage() {
         const startPos = initialSavedSeconds > 0 ? initialSavedSeconds : -1;
         const hls = new Hls({
           enableWorker: true,
-          autoStartLoad: false,
+          autoStartLoad: true,
           startPosition: startPos,
-          backBufferLength: 90,
-          maxBufferLength: 30,
+          startFragPrefetch: true,
+          lowLatencyMode: true,
+          backBufferLength: 60,
+          maxBufferLength: 20,
+          maxMaxBufferLength: 40,
+          maxBufferSize: 60 * 1000 * 1000,
         });
         hlsInstance = hls;
         hlsRef.current = hls;
@@ -781,7 +804,13 @@ function LearnPage() {
         restoreSavedPosition(videoEl);
       };
       videoEl.oncanplay = () => handleReady(videoEl);
+      videoEl.oncanplaythrough = () => handleReady(videoEl);
       videoEl.onloadeddata = () => handleReady(videoEl);
+      videoEl.onplay = () => handleReady(videoEl);
+      videoEl.onplaying = () => handleReady(videoEl);
+      videoEl.ontimeupdate = () => {
+        if (active) handleReady(videoEl);
+      };
 
       videoEl.onerror = (e) => {
         if (isDebugHls) {
@@ -839,8 +868,11 @@ function LearnPage() {
     }, 90 * 60 * 1000);
 
     const safetyTimer = setTimeout(() => {
-      if (active) setPlayerReady(true);
-    }, 1000);
+      if (active) {
+        setPlayerReady(true);
+        setVideoLoading(false);
+      }
+    }, 600);
 
     // Teardown cleanup
     return () => {
@@ -1234,8 +1266,8 @@ function LearnPage() {
             ) : (
               <div className="relative w-full h-full flex items-center justify-center">
                 {/* Premium Smooth Loading State */}
-                {(videoLoading || !playerReady) && !videoError && (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-br from-[#0B0B12] via-[#14141F] to-[#1A1A2A] text-white transition-opacity duration-300">
+                {(videoLoading || !playerReady) && !videoError && videoUrl && (
+                  <div className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center bg-gradient-to-br from-[#0B0B12] via-[#14141F] to-[#1A1A2A] text-white transition-opacity duration-300">
                     <div className="relative flex items-center justify-center">
                       <div className="absolute h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-primary/20 animate-ping" />
                       <div className="relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-gradient-primary shadow-glow">
@@ -1331,7 +1363,7 @@ function LearnPage() {
                 <div
                   ref={playerContainerRef}
                   className={`w-full h-full flex items-center justify-center transition-opacity duration-300 ${
-                    playerReady && !videoLoading && !videoError && videoUrl
+                    playerReady && !videoError && videoUrl
                       ? "opacity-100"
                       : "opacity-0 pointer-events-none"
                   }`}
