@@ -13,6 +13,7 @@ import { Route as VerifyOtpRouteImport } from './routes/verify-otp'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as DownloadsRouteImport } from './routes/downloads'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -53,6 +54,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DownloadsRoute = DownloadsRouteImport.update({
+  id: '/downloads',
+  path: '/downloads',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/downloads.lazy').then((d) => d.Route))
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/downloads': typeof DownloadsRoute
   '/onboarding': typeof OnboardingRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/signup': typeof SignupRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
+  '/downloads': typeof DownloadsRoute
   '/onboarding': typeof OnboardingRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/signup': typeof SignupRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/downloads': typeof DownloadsRoute
   '/onboarding': typeof OnboardingRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/signup': typeof SignupRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/dashboard'
+    | '/downloads'
     | '/onboarding'
     | '/payment-success'
     | '/signup'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/checkout'
+    | '/downloads'
     | '/onboarding'
     | '/payment-success'
     | '/signup'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/dashboard'
+    | '/downloads'
     | '/onboarding'
     | '/payment-success'
     | '/signup'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CheckoutRoute: typeof CheckoutRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  DownloadsRoute: typeof DownloadsRoute
   OnboardingRoute: typeof OnboardingRoute
   PaymentSuccessRoute: typeof PaymentSuccessRoute
   SignupRoute: typeof SignupRoute
@@ -344,6 +357,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/downloads': {
+      id: '/downloads'
+      path: '/downloads'
+      fullPath: '/downloads'
+      preLoaderRoute: typeof DownloadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -528,6 +548,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CheckoutRoute: CheckoutRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  DownloadsRoute: DownloadsRoute,
   OnboardingRoute: OnboardingRoute,
   PaymentSuccessRoute: PaymentSuccessRoute,
   SignupRoute: SignupRoute,

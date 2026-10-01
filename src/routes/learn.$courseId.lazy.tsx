@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -14,6 +14,7 @@ import Hls from "hls.js";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 import { getApiConfig } from "@/lib/api-client";
+import { downloadManager, OfflineLessonRecord } from "@/lib/offline/download-manager";
 
 export const Route = createLazyFileRoute("/learn/$courseId")({
   component: LearnPage,
@@ -62,6 +63,43 @@ function LearnPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [liveDuration, setLiveDuration] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [isDeviceOnline, setIsDeviceOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [offlineLessons, setOfflineLessons] = useState<OfflineLessonRecord[]>([]);
+
+  useEffect(() => {
+    const unsub = downloadManager.subscribe((list) => {
+      setOfflineLessons(list);
+    });
+    const handleOnline = () => setIsDeviceOnline(true);
+    const handleOffline = () => setIsDeviceOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      unsub();
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+
+  // High performance mutable refs to prevent re-render tearing
+  const playerContainerRef = useRef<HTMLDivElement | null>(null);
+  const playerRef = useRef<Plyr | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const currentTimeRef = useRef<number>(0);
+  const durationRef = useRef<number>(0);
+  const activeIdRef = useRef<string>("");
+  const courseIdRef = useRef<string>("");
+  const isEnrolledRef = useRef<boolean>(false);
+  const completedRef = useRef<string[]>([]);
+  const retryCountRef = useRef<number>(0);
+  const hasAutoCompletedRef = useRef<boolean>(false);
+  const lastSyncTimeRef = useRef<number>(0);
+  const syncTimeoutRef = useRef<any>(null);
+  const tokenRefreshTimerRef = useRef<any>(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -74,10 +112,6 @@ function LearnPage() {
       document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
     };
   }, []);
-
-  // Dedicated unmanaged container for the video/iframe player
-  const playerContainerRef = useRef<HTMLDivElement | null>(null);
-  const playerRef = useRef<Plyr | null>(null);
 
   // 1. Fetch course details and learning content from Backend REST API
   const { data: learningData, isLoading: courseLoading } = useQuery({
@@ -308,19 +342,83 @@ function LearnPage() {
     };
   }, [activeId, flatLessons, isEnrolled]);
 
+  // Keep mutable refs in sync with latest component state
+  useEffect(() => {
+    activeIdRef.current = activeId;
+    courseIdRef.current = courseId || "";
+    isEnrolledRef.current = Boolean(isEnrolled);
+    completedRef.current = completed;
+  }, [activeId, courseId, isEnrolled, completed]);
+
+  // Debug flag for HLS event telemetry
+  const isDebugHls = typeof window !== "undefined" && (
+    window.location.search.includes("debug=true") || 
+    window.localStorage.getItem("DEBUG_HLS") === "1" ||
+    process.env.NODE_ENV !== "production"
+  );
+
+  // Reliable keepalive progress sync to backend
+  const saveProgressReliably = (pos: number, forceCompleted?: boolean) => {
+    const currentLessonId = activeIdRef.current;
+    const currentCourseId = courseIdRef.current;
+    const currentDuration = durationRef.current;
+    if (!currentLessonId) return;
+
+    const isAlreadyCompleted = completedRef.current.includes(currentLessonId);
+    const isCompleted = forceCompleted !== undefined 
+      ? forceCompleted 
+      : (isAlreadyCompleted || (currentDuration > 0 && pos / currentDuration >= 0.90));
+
+    // Save to localStorage immediately for instant local resilience
+    try {
+      localStorage.setItem(`anext_${currentLessonId}`, pos.toString());
+    } catch (_) {}
+
+    // Record offline progress for sync on reconnection
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      downloadManager.recordOfflineProgress(currentLessonId, pos);
+      return;
+    }
+
+    if (!isEnrolledRef.current && !isAdmin) return;
+
+    const payload = JSON.stringify({
+      last_position: pos,
+      lastPosition: pos,
+      progress_seconds: Math.floor(pos),
+      duration: currentDuration,
+      completed: isCompleted,
+    });
+
+    const { url } = getApiConfig(`/lessons/${currentLessonId}/progress`);
+    const token = tokenStorage.get();
+
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: payload,
+      keepalive: true,
+    }).catch((err) => {
+      if (isDebugHls) console.warn("[Progress Sync Failed]", err);
+    });
+  };
+
   // 3. Mutation to toggle lesson completion
   const toggleProgressMutation = useMutation({
     mutationFn: async (lessonIdToToggle: string) => {
       if (!course || !user) return;
       
       const isCompleted = completed.includes(lessonIdToToggle);
-      let currentTime = 0;
-      try {
-        currentTime = playerRef.current ? Math.floor(playerRef.current.currentTime || 0) : 0;
-      } catch (_) {}
+      const currentTime = currentTimeRef.current || 0;
       
       await courseService.saveLessonProgress(course.id, lessonIdToToggle, {
-        progress_seconds: currentTime,
+        last_position: currentTime,
+        lastPosition: currentTime,
+        progress_seconds: Math.floor(currentTime),
+        duration: durationRef.current || 0,
         completed: !isCompleted,
       });
     },
@@ -329,19 +427,24 @@ function LearnPage() {
     }
   });
 
-  // Imperative player mounting inside unmanaged container (prevents React removeChild errors)
+  // Imperative player mounting inside unmanaged container (Dependencies strictly isolated to [activeId, videoUrl])
   useEffect(() => {
     const container = playerContainerRef.current;
-    if (!container || !videoUrl) return;
+    if (!container || !videoUrl || !activeId) return;
 
     container.innerHTML = "";
     setPlayerReady(false);
-    let active = true;
-    let hasAutoCompleted = false;
-    let hlsInstance: Hls | null = null;
-    let syncTimeout: any = null;
+    setIsReconnecting(false);
+    retryCountRef.current = 0;
+    hasAutoCompletedRef.current = false;
+    currentTimeRef.current = 0;
 
-    // Prompt 1: Resume Playback key & saved position (localStorage with backend fallback)
+    let active = true;
+    let hlsInstance: Hls | null = null;
+    let playerInstance: Plyr | null = null;
+    let hasRestoredPosition = false;
+
+    // 1. Resume Position Calculation
     const storageKey = `anext_${activeId}`;
     const localSaved = (() => {
       try {
@@ -353,68 +456,33 @@ function LearnPage() {
     })();
 
     const previousProgress = progressList.find((p) => p.lesson_id === activeId);
-    const backendSaved = previousProgress ? previousProgress.progress_seconds : 0;
+    const backendSaved = previousProgress 
+      ? Number((previousProgress as any).last_position ?? (previousProgress as any).lastPosition ?? previousProgress.progress_seconds ?? 0)
+      : 0;
     const initialSavedSeconds = !isNaN(localSaved) && localSaved > 0 ? localSaved : backendSaved;
+    currentTimeRef.current = initialSavedSeconds;
 
-    // Save position to localStorage (throttled/called on pause and timeupdate)
-    const saveToLocalStorage = (seconds: number) => {
-      if (!activeId || isNaN(seconds) || seconds <= 0) return;
+    const restoreSavedPosition = (videoElement?: HTMLVideoElement) => {
+      if (hasRestoredPosition || initialSavedSeconds <= 0) return;
       try {
-        localStorage.setItem(storageKey, Math.floor(seconds).toString());
-      } catch (_) {}
-    };
-
-    // Prompt 2: Debounced progress sync to backend with navigator.sendBeacon fallback
-    const syncBackendProgress = async (seconds: number, markCompleted: boolean = false) => {
-      if (!user || !course || !activeId) return;
-
-      try {
-        const isAlreadyCompleted = completed.includes(activeId);
-        const shouldBeCompleted = markCompleted || isAlreadyCompleted;
-
-        await courseService.saveLessonProgress(course.id, activeId, {
-          progress_seconds: Math.max(0, Math.floor(seconds)),
-          completed: shouldBeCompleted,
-        });
-
-        if (markCompleted || (shouldBeCompleted && !isAlreadyCompleted)) {
-          queryClient.invalidateQueries({ queryKey: ["learn-course", courseId] });
-        }
-      } catch (err) {
-        console.error("[Progress Sync] Failed to save backend progress:", err);
-      }
-    };
-
-    // Best-effort sendBeacon for reliable progress saving on tab close / unload
-    const sendBeaconProgress = (seconds: number) => {
-      if (!user || !course || !activeId || !isEnrolled) return;
-      try {
-        const { url } = getApiConfig(`/courses/${course.id}/lessons/${activeId}/progress`);
-        const token = tokenStorage.get();
-        const payload = JSON.stringify({
-          progress_seconds: Math.max(0, Math.floor(seconds)),
-          completed: completed.includes(activeId),
-        });
-
-        if (navigator.sendBeacon) {
-          const blob = new Blob([payload], { type: "application/json" });
-          navigator.sendBeacon(url, blob);
-        } else {
-          fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: payload,
-            keepalive: true,
-          }).catch(() => {});
+        const dur = videoElement?.duration || playerInstance?.duration || durationRef.current || 0;
+        if (dur > 0 && initialSavedSeconds < dur - 5) {
+          if (videoElement) {
+            videoElement.currentTime = initialSavedSeconds;
+          }
+          if (playerInstance) {
+            playerInstance.currentTime = initialSavedSeconds;
+          }
+          hasRestoredPosition = true;
+        } else if (dur === 0) {
+          // Duration not ready yet; defer
+          if (videoElement) videoElement.currentTime = initialSavedSeconds;
         }
       } catch (_) {}
     };
 
     const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
-    const isHlsStream = videoUrl.includes(".m3u8") || videoUrl.includes("/manifest/");
+    const isHlsStream = videoUrl.includes(".m3u8") || videoUrl.includes("/manifest/") || videoUrl.includes("/hls/");
 
     const playerOptions: Plyr.Options = {
       controls: [
@@ -441,25 +509,6 @@ function LearnPage() {
       }
     };
 
-    let playerInstance: Plyr | null = null;
-    let hasRestoredPosition = false;
-
-    // Prompt 1: Restore playback position
-    const restoreSavedPosition = (videoElement?: HTMLVideoElement) => {
-      if (hasRestoredPosition || initialSavedSeconds <= 0) return;
-      try {
-        if (videoElement && !isNaN(videoElement.duration) && videoElement.duration > 0) {
-          if (initialSavedSeconds < videoElement.duration - 2) {
-            videoElement.currentTime = initialSavedSeconds;
-            hasRestoredPosition = true;
-          }
-        } else if (playerInstance) {
-          playerInstance.currentTime = initialSavedSeconds;
-          hasRestoredPosition = true;
-        }
-      } catch (_) {}
-    };
-
     const handleReady = (videoElement?: HTMLVideoElement) => {
       restoreSavedPosition(videoElement);
       if (active) {
@@ -467,13 +516,88 @@ function LearnPage() {
       }
     };
 
-    const triggerAutoCompletion = (seconds: number) => {
-      if (!hasAutoCompleted) {
-        hasAutoCompleted = true;
-        saveToLocalStorage(seconds);
-        syncBackendProgress(seconds, true);
-      }
+    const updateDurationFromPlayer = (videoElement?: HTMLVideoElement) => {
+      try {
+        const dur = Math.floor(playerInstance?.duration || videoElement?.duration || 0);
+        if (dur && !isNaN(dur) && dur > 0) {
+          durationRef.current = dur;
+          setLiveDuration(formatVideoDuration(dur));
+        }
+      } catch (_) {}
     };
+
+    function attachPlayerEvents(instance: Plyr, videoEl?: HTMLVideoElement) {
+      instance.on("ready", () => {
+        handleReady(videoEl);
+        updateDurationFromPlayer(videoEl);
+      });
+
+      instance.on("loadedmetadata", () => {
+        handleReady(videoEl);
+        updateDurationFromPlayer(videoEl);
+        restoreSavedPosition(videoEl);
+      });
+
+      instance.on("canplay", () => {
+        handleReady(videoEl);
+        updateDurationFromPlayer(videoEl);
+      });
+
+      // Throttled timeupdate: save progress every 5s & auto-complete at >=90%
+      instance.on("timeupdate", () => {
+        try {
+          const current = instance.currentTime || videoEl?.currentTime || 0;
+          const duration = instance.duration || videoEl?.duration || durationRef.current || 0;
+          currentTimeRef.current = current;
+
+          if (duration > 0 && (!durationRef.current || durationRef.current === 0)) {
+            durationRef.current = duration;
+            updateDurationFromPlayer(videoEl);
+          }
+
+          // Auto-mark completed at >= 90% or within 3s of end
+          if (duration > 5 && !hasAutoCompletedRef.current && !completedRef.current.includes(activeIdRef.current)) {
+            if (current >= duration - 3 || (duration > 0 && current / duration >= 0.90)) {
+              hasAutoCompletedRef.current = true;
+              saveProgressReliably(current, true);
+              queryClient.invalidateQueries({ queryKey: ["learn-course", courseIdRef.current] });
+            }
+          }
+
+          // Throttled progress save every 5 seconds
+          if (Math.abs(current - lastSyncTimeRef.current) >= 5) {
+            lastSyncTimeRef.current = current;
+            saveProgressReliably(current);
+          }
+        } catch (_) {}
+      });
+
+      instance.on("pause", () => {
+        try {
+          const cur = instance.currentTime || videoEl?.currentTime || currentTimeRef.current || 0;
+          currentTimeRef.current = cur;
+          saveProgressReliably(cur);
+        } catch (_) {}
+      });
+
+      instance.on("seeked", () => {
+        try {
+          const cur = instance.currentTime || videoEl?.currentTime || currentTimeRef.current || 0;
+          currentTimeRef.current = cur;
+          saveProgressReliably(cur);
+        } catch (_) {}
+      });
+
+      instance.on("ended", () => {
+        try {
+          const cur = instance.currentTime || videoEl?.currentTime || currentTimeRef.current || 0;
+          currentTimeRef.current = cur;
+          hasAutoCompletedRef.current = true;
+          saveProgressReliably(cur, true);
+          queryClient.invalidateQueries({ queryKey: ["learn-course", courseIdRef.current] });
+        } catch (_) {}
+      });
+    }
 
     if (isYouTube) {
       const videoId = getYouTubeVideoId(videoUrl);
@@ -486,8 +610,9 @@ function LearnPage() {
       try {
         playerInstance = new Plyr(embedDiv, playerOptions);
         playerRef.current = playerInstance;
+        attachPlayerEvents(playerInstance);
       } catch (e) {
-        console.warn("Plyr YouTube init warning:", e);
+        if (isDebugHls) console.warn("Plyr YouTube init warning:", e);
       }
     } else {
       // HTML5 Video element
@@ -498,25 +623,29 @@ function LearnPage() {
       videoEl.preload = "metadata";
       container.appendChild(videoEl);
 
-      // Check if HLS.js streaming is needed
+      // Check if HLS.js streaming is supported
       if (isHlsStream && Hls.isSupported()) {
+        const startPos = initialSavedSeconds > 0 ? initialSavedSeconds : -1;
         const hls = new Hls({
           enableWorker: true,
-          autoStartLoad: false, // Prompt 1: We will call hls.startLoad(savedPosition)
+          autoStartLoad: false,
+          startPosition: startPos,
+          backBufferLength: 90,
+          maxBufferLength: 30,
         });
         hlsInstance = hls;
+        hlsRef.current = hls;
 
         hls.attachMedia(videoEl);
 
         hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+          if (isDebugHls) console.log("[HLS.js] Media attached, loading source:", videoUrl);
           hls.loadSource(videoUrl);
-          // Prompt 1: Call hls.startLoad(savedPosition) to restart HLS fragment loading at saved timestamp
-          const startPosition = initialSavedSeconds > 0 ? initialSavedSeconds : -1;
-          hls.startLoad(startPosition);
+          hls.startLoad(startPos);
         });
 
         hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-          // Setup Plyr quality options from HLS levels if available
+          if (isDebugHls) console.log("[HLS.js] Manifest parsed. Levels:", data.levels.length);
           const availableQualities = data.levels.map((l) => l.height).filter(Boolean);
           const customOptions: Plyr.Options = {
             ...playerOptions,
@@ -541,46 +670,100 @@ function LearnPage() {
             playerRef.current = playerInstance;
             attachPlayerEvents(playerInstance, videoEl);
           } catch (e) {
-            console.warn("Plyr HLS init warning:", e);
+            if (isDebugHls) console.warn("Plyr HLS init warning:", e);
           }
 
           restoreSavedPosition(videoEl);
         });
 
-        // Prompt 3: Add HLS.js Error Recovery & Logging
-        hls.on(Hls.Events.ERROR, (_, errorData) => {
-          if (errorData.fatal) {
-            console.error("[HLS.js Fatal Error]", {
+        // HLS.js Comprehensive Error Recovery & Backoff
+        hls.on(Hls.Events.ERROR, async (_, errorData) => {
+          if (isDebugHls) {
+            console.warn(`[HLS.js Event] ${errorData.fatal ? 'FATAL ERROR' : 'Warning'}:`, {
               type: errorData.type,
               details: errorData.details,
               fatal: errorData.fatal,
-              url: videoUrl,
+              response: errorData.response,
             });
+          }
 
-            switch (errorData.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.warn("[HLS.js] Fatal network error encountered, attempting recovery via startLoad()...");
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.warn("[HLS.js] Fatal media error encountered, attempting recovery via recoverMediaError()...");
-                hls.recoverMediaError();
-                break;
-              default:
-                console.error("[HLS.js] Unrecoverable fatal error, destroying HLS instance.", errorData);
+          if (!errorData.fatal) {
+            if (errorData.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR && isDebugHls) {
+              console.warn("[HLS.js] Buffer stalled, awaiting fragment arrival...");
+            }
+            return;
+          }
+
+          switch (errorData.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR: {
+              if (retryCountRef.current < 5) {
+                const backoffMs = Math.min(1000 * Math.pow(2, retryCountRef.current), 8000);
+                retryCountRef.current += 1;
+                setIsReconnecting(true);
+
+                if (isDebugHls) {
+                  console.warn(`[HLS.js] Fatal network error. Reconnecting (attempt ${retryCountRef.current}) in ${backoffMs}ms...`);
+                }
+
+                setTimeout(async () => {
+                  try {
+                    const preservedTime = videoEl.currentTime || currentTimeRef.current || 0;
+                    
+                    // Fetch fresh stream URL & token silently without logging user out
+                    const freshData = await courseService.getCourseLearningContent(courseIdRef.current);
+                    const currentLesson = freshData?.course?.modules
+                      ?.flatMap((m: any) => m.lessons || [])
+                      ?.find((l: any) => l.id === activeIdRef.current);
+
+                    let freshUrl = currentLesson?.video_url || currentLesson?.video_path || videoUrl;
+                    if (freshUrl) {
+                      freshUrl = getMediaUrl(freshUrl);
+                      const token = tokenStorage.get();
+                      if (token && freshUrl.includes("/api/v1/media/") && !freshUrl.includes("token=")) {
+                        freshUrl = `${freshUrl}${freshUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+                      }
+                    }
+
+                    if (hls && freshUrl && active) {
+                      hls.loadSource(freshUrl);
+                      hls.startLoad(preservedTime);
+                      if (videoEl && preservedTime > 0) {
+                        videoEl.currentTime = preservedTime;
+                      }
+                    }
+                  } catch (e) {
+                    if (hls && active) hls.startLoad(currentTimeRef.current);
+                  } finally {
+                    if (active) setIsReconnecting(false);
+                  }
+                }, backoffMs);
+              } else {
                 hls.destroy();
                 if (active) {
-                  setVideoError("A fatal playback error occurred. Please refresh or contact support.");
+                  setVideoError("Video stream disconnected. Please check your internet connection and reload.");
                   setPlayerReady(true);
                 }
-                break;
+              }
+              break;
             }
-          } else {
-            console.warn("[HLS.js Non-Fatal Error]", errorData.type, errorData.details);
+            case Hls.ErrorTypes.MEDIA_ERROR: {
+              if (isDebugHls) console.warn("[HLS.js] Fatal media error encountered. Calling recoverMediaError()...");
+              hls.recoverMediaError();
+              break;
+            }
+            default: {
+              if (isDebugHls) console.error("[HLS.js] Fatal unrecoverable error:", errorData);
+              hls.destroy();
+              if (active) {
+                setVideoError("Playback encountered an unrecoverable error. Please reload the lesson.");
+                setPlayerReady(true);
+              }
+              break;
+            }
           }
         });
       } else {
-        // Direct MP4 or native Safari HLS
+        // Direct HTML5 or Native Safari HLS
         videoEl.src = videoUrl;
 
         try {
@@ -588,193 +771,94 @@ function LearnPage() {
           playerRef.current = playerInstance;
           attachPlayerEvents(playerInstance, videoEl);
         } catch (e) {
-          console.warn("Plyr HTML5 init warning:", e);
+          if (isDebugHls) console.warn("Plyr HTML5 init warning:", e);
         }
       }
 
-      // Prompt 1: On loadedmetadata, restore saved position
       videoEl.onloadedmetadata = () => {
         handleReady(videoEl);
-        updateDurationFromPlayer();
+        updateDurationFromPlayer(videoEl);
+        restoreSavedPosition(videoEl);
       };
       videoEl.oncanplay = () => handleReady(videoEl);
       videoEl.onloadeddata = () => handleReady(videoEl);
 
       videoEl.onerror = (e) => {
-        console.error("HTML5 Video Error Event:", e, "MediaError code:", videoEl.error?.code, videoEl.error?.message, "Source URL:", videoUrl);
+        if (isDebugHls) {
+          console.error("HTML5 Video Error Event:", e, "Code:", videoEl.error?.code, videoEl.error?.message);
+        }
         if (active) {
-          setVideoError("Unable to load video stream. If this is a private lesson, ensure your enrollment is active or that the video is uploaded to Cloudflare R2.");
+          setVideoError("Unable to load video stream. If this is a private lesson, ensure your enrollment is active.");
           setPlayerReady(true);
         }
       };
-
-      videoEl.onended = () => {
-        try {
-          triggerAutoCompletion(Math.floor(videoEl.currentTime || 0));
-        } catch (_) {}
-      };
     }
 
-    let lastLocalSavedSeconds = 0;
-    let lastBackendSyncSeconds = 0;
-    let leadTracked = false;
-
-    const updateDurationFromPlayer = () => {
-      try {
-        const dur = Math.floor(playerInstance?.duration || 0);
-        if (dur && !isNaN(dur) && dur > 0) {
-          setLiveDuration(formatVideoDuration(dur));
-        }
-      } catch (_) {}
-    };
-
-    function attachPlayerEvents(instance: Plyr, videoEl?: HTMLVideoElement) {
-      instance.on("ready", () => {
-        handleReady(videoEl);
-        updateDurationFromPlayer();
-      });
-
-      instance.on("loadedmetadata", () => {
-        handleReady(videoEl);
-        updateDurationFromPlayer();
-      });
-
-      instance.on("canplay", () => {
-        handleReady(videoEl);
-        updateDurationFromPlayer();
-      });
-
-      // Free preview lead tracking
-      instance.on("play", () => {
-        if (!isEnrolled && !isAdmin && activeLesson?.is_free && !leadTracked && course?.id && activeLesson?.id) {
-          leadTracked = true;
-          leadService
-            .trackFreePreview({
-              courseId: course.id,
-              lessonId: activeLesson.id,
-              source: "dashboard",
-            })
-            .catch((err) => console.warn("Free preview lead tracking error:", err));
-        }
-      });
-
-      // Throttled timeupdate:
-      // - Prompt 1: Save to localStorage every 5s
-      // - Prompt 2: Debounced progress sync to backend every 10s
-      instance.on("timeupdate", () => {
-        try {
-          const current = Math.floor(instance.currentTime || 0);
-          const duration = Math.floor(instance.duration || 0);
-
-          if (duration > 0 && !liveDuration) {
-            updateDurationFromPlayer();
-          }
-
-          // Auto-mark completed at >= 90% or within 3 seconds of end
-          if (isEnrolled && duration > 5 && !hasAutoCompleted && !completed.includes(activeId)) {
-            if (current >= duration - 3 || (duration > 0 && current / duration >= 0.90)) {
-              triggerAutoCompletion(current);
-            }
-          }
-
-          // Prompt 1: Save to localStorage throttled to 5 seconds
-          if (Math.abs(current - lastLocalSavedSeconds) >= 5) {
-            lastLocalSavedSeconds = current;
-            saveToLocalStorage(current);
-          }
-
-          // Prompt 2: Sync to Backend throttled/debounced to 10 seconds
-          if (isEnrolled && Math.abs(current - lastBackendSyncSeconds) >= 10) {
-            lastBackendSyncSeconds = current;
-            clearTimeout(syncTimeout);
-            syncTimeout = setTimeout(() => {
-              syncBackendProgress(current);
-            }, 300);
-          }
-        } catch (_) {}
-      });
-
-      // Prompt 1 & 2: Save on pause
-      instance.on("pause", () => {
-        try {
-          const cur = Math.floor(instance.currentTime || 0);
-          saveToLocalStorage(cur);
-
-          if (isEnrolled) {
-            syncBackendProgress(cur);
-          } else if (activeLesson?.is_free && course?.id && activeLesson?.id && cur > 0) {
-            leadService
-              .trackFreePreview({
-                courseId: course.id,
-                lessonId: activeLesson.id,
-                watchDurationSeconds: cur,
-                source: "dashboard",
-              })
-              .catch(() => {});
-          }
-        } catch (_) {}
-      });
-
-      instance.on("ended", () => {
-        try {
-          const cur = Math.floor(instance.currentTime || 0);
-          saveToLocalStorage(cur);
-          if (isEnrolled) {
-            triggerAutoCompletion(cur);
-          }
-        } catch (_) {}
-      });
-    }
-
-    // Attach to YouTube instance if present
-    if (isYouTube && playerInstance) {
-      attachPlayerEvents(playerInstance);
-    }
-
-    // Prompt 2: Unload / Visibilitychange with sendBeacon
+    // Unload & Visibilitychange listeners for guaranteed progress persistence
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
-        try {
-          const cur = Math.floor(playerInstance?.currentTime || 0);
-          if (cur > 0) {
-            saveToLocalStorage(cur);
-            sendBeaconProgress(cur);
-          }
-        } catch (_) {}
+        const cur = playerInstance?.currentTime || currentTimeRef.current || 0;
+        if (cur > 0) {
+          saveProgressReliably(cur);
+        }
       }
     };
 
-    const handleBeforeUnload = () => {
-      try {
-        const cur = Math.floor(playerInstance?.currentTime || 0);
-        if (cur > 0) {
-          saveToLocalStorage(cur);
-          sendBeaconProgress(cur);
-        }
-      } catch (_) {}
+    const handlePageHide = () => {
+      const cur = playerInstance?.currentTime || currentTimeRef.current || 0;
+      if (cur > 0) {
+        saveProgressReliably(cur);
+      }
     };
 
     document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handlePageHide);
+
+    // Silent periodic stream token refresh timer (every 1.5 hours)
+    tokenRefreshTimerRef.current = setInterval(async () => {
+      if (!active || !hlsInstance) return;
+      try {
+        const freshData = await courseService.getCourseLearningContent(courseIdRef.current);
+        const currentLesson = freshData?.course?.modules
+          ?.flatMap((m: any) => m.lessons || [])
+          ?.find((l: any) => l.id === activeIdRef.current);
+
+        let freshUrl = currentLesson?.video_url || currentLesson?.video_path;
+        if (freshUrl && isHlsStream) {
+          freshUrl = getMediaUrl(freshUrl);
+          const token = tokenStorage.get();
+          if (token && freshUrl.includes("/api/v1/media/") && !freshUrl.includes("token=")) {
+            freshUrl = `${freshUrl}${freshUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+          }
+          const curTime = currentTimeRef.current || 0;
+          hlsInstance.loadSource(freshUrl);
+          hlsInstance.startLoad(curTime);
+        }
+      } catch (_) {}
+    }, 90 * 60 * 1000);
 
     const safetyTimer = setTimeout(() => {
       if (active) setPlayerReady(true);
     }, 1000);
 
+    // Teardown cleanup
     return () => {
       active = false;
       clearTimeout(safetyTimer);
-      clearTimeout(syncTimeout);
+      clearInterval(tokenRefreshTimerRef.current);
       document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handlePageHide);
+
+      // Save final position on component unmount
+      const finalTime = currentTimeRef.current || playerInstance?.currentTime || 0;
+      if (finalTime > 0) {
+        saveProgressReliably(finalTime);
+      }
 
       try {
         if (playerInstance) {
-          const currentTime = playerInstance.currentTime ? Math.floor(playerInstance.currentTime) : 0;
-          if (currentTime > 0) {
-            saveToLocalStorage(currentTime);
-            if (isEnrolled) syncBackendProgress(currentTime);
-          }
           playerInstance.destroy();
         }
       } catch (_) {}
@@ -784,6 +868,7 @@ function LearnPage() {
           hlsInstance.destroy();
         } catch (_) {}
         hlsInstance = null;
+        hlsRef.current = null;
       }
 
       playerRef.current = null;
@@ -792,7 +877,8 @@ function LearnPage() {
         container.innerHTML = "";
       }
     };
-  }, [videoUrl, activeId, user?.id, course?.id, completed, isEnrolled, isAdmin, activeLesson]);
+  }, [activeId, videoUrl]);
+
 
   if (courseLoading || authLoading || !activeId) {
     return (
@@ -931,6 +1017,29 @@ function LearnPage() {
 
           {/* Right: Modules Drawer Button + Profile */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Online / Offline status badge */}
+            {!isDeviceOnline ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 text-[11px] font-bold text-amber-500 animate-pulse">
+                <WifiOff className="h-3 w-3" />
+                <span className="hidden sm:inline">Offline Mode</span>
+              </span>
+            ) : null}
+
+            {/* Offline Downloads Link */}
+            <Link
+              to="/downloads"
+              aria-label="Manage Offline Downloads"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border/70 bg-card/80 px-2.5 sm:px-3 h-9 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted shadow-xs transition"
+            >
+              <HardDrive className="h-4 w-4 text-primary shrink-0" />
+              <span className="hidden md:inline">Downloads</span>
+              {offlineLessons.filter((l) => l.status === "completed").length > 0 && (
+                <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-emerald-500 text-[10px] font-bold text-white">
+                  {offlineLessons.filter((l) => l.status === "completed").length}
+                </span>
+              )}
+            </Link>
+
             {/* Desktop progress bar */}
             <div className="hidden md:flex items-center gap-2 mr-1">
               <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
@@ -1202,6 +1311,22 @@ function LearnPage() {
                   </div>
                 )}
 
+                {/* Reconnecting Stream Badge */}
+                {isReconnecting && (
+                  <div className="absolute top-4 left-4 z-30 flex items-center gap-2 rounded-xl bg-black/85 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-amber-400 border border-amber-500/30 shadow-lg animate-pulse">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" />
+                    Reconnecting stream...
+                  </div>
+                )}
+
+                {/* Dynamic Security Watermark Overlay */}
+                {playerReady && !videoError && (user?.email || profile?.email) && (
+                  <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden select-none flex items-center justify-around opacity-15 text-[10px] sm:text-xs text-white/80 font-mono tracking-widest rotate-[-12deg] p-4">
+                    <span>{user?.email || profile?.email}</span>
+                    <span className="hidden sm:inline">{user?.email || profile?.email}</span>
+                  </div>
+                )}
+
                 {/* Video Player Container */}
                 <div
                   ref={playerContainerRef}
@@ -1264,6 +1389,70 @@ function LearnPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Offline Download Button for Video Lesson */}
+                {!isPdfLesson && isEnrolled && videoUrl && !videoUrl.includes("youtube.com") && (
+                  (() => {
+                    const activeOffline = offlineLessons.find((o) => o.id === activeId);
+                    if (activeOffline?.status === "downloading") {
+                      return (
+                        <div className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary shadow-xs">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Downloading {activeOffline.progressPercent}%</span>
+                          <button
+                            type="button"
+                            onClick={() => downloadManager.cancelDownload(activeId)}
+                            className="ml-1 text-[11px] text-destructive underline hover:opacity-80"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    if (activeOffline?.status === "completed") {
+                      return (
+                        <div className="inline-flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-600 shadow-xs">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>Offline Ready</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => downloadManager.deleteDownloadedLesson(activeId)}
+                            title="Remove offline copy"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-xl border border-border/80 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!activeLesson || !videoUrl) return;
+                          downloadManager.downloadLesson({
+                            lessonId: activeId,
+                            courseId: courseId || "",
+                            courseTitle: course?.title || "Course",
+                            lessonTitle: activeLesson.title || "Lesson",
+                            duration: activeLesson.duration || "",
+                            masterUrl: videoUrl,
+                            preferredQuality: "720p",
+                          });
+                        }}
+                        title="Download for offline viewing"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card/90 px-3 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40 hover:bg-muted shadow-xs transition active:scale-95"
+                      >
+                        <Download className="h-3.5 w-3.5 text-primary" />
+                        <span className="hidden sm:inline">Download</span>
+                      </button>
+                    );
+                  })()
+                )}
+
                 {/* Full Screen Mode Option */}
                 {!isPdfLesson && (
                   <button
@@ -1386,13 +1575,18 @@ function LearnPage() {
                     const active = activeId === l.id;
                     const isLessonPdf = !!l.pdf_url && !l.video_url;
                     const isLessonLocked = !isEnrolled && !l.is_free;
+                    const isLessonDownloaded = offlineLessons.some((o) => o.id === l.id && o.status === "completed");
+                    const isOfflineDisabled = !isDeviceOnline && !isLessonDownloaded;
 
                     return (
                       <button 
                         key={l.id} 
+                        disabled={isOfflineDisabled}
                         onClick={() => { if (l.id) handleSelectLesson(l.id); }} 
                         className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition ${
-                          active 
+                          isOfflineDisabled
+                            ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                            : active 
                             ? "bg-primary/10 text-primary font-medium" 
                             : isLessonLocked 
                             ? "hover:bg-muted/60 text-muted-foreground/80 opacity-85" 
@@ -1425,6 +1619,11 @@ function LearnPage() {
                           )}
                         </span>
                         <span className="min-w-0 flex-1 truncate">{l.title}</span>
+                        {isLessonDownloaded && (
+                          <span title="Available offline" className="text-emerald-500 shrink-0">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          </span>
+                        )}
                         {l.is_free && !isEnrolled && (
                           <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 text-[9px] font-bold shrink-0">
                             Free
@@ -1476,16 +1675,21 @@ function LearnPage() {
                         const active = activeId === l.id;
                         const isLessonPdf = !!l.pdf_url && !l.video_url;
                         const isLessonLocked = !isEnrolled && !l.is_free;
+                        const isLessonDownloaded = offlineLessons.some((o) => o.id === l.id && o.status === "completed");
+                        const isOfflineDisabled = !isDeviceOnline && !isLessonDownloaded;
 
                         return (
                           <button 
                             key={l.id} 
+                            disabled={isOfflineDisabled}
                             onClick={() => { 
                               if (l.id) handleSelectLesson(l.id); 
                               setSidebarOpen(false);
                             }} 
                             className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs sm:text-sm transition ${
-                              active 
+                              isOfflineDisabled
+                                ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                                : active 
                                 ? "bg-primary/10 text-primary font-medium" 
                                 : isLessonLocked 
                                 ? "hover:bg-muted/60 text-muted-foreground/80 opacity-85" 
@@ -1518,6 +1722,11 @@ function LearnPage() {
                               )}
                             </span>
                             <span className="min-w-0 flex-1 truncate">{l.title}</span>
+                            {isLessonDownloaded && (
+                              <span title="Available offline" className="text-emerald-500 shrink-0">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              </span>
+                            )}
                             {l.is_free && !isEnrolled && (
                               <span className="rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 text-[9px] font-bold shrink-0">
                                 Free

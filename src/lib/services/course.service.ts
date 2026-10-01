@@ -8,6 +8,14 @@ export interface CourseLearningData {
   progress: Progress[];
 }
 
+export interface LessonProgressPayload {
+  progress_seconds?: number;
+  last_position?: number;
+  lastPosition?: number;
+  duration?: number;
+  completed?: boolean;
+}
+
 export const courseService = {
   getCourses: async (): Promise<Course[]> => {
     return apiClient<Course[]>("/courses");
@@ -21,12 +29,20 @@ export const courseService = {
     return apiClient<CourseLearningData>(`/courses/${slugOrId}/learn`);
   },
 
+  getLessonProgress: async (lessonId: string): Promise<Progress> => {
+    return apiClient<Progress>(`/lessons/${lessonId}/progress`);
+  },
+
   saveLessonProgress: async (
-    courseId: string,
+    courseId: string | null | undefined,
     lessonId: string,
-    payload: { progress_seconds?: number; completed?: boolean }
+    payload: LessonProgressPayload
   ): Promise<Progress> => {
-    return apiClient<Progress>(`/courses/${courseId}/lessons/${lessonId}/progress`, {
+    const endpoint = courseId 
+      ? `/courses/${courseId}/lessons/${lessonId}/progress`
+      : `/lessons/${lessonId}/progress`;
+
+    return apiClient<Progress>(endpoint, {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -38,3 +54,4 @@ export const courseService = {
     });
   },
 };
+
