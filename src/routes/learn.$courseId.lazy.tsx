@@ -255,14 +255,30 @@ function LearnPage() {
       }
 
       try {
+        // Check if there is an offline decrypted video in local IndexedDB storage
+        const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+        const offlineBlob = await downloadManager.getOfflineVideoUrl(activeId);
+        if (offlineBlob && active) {
+          setVideoUrl(offlineBlob);
+          setVideoLoading(false);
+          return;
+        }
+
         const currentLesson = flatLessons.find((l) => l.id === activeId);
 
         if (!currentLesson) {
+          if (offlineBlob) {
+            if (active) {
+              setVideoUrl(offlineBlob);
+              setVideoLoading(false);
+            }
+            return;
+          }
           throw new Error("Lesson not found");
         }
 
         // Check enrollment restriction
-        if (!currentLesson.is_free && !isEnrolled) {
+        if (!currentLesson.is_free && !isEnrolled && !isOffline) {
           if (active) {
             setVideoError("LOCKED_LESSON");
             setPlayerReady(true);

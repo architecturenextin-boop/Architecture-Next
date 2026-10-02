@@ -610,14 +610,14 @@ function AdminTestimonialsPage() {
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-3">
                 <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary font-bold text-sm">
-                  {((selectedItem.user?.name || selectedItem.student_name || "S")[0]).toUpperCase()}
+                  {((selectedItem.user?.name || (selectedItem as any).student_name || "S")[0]).toUpperCase()}
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground text-sm">
-                    {selectedItem.user?.name || selectedItem.student_name || "Student"}
+                    {selectedItem.user?.name || (selectedItem as any).student_name || "Student"}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {selectedItem.user?.email || selectedItem.student_email || "Student Account"}
+                    {selectedItem.user?.email || (selectedItem as any).student_email || "Student Account"}
                   </p>
                 </div>
               </div>
@@ -636,7 +636,7 @@ function AdminTestimonialsPage() {
                 <span>{selectedItem.rating}.0 / 5.0 Rating</span>
               </div>
               <span className="text-muted-foreground font-medium">
-                {selectedItem.course?.title || selectedItem.course_title || "General Platform Review"}
+                {selectedItem.course?.title || (selectedItem as any).course_title || "General Platform Review"}
               </span>
             </div>
 
@@ -646,17 +646,17 @@ function AdminTestimonialsPage() {
             </div>
 
             {/* Admin Note if any */}
-            {(selectedItem.adminNote || selectedItem.admin_note) && (
+            {(selectedItem.adminNote || (selectedItem as any).admin_note) && (
               <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-600 dark:text-rose-400">
                 <span className="font-bold">Rejection Note: </span>
-                <span>{selectedItem.adminNote || selectedItem.admin_note}</span>
+                <span>{selectedItem.adminNote || (selectedItem as any).admin_note}</span>
               </div>
             )}
 
             {/* Footer Actions */}
             <div className="flex items-center justify-between pt-2 border-t border-border">
               <div className="text-[11px] text-muted-foreground">
-                Submitted on {new Date(selectedItem.createdAt || selectedItem.created_at).toLocaleDateString()}
+                Submitted on {new Date(selectedItem.createdAt || (selectedItem as any).created_at).toLocaleDateString()}
               </div>
               <div className="flex items-center gap-2">
                 {selectedItem.status === "PENDING" && (

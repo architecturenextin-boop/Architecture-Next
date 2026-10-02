@@ -824,9 +824,9 @@ function CourseDetailPage() {
 
                     <figcaption className="mt-7 border-t border-border/70 pt-5 flex items-center gap-3">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground overflow-hidden">
-                        {testimonial.avatar ? (
+                        {testimonial.avatarUrl || (testimonial as any).avatar ? (
                           <img
-                            src={testimonial.avatar}
+                            src={testimonial.avatarUrl || (testimonial as any).avatar}
                             alt={testimonial.name}
                             className="h-full w-full object-cover"
                           />

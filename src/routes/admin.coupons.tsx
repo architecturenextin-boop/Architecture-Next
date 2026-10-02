@@ -39,20 +39,12 @@ const couponFormSchema = z
       .regex(/^[A-Za-z0-9_-]+$/, "Code must be alphanumeric (letters, numbers, hyphens, underscores)"),
     discountType: z.enum(["FLAT", "PERCENT"]),
     discountValue: z.coerce.number().min(1, "Discount value must be greater than 0"),
-    maxDiscount: z.coerce
-      .number()
-      .nullable()
-      .optional()
-      .transform((val) => (val && val > 0 ? val : null)),
+    maxDiscount: z.coerce.number().nullable().optional(),
     courseId: z.string().optional().nullable(),
     expiresAt: z.string().optional().nullable(),
-    usageLimit: z.coerce
-      .number()
-      .nullable()
-      .optional()
-      .transform((val) => (val && val > 0 ? val : null)),
-    perUserLimit: z.coerce.number().min(1, "Per user limit must be at least 1").default(1),
-    isActive: z.boolean().default(true),
+    usageLimit: z.coerce.number().nullable().optional(),
+    perUserLimit: z.coerce.number().min(1, "Per user limit must be at least 1"),
+    isActive: z.boolean(),
   })
   .superRefine((data, ctx) => {
     if (data.discountType === "PERCENT") {

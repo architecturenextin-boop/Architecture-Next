@@ -1,12 +1,13 @@
 /**
- * ArchitectureNext Service Worker (PWA Offline HLS Decryption & Playback)
- * Transparently intercepts .m3u8 and .ts requests and serves decrypted segments from IndexedDB.
+ * SkillSpring / ArchitectureNext Service Worker
+ * Transparently intercepts offline .m3u8, .ts, and .mp4 requests
+ * and serves decrypted video segments directly from IndexedDB.
  */
 
 const DB_NAME = "skillspring_offline_db";
 const DB_VERSION = 1;
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
@@ -73,10 +74,15 @@ async function importRawKey(base64Key) {
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
-  const isHls = url.pathname.endsWith(".m3u8") || url.pathname.endsWith(".ts") || url.pathname.includes("/hls/");
+  const isVideoOrStream = 
+    url.pathname.endsWith(".m3u8") || 
+    url.pathname.endsWith(".ts") || 
+    url.pathname.endsWith(".mp4") ||
+    url.pathname.includes("/hls/") ||
+    url.pathname.includes("/media/");
 
-  if (!isHls) {
-    return; // Pass through non-video requests
+  if (!isVideoOrStream) {
+    return; // Pass through standard web requests
   }
 
   // Extract lesson ID and file name
@@ -93,17 +99,40 @@ self.addEventListener("fetch", (event) => {
     fileName = pathParts[pathParts.length - 1];
   }
 
-  if (!lessonId || !fileName) {
-    return;
-  }
-
   event.respondWith(
     (async () => {
       try {
         const db = await openDatabase();
 
-        // 1. Check if playlist exists in local storage
-        if (fileName.endsWith(".m3u8")) {
+        // 1. Check if full MP4 exists in local storage
+        if (lessonId) {
+          const mp4Record = await getFromStore(db, "segments", `${lessonId}_full.mp4`);
+          if (mp4Record && mp4Record.encryptedData) {
+            const license = await getFromStore(db, "licenses", lessonId);
+            if (license && !license.revoked) {
+              const key = await importRawKey(license.rawKey);
+              const decryptedBuffer = await crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: new Uint8Array(mp4Record.iv) },
+                key,
+                mp4Record.encryptedData
+              );
+
+              return new Response(decryptedBuffer, {
+                status: 200,
+                headers: {
+                  "Content-Type": "video/mp4",
+                  "Accept-Ranges": "bytes",
+                  "Content-Length": decryptedBuffer.byteLength.toString(),
+                  "Cache-Control": "public, max-age=31536000, immutable",
+                  "X-SkillSpring-Offline": "true",
+                },
+              });
+            }
+          }
+        }
+
+        // 2. Check if playlist exists in local storage
+        if (fileName.endsWith(".m3u8") && lessonId) {
           const playlistId = `${lessonId}_${fileName}`;
           let playlistRecord = await getFromStore(db, "playlists", playlistId);
           if (!playlistRecord && fileName === "master.m3u8") {
@@ -122,53 +151,32 @@ self.addEventListener("fetch", (event) => {
           }
         }
 
-        // 2. Check if .ts segment exists in local storage
-        if (fileName.endsWith(".ts")) {
+        // 3. Check if .ts segment exists in local storage
+        if (fileName.endsWith(".ts") && lessonId) {
           const segmentId = `${lessonId}_${fileName}`;
           const segmentRecord = await getFromStore(db, "segments", segmentId);
 
           if (segmentRecord && segmentRecord.encryptedData) {
-            // Check license validity
             const license = await getFromStore(db, "licenses", lessonId);
-            if (!license) {
-              return new Response(
-                JSON.stringify({ error: "No offline license found for this lesson." }),
-                { status: 403, headers: { "Content-Type": "application/json" } }
+            if (license && !license.revoked) {
+              const key = await importRawKey(license.rawKey);
+              const decryptedBuffer = await crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: new Uint8Array(segmentRecord.iv) },
+                key,
+                segmentRecord.encryptedData
               );
+
+              return new Response(decryptedBuffer, {
+                status: 200,
+                headers: {
+                  "Content-Type": "video/mp2t",
+                  "Accept-Ranges": "bytes",
+                  "Content-Length": decryptedBuffer.byteLength.toString(),
+                  "Cache-Control": "public, max-age=31536000, immutable",
+                  "X-SkillSpring-Offline": "true",
+                },
+              });
             }
-
-            if (license.revoked) {
-              return new Response(
-                JSON.stringify({ error: "Offline license has been revoked. Please reconnect online." }),
-                { status: 403, headers: { "Content-Type": "application/json" } }
-              );
-            }
-
-            if (license.expiresAt && new Date(license.expiresAt) < new Date()) {
-              return new Response(
-                JSON.stringify({ error: "Offline playback license expired. Please reconnect to revalidate." }),
-                { status: 403, headers: { "Content-Type": "application/json" } }
-              );
-            }
-
-            // Decrypt segment with AES-GCM
-            const key = await importRawKey(license.rawKey);
-            const decryptedBuffer = await crypto.subtle.decrypt(
-              { name: "AES-GCM", iv: new Uint8Array(segmentRecord.iv) },
-              key,
-              segmentRecord.encryptedData
-            );
-
-            return new Response(decryptedBuffer, {
-              status: 200,
-              headers: {
-                "Content-Type": "video/mp2t",
-                "Accept-Ranges": "bytes",
-                "Content-Length": decryptedBuffer.byteLength.toString(),
-                "Cache-Control": "public, max-age=31536000, immutable",
-                "X-SkillSpring-Offline": "true",
-              },
-            });
           }
         }
       } catch (err) {
@@ -178,8 +186,8 @@ self.addEventListener("fetch", (event) => {
       // Fallback: network fetch with graceful offline/network failure catch
       try {
         return await fetch(event.request);
-      } catch (networkErr) {
-        return new Response("Media stream unreachable. Check internet connection or stream server status.", {
+      } catch (_) {
+        return new Response("Media stream unreachable offline.", {
           status: 503,
           statusText: "Service Unavailable",
           headers: { "Content-Type": "text/plain" },
