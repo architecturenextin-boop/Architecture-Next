@@ -8,8 +8,14 @@ export const Route = createFileRoute("/learn/$courseId")({
   }),
   head: () => ({ meta: [{ title: "Learning — ArchitectureNext" }] }),
   beforeLoad: async ({ params }) => {
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
     const token = tokenStorage.get();
+
+    // If completely unauthenticated and online -> /auth; if offline -> /downloads
     if (!token) {
+      if (isOffline) {
+        throw redirect({ to: "/downloads" });
+      }
       throw redirect({ to: "/auth" });
     }
 
@@ -19,12 +25,12 @@ export const Route = createFileRoute("/learn/$courseId")({
         (m.lessons || m.lessons_safe || []).some((l: any) => !!l.is_free)
       );
 
-      if (!data.isEnrolled && !data.isAdmin && !hasFreeLessons) {
+      if (!data.isEnrolled && !data.isAdmin && !hasFreeLessons && !isOffline) {
         throw redirect({ to: "/checkout", search: { course: params.courseId } });
       }
     } catch (err: any) {
       if (isRedirect(err)) throw err;
-      if (err.statusCode === 401) {
+      if (!isOffline && err.statusCode === 401) {
         tokenStorage.clear();
         throw redirect({ to: "/auth" });
       }

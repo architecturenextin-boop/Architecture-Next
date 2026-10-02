@@ -231,6 +231,20 @@ class DownloadManager {
         const blob = new Blob([decrypted], { type: "video/mp4" });
         return URL.createObjectURL(blob);
       }
+
+      // Check if saved as HLS offline stream
+      const playTx = db.transaction("playlists", "readonly");
+      const masterPlaylist = await new Promise<any>((res) => {
+        const req = playTx.objectStore("playlists").get(`${lessonId}_master.m3u8`);
+        req.onsuccess = () => res(req.result);
+        req.onerror = () => res(null);
+      });
+
+      if (masterPlaylist && masterPlaylist.content) {
+        // Return local intercepted HLS master URL
+        return `/api/v1/media/hls/${lessonId}/master.m3u8`;
+      }
+
       return null;
     } catch (e) {
       console.warn("Could not construct offline blob url:", e);

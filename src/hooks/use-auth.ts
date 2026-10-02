@@ -17,12 +17,35 @@ let memoryProfile: Profile | null = null;
 let memoryLoaded = false;
 let activeFetchPromise: Promise<Profile | null> | null = null;
 
+const CACHED_PROFILE_KEY = "skillspring_cached_profile";
+
+function getCachedProfile(): Profile | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CACHED_PROFILE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function setCachedProfile(p: Profile | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (p) {
+      localStorage.setItem(CACHED_PROFILE_KEY, JSON.stringify(p));
+    } else {
+      localStorage.removeItem(CACHED_PROFILE_KEY);
+    }
+  } catch (_) {}
+}
+
 export function useAuth() {
-  const [profile, setProfile] = useState<Profile | null>(memoryProfile);
+  const [profile, setProfile] = useState<Profile | null>(() => memoryProfile || getCachedProfile());
   const [isLoading, setIsLoading] = useState<boolean>(() => {
     if (memoryLoaded) return false;
     const token = typeof window !== "undefined" ? tokenStorage.get() : null;
-    return Boolean(token);
+    return Boolean(token) && !memoryProfile && !getCachedProfile();
   });
 
   const fetchUser = useCallback(async () => {
@@ -30,6 +53,7 @@ export function useAuth() {
     if (!token) {
       memoryProfile = null;
       memoryLoaded = true;
+      setCachedProfile(null);
       setProfile(null);
       setIsLoading(false);
       return;
@@ -37,7 +61,7 @@ export function useAuth() {
 
     if (activeFetchPromise) {
       const userProfile = await activeFetchPromise;
-      setProfile(userProfile);
+      setProfile(userProfile || getCachedProfile());
       setIsLoading(false);
       return;
     }
@@ -48,10 +72,29 @@ export function useAuth() {
         const userProfile = data.profile || data.user || null;
         memoryProfile = userProfile;
         memoryLoaded = true;
+        if (userProfile) {
+          setCachedProfile(userProfile);
+        }
         return userProfile;
-      } catch (err) {
-        tokenStorage.clear();
-        memoryProfile = null;
+      } catch (err: any) {
+        const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+        const isNetworkErr = err?.name === "TypeError" || !err?.statusCode || err?.statusCode === 503;
+
+        // If user is offline or server unreachable, PRESERVE login and fallback to cached profile
+        if (isOffline || isNetworkErr) {
+          const cached = getCachedProfile();
+          memoryProfile = cached;
+          memoryLoaded = true;
+          return cached;
+        }
+
+        // Only clear if explicitly unauthorized (401 / 403)
+        if (err?.statusCode === 401 || err?.statusCode === 403) {
+          tokenStorage.clear();
+          setCachedProfile(null);
+          memoryProfile = null;
+        }
+
         memoryLoaded = true;
         return null;
       } finally {
@@ -60,7 +103,7 @@ export function useAuth() {
     })();
 
     const result = await activeFetchPromise;
-    setProfile(result);
+    setProfile(result || getCachedProfile());
     setIsLoading(false);
   }, []);
 

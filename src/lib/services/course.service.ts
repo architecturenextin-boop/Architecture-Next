@@ -26,7 +26,26 @@ export const courseService = {
   },
 
   getCourseLearningContent: async (slugOrId: string): Promise<CourseLearningData> => {
-    return apiClient<CourseLearningData>(`/courses/${slugOrId}/learn`);
+    const cacheKey = `skillspring_course_learn_${slugOrId}`;
+    try {
+      const data = await apiClient<CourseLearningData>(`/courses/${slugOrId}/learn`);
+      if (typeof window !== "undefined" && data) {
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+        } catch (_) {}
+      }
+      return data;
+    } catch (err: any) {
+      if (typeof window !== "undefined") {
+        try {
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            return JSON.parse(cached);
+          }
+        } catch (_) {}
+      }
+      throw err;
+    }
   },
 
   getLessonProgress: async (lessonId: string): Promise<Progress> => {

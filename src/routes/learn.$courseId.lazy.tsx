@@ -261,6 +261,16 @@ function LearnPage() {
         if (offlineBlob && active) {
           setVideoUrl(offlineBlob);
           setVideoLoading(false);
+          setPlayerReady(true);
+          return;
+        }
+
+        if (isOffline) {
+          if (active) {
+            setVideoError("OFFLINE_NOT_DOWNLOADED");
+            setPlayerReady(true);
+            setVideoLoading(false);
+          }
           return;
         }
 
@@ -1340,8 +1350,42 @@ function LearnPage() {
                   </div>
                 )}
 
+                {/* Offline Not Downloaded State */}
+                {videoError === "OFFLINE_NOT_DOWNLOADED" && (
+                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-br from-[#0B0B12] via-[#14141F] to-[#1A1A2A] p-6 text-center text-white">
+                    <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-400 border border-amber-500/20 mb-3 sm:mb-4 shadow-glow">
+                      <WifiOff className="h-7 w-7 sm:h-8 sm:w-8 text-amber-400" />
+                    </div>
+                    <span className="rounded-full bg-amber-500/15 text-amber-400 px-3 py-1 text-[11px] font-bold uppercase tracking-wider mb-2">
+                      Offline Mode
+                    </span>
+                    <h2 className="font-display text-base sm:text-xl font-bold text-white max-w-md">
+                      {activeLesson?.title || "Lesson Not Downloaded"}
+                    </h2>
+                    <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-md leading-relaxed">
+                      You are currently offline. This lesson has not been downloaded to your device for offline playback.
+                    </p>
+                    <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                      <Button
+                        className="bg-gradient-primary text-primary-foreground font-bold px-6 h-10 sm:h-11 shadow-glow hover:brightness-110"
+                        onClick={() => navigate({ to: "/downloads" })}
+                      >
+                        <HardDrive className="h-4 w-4 mr-1.5" />
+                        View Offline Downloads
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-white/20 bg-white/5 text-white hover:bg-white/10 h-10 sm:h-11"
+                        onClick={() => window.location.reload()}
+                      >
+                        Retry Connection
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Generic Video Error State */}
-                {videoError && videoError !== "LOCKED_LESSON" && (
+                {videoError && videoError !== "LOCKED_LESSON" && videoError !== "OFFLINE_NOT_DOWNLOADED" && (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/90 p-4 sm:p-6 text-center">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/15 text-destructive mb-2">
                       <PlayCircle className="h-7 w-7" />
