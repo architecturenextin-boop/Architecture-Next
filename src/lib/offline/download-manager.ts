@@ -80,11 +80,34 @@ class DownloadManager {
   constructor() {
     if (typeof window !== "undefined") {
       this.registerServiceWorker();
+      this.cleanupStaleDownloads();
       window.addEventListener("online", () => {
         this.syncOfflineProgress();
         this.revalidateLicenses();
       });
     }
+  }
+
+  public async cleanupStaleDownloads() {
+    try {
+      const db = await openDB();
+      const tx = db.transaction("lessons", "readwrite");
+      const store = tx.objectStore("lessons");
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const list = req.result as OfflineLessonRecord[];
+        let changed = false;
+        for (const item of list) {
+          if (item.status === "downloading" && !this.activeDownloads.has(item.id)) {
+            store.delete(item.id);
+            changed = true;
+          }
+        }
+        if (changed) {
+          this.notify();
+        }
+      };
+    } catch (_) {}
   }
 
   public subscribe(listener: (lessons: OfflineLessonRecord[]) => void): () => void {
@@ -513,9 +536,14 @@ class DownloadManager {
         body: JSON.stringify({ lesson_id: lessonId, action: "DOWNLOAD_COMPLETE" }),
       }).catch(() => {});
     } catch (err: any) {
+      this.activeDownloads.delete(lessonId);
       if (err.name === "AbortError" || abortController.signal.aborted) {
-        lessonRecord.status = "paused";
-        await saveRecord(lessonRecord);
+        try {
+          const cleanTx = db.transaction(["lessons", "playlists", "segments", "licenses"], "readwrite");
+          cleanTx.objectStore("lessons").delete(lessonId);
+          cleanTx.objectStore("licenses").delete(lessonId);
+        } catch (_) {}
+        this.notify();
         return;
       }
 
@@ -525,20 +553,42 @@ class DownloadManager {
         ? "Storage quota exceeded. Please free up browser storage."
         : (err.message || "Download failed.");
       await saveRecord(lessonRecord);
-      this.activeDownloads.delete(lessonId);
     }
   }
 
-  public cancelDownload(lessonId: string) {
+  public async cancelDownload(lessonId: string) {
     const controller = this.activeDownloads.get(lessonId);
     if (controller) {
-      controller.abort();
+      try {
+        controller.abort();
+      } catch (_) {}
       this.activeDownloads.delete(lessonId);
     }
+    try {
+      const db = await openDB();
+      const tx = db.transaction(["lessons", "playlists", "segments", "licenses"], "readwrite");
+      tx.objectStore("lessons").delete(lessonId);
+      tx.objectStore("licenses").delete(lessonId);
+
+      const segStore = tx.objectStore("segments");
+      const segReq = segStore.getAllKeys();
+      segReq.onsuccess = () => {
+        const keys = segReq.result as string[];
+        keys.filter((k) => k.startsWith(`${lessonId}_`)).forEach((k) => segStore.delete(k));
+      };
+
+      const playStore = tx.objectStore("playlists");
+      const playReq = playStore.getAllKeys();
+      playReq.onsuccess = () => {
+        const keys = playReq.result as string[];
+        keys.filter((k) => k.startsWith(`${lessonId}_`)).forEach((k) => playStore.delete(k));
+      };
+    } catch (_) {}
+    this.notify();
   }
 
   public async deleteDownloadedLesson(lessonId: string) {
-    this.cancelDownload(lessonId);
+    await this.cancelDownload(lessonId);
     try {
       const db = await openDB();
       const tx = db.transaction(["lessons", "playlists", "segments", "licenses", "offline_progress"], "readwrite");

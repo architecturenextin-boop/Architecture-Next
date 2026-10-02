@@ -1448,8 +1448,11 @@ function LearnPage() {
                           <span>Downloading {activeOffline.progressPercent}%</span>
                           <button
                             type="button"
-                            onClick={() => downloadManager.cancelDownload(activeId)}
-                            className="ml-1 text-[11px] text-destructive underline hover:opacity-80"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await downloadManager.cancelDownload(activeId);
+                            }}
+                            className="ml-1 text-[11px] text-destructive font-bold underline hover:opacity-80 cursor-pointer"
                           >
                             Cancel
                           </button>
