@@ -1484,32 +1484,32 @@ function LearnPage() {
             <div className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-primary/5 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-accent/5 blur-3xl" />
 
-            {/* Top Bar: Dynamic Status Capsule + Duration + Apple Segmented Action Pills */}
+            {/* Top Bar: Dynamic Status Capsule + Duration + Apple Symbol Action Pills */}
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center flex-wrap gap-2">
                 {/* Dynamic Status Capsule */}
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/15 px-3 py-1 text-[11px] font-bold text-primary tracking-wide">
+                <div className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary/10 border border-primary/15 px-3.5 text-[11px] font-bold text-primary tracking-wide">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                  <span>{activeLesson?.is_free && !isEnrolled ? "Free Preview" : "Now Playing"}</span>
+                  <span>{activeLesson?.is_free && !isEnrolled ? "Free Preview" : "NOW PLAYING"}</span>
                 </div>
 
                 {/* Duration Capsule */}
                 {(liveDuration || activeLesson?.duration) && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 border border-border/60 px-3 py-1 text-[11px] font-mono font-medium text-muted-foreground shadow-2xs">
-                    <Clock className="h-3 w-3 opacity-65" />
+                  <div className="inline-flex h-9 items-center gap-1.5 rounded-full bg-muted/70 border border-border/60 px-3 text-[11px] font-mono font-medium text-muted-foreground shadow-2xs">
+                    <Clock className="h-3.5 w-3.5 opacity-65" />
                     <span>{liveDuration || activeLesson.duration}</span>
                   </div>
                 )}
 
                 {/* Lesson Counter Pill */}
                 {flatLessons.length > 0 && activeIdx >= 0 && (
-                  <div className="hidden sm:inline-flex items-center rounded-full bg-muted/40 border border-border/40 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+                  <div className="hidden sm:inline-flex h-9 items-center rounded-full bg-muted/40 border border-border/40 px-3 text-[11px] font-semibold text-muted-foreground">
                     Lesson {activeIdx + 1} of {flatLessons.length}
                   </div>
                 )}
               </div>
 
-              {/* Apple-Style Action Pills */}
+              {/* Apple-Style Symbol Action Pills (Uniform h-9 height) */}
               <div className="flex items-center gap-2">
                 {/* Offline Download Button for Video Lesson */}
                 {!isPdfLesson && isEnrolled && videoUrl && !videoUrl.includes("youtube.com") && (
@@ -1522,8 +1522,8 @@ function LearnPage() {
                       const dashOffset = circumference - (percent / 100) * circumference;
 
                       return (
-                        <div className="inline-flex items-center gap-2.5 rounded-full border border-primary/25 bg-primary/8 backdrop-blur-md py-1 pl-1.5 pr-3.5 shadow-2xs transition-all">
-                          {/* Apple App Store Style Circular Radial Progress Ring with Center Cancel */}
+                        <div className="inline-flex h-9 items-center gap-2 rounded-full border border-primary/25 bg-primary/8 backdrop-blur-md px-2 shadow-2xs transition-all">
+                          {/* Apple Radial Progress with Cancel */}
                           <button
                             type="button"
                             onClick={async (e) => {
@@ -1533,7 +1533,7 @@ function LearnPage() {
                             title="Cancel download"
                             className="group relative flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 hover:bg-destructive/15 transition-all cursor-pointer"
                           >
-                            <svg className="h-7 w-7 -rotate-90 transform" viewBox="0 0 28 28">
+                            <svg className="h-6 w-6 -rotate-90 transform" viewBox="0 0 28 28">
                               <circle
                                 cx="14"
                                 cy="14"
@@ -1556,36 +1556,25 @@ function LearnPage() {
                                 fill="none"
                               />
                             </svg>
-                            {/* Center Stop Square (transforms to red X on hover) */}
-                            <span className="absolute h-2 w-2 rounded-[2px] bg-primary group-hover:opacity-0 transition-opacity" />
-                            <X className="absolute h-3.5 w-3.5 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <span className="absolute h-1.5 w-1.5 rounded-[1px] bg-primary group-hover:opacity-0 transition-opacity" />
+                            <X className="absolute h-3 w-3 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
-
-                          {/* Progress Text & Percentage */}
-                          <div className="flex flex-col text-left">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-primary/70 leading-none">
-                              Saving
-                            </span>
-                            <span className="text-xs font-mono font-black text-primary leading-tight">
-                              {percent}%
-                            </span>
-                          </div>
+                          <span className="text-[11px] font-mono font-bold text-primary pr-1">
+                            {percent}%
+                          </span>
                         </div>
                       );
                     }
 
                     if (activeOffline?.status === "completed") {
                       return (
-                        <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 py-1 pl-2.5 pr-1.5 shadow-2xs">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                            <span className="hidden sm:inline">Downloaded</span>
-                          </div>
+                        <div className="inline-flex h-9 items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 shadow-2xs">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" title="Downloaded" />
                           <button
                             type="button"
                             onClick={() => downloadManager.deleteDownloadedLesson(activeId)}
                             title="Remove offline copy"
-                            className="inline-flex items-center justify-center h-6 w-6 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition active:scale-90 cursor-pointer"
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition active:scale-90 cursor-pointer ml-0.5"
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -1609,36 +1598,28 @@ function LearnPage() {
                           });
                         }}
                         title="Download for offline viewing"
-                        className="group inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/90 hover:border-primary/40 hover:bg-primary/5 px-3.5 py-1.5 text-xs font-semibold text-foreground hover:text-primary shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
+                        aria-label="Download Lesson"
+                        className="flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-background/90 text-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
                       >
-                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                          <ArrowDownToLine className="h-3 w-3 stroke-[2.5]" />
-                        </div>
-                        <span className="hidden sm:inline font-bold">Download</span>
+                        <ArrowDownToLine className="h-4 w-4 stroke-[2.2]" />
                       </button>
                     );
                   })()
                 )}
 
-                {/* Full Screen Mode Option */}
+                {/* Full Screen Symbol Button */}
                 {!isPdfLesson && (
                   <button
                     type="button"
                     onClick={handleToggleFullscreen}
                     title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
                     aria-label={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background/80 hover:bg-muted px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-background/90 text-foreground hover:text-primary hover:border-primary/40 hover:bg-muted shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
                   >
                     {isFullscreen ? (
-                      <>
-                        <Minimize2 className="h-3.5 w-3.5 text-primary" />
-                        <span>Exit Full Screen</span>
-                      </>
+                      <Minimize2 className="h-4 w-4 text-primary" />
                     ) : (
-                      <>
-                        <Maximize2 className="h-3.5 w-3.5 text-primary" />
-                        <span>Full Screen</span>
-                      </>
+                      <Maximize2 className="h-4 w-4" />
                     )}
                   </button>
                 )}
@@ -1649,9 +1630,11 @@ function LearnPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     download
-                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 px-3.5 py-1.5 text-xs font-semibold shadow-2xs transition active:scale-95"
+                    title="Download Attached Document"
+                    aria-label="Download Document"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 shadow-2xs transition active:scale-95"
                   >
-                    <Download className="h-3.5 w-3.5" /> Download PDF File
+                    <FileText className="h-4 w-4" />
                   </a>
                 )}
               </div>
@@ -1676,7 +1659,7 @@ function LearnPage() {
               )}
             </div>
 
-            {/* Bottom Controls Row: Apple Fitness Style Mark Complete & Segmented Navigation */}
+            {/* Bottom Controls Row: Apple Fitness Style Mark Complete & Circular Navigation Symbols */}
             <div className="relative z-10 mt-6 flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-border/60">
               {/* Interactive Completion Toggle Pill */}
               {isEnrolled ? (
@@ -1685,7 +1668,7 @@ function LearnPage() {
                   onClick={() => toggleProgressMutation.mutate(activeId)} 
                   disabled={toggleProgressMutation.isPending}
                   aria-pressed={isDone}
-                  className={`group inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs ${
+                  className={`group inline-flex h-10 items-center gap-2.5 rounded-full px-4 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs ${
                     isDone 
                       ? "border border-emerald-500/35 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/10 hover:bg-emerald-500/15" 
                       : "border border-border/80 bg-background/90 text-muted-foreground hover:border-primary/40 hover:bg-muted/70 hover:text-foreground"
@@ -1701,36 +1684,35 @@ function LearnPage() {
                   <span>{isDone ? "Completed" : "Mark Complete"}</span>
                 </button>
               ) : (
-                <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-muted/40 px-3.5 py-1.5 text-xs font-semibold text-muted-foreground">
+                <div className="inline-flex h-10 items-center gap-2 rounded-full border border-border/80 bg-muted/40 px-4 text-xs font-semibold text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   Free Preview Lesson
                 </div>
               )}
 
-              {/* Navigation Controls: Apple Segmented Pill Style */}
+              {/* Navigation Controls: Clean Circular Apple Symbols (h-10 w-10) */}
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <button 
+                  type="button"
                   onClick={() => go(-1)} 
                   disabled={activeIdx === 0}
-                  className="h-10 px-4 rounded-full text-xs sm:text-sm font-semibold border-border/80 bg-background/80 hover:bg-muted disabled:opacity-35 transition-all active:scale-95"
+                  title="Previous Lesson"
                   aria-label="Previous Lesson"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-border/80 bg-background/90 text-foreground hover:bg-muted hover:border-primary/40 disabled:opacity-30 transition-all active:scale-95 shadow-2xs cursor-pointer"
                 >
-                  <ChevronLeft className="h-4 w-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Previous</span>
-                </Button>
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
 
-                <Button 
-                  size="sm" 
-                  className="h-10 px-5 rounded-full text-xs sm:text-sm font-bold bg-gradient-primary text-primary-foreground hover:brightness-105 shadow-soft hover:shadow-glow disabled:opacity-35 transition-all active:scale-95" 
+                <button 
+                  type="button"
                   onClick={() => go(1)} 
                   disabled={activeIdx === flatLessons.length - 1}
+                  title="Next Lesson"
                   aria-label="Next Lesson"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground hover:brightness-110 shadow-soft hover:shadow-glow disabled:opacity-30 transition-all active:scale-95 cursor-pointer" 
                 >
-                  <span className="hidden sm:inline">Next</span>
-                  <ChevronRight className="h-4 w-4 sm:ml-1" />
-                </Button>
+                  <ChevronRight className="h-5 w-5" />
+                </button>
               </div>
             </div>
           </div>
