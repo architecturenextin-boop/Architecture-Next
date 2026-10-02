@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive, Clock } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive, Clock, ArrowDownToLine } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -1516,38 +1516,78 @@ function LearnPage() {
                   (() => {
                     const activeOffline = offlineLessons.find((o) => o.id === activeId);
                     if (activeOffline?.status === "downloading") {
+                      const radius = 10;
+                      const circumference = 2 * Math.PI * radius;
+                      const percent = Math.max(2, activeOffline.progressPercent || 0);
+                      const dashOffset = circumference - (percent / 100) * circumference;
+
                       return (
-                        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary shadow-xs animate-pulse">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          <span>Downloading {activeOffline.progressPercent}%</span>
+                        <div className="inline-flex items-center gap-2.5 rounded-full border border-primary/25 bg-primary/8 backdrop-blur-md py-1 pl-1.5 pr-3.5 shadow-2xs transition-all">
+                          {/* Apple App Store Style Circular Radial Progress Ring with Center Cancel */}
                           <button
                             type="button"
                             onClick={async (e) => {
                               e.stopPropagation();
                               await downloadManager.cancelDownload(activeId);
                             }}
-                            className="ml-1 text-[11px] text-destructive font-bold underline hover:opacity-80 cursor-pointer"
+                            title="Cancel download"
+                            className="group relative flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 hover:bg-destructive/15 transition-all cursor-pointer"
                           >
-                            Cancel
+                            <svg className="h-7 w-7 -rotate-90 transform" viewBox="0 0 28 28">
+                              <circle
+                                cx="14"
+                                cy="14"
+                                r={radius}
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                className="text-primary/20"
+                                fill="none"
+                              />
+                              <circle
+                                cx="14"
+                                cy="14"
+                                r={radius}
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={dashOffset}
+                                strokeLinecap="round"
+                                className="text-primary transition-all duration-300 ease-out"
+                                fill="none"
+                              />
+                            </svg>
+                            {/* Center Stop Square (transforms to red X on hover) */}
+                            <span className="absolute h-2 w-2 rounded-[2px] bg-primary group-hover:opacity-0 transition-opacity" />
+                            <X className="absolute h-3.5 w-3.5 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
+
+                          {/* Progress Text & Percentage */}
+                          <div className="flex flex-col text-left">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-primary/70 leading-none">
+                              Saving
+                            </span>
+                            <span className="text-xs font-mono font-black text-primary leading-tight">
+                              {percent}%
+                            </span>
+                          </div>
                         </div>
                       );
                     }
 
                     if (activeOffline?.status === "completed") {
                       return (
-                        <div className="inline-flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 shadow-2xs">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <span>Offline Ready</span>
-                          </span>
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 py-1 pl-2.5 pr-1.5 shadow-2xs">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                            <span className="hidden sm:inline">Downloaded</span>
+                          </div>
                           <button
                             type="button"
                             onClick={() => downloadManager.deleteDownloadedLesson(activeId)}
                             title="Remove offline copy"
-                            className="inline-flex items-center justify-center h-8 w-8 rounded-full border border-border/80 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition active:scale-95"
+                            className="inline-flex items-center justify-center h-6 w-6 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition active:scale-90 cursor-pointer"
                           >
-                            <X className="h-3.5 w-3.5" />
+                            <X className="h-3 w-3" />
                           </button>
                         </div>
                       );
@@ -1569,10 +1609,12 @@ function LearnPage() {
                           });
                         }}
                         title="Download for offline viewing"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background/80 hover:bg-muted px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
+                        className="group inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/90 hover:border-primary/40 hover:bg-primary/5 px-3.5 py-1.5 text-xs font-semibold text-foreground hover:text-primary shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
                       >
-                        <Download className="h-3.5 w-3.5 text-primary" />
-                        <span className="hidden sm:inline">Download</span>
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          <ArrowDownToLine className="h-3 w-3 stroke-[2.5]" />
+                        </div>
+                        <span className="hidden sm:inline font-bold">Download</span>
                       </button>
                     );
                   })()
