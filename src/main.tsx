@@ -27,3 +27,18 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <RouterProvider router={router} />
   </React.StrictMode>
 );
+
+// Register Service Worker for offline App Shell & encrypted video support
+if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .then((reg) => {
+        console.log("[SW] Registered with scope:", reg.scope);
+      })
+      .catch((err) => {
+        console.warn("[SW] Registration error:", err);
+      });
+  });
+}
+

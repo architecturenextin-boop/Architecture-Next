@@ -1113,8 +1113,8 @@ function LearnPage() {
       </header>
 
       {/* Main Grid: Video Player + Lessons Sidebar */}
-      <div className="mx-auto w-full max-w-7xl grid gap-4 sm:gap-5 px-3 sm:px-6 py-5 sm:py-7 lg:py-8 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-4 sm:space-y-5">
+      <div className="mx-auto w-full max-w-7xl grid gap-4 sm:gap-5 px-3 sm:px-6 py-5 sm:py-7 lg:py-8 lg:grid-cols-[1fr_360px] items-start">
+        <div className="space-y-4 sm:space-y-5 min-w-0">
           {/* Video / PDF Container: Tall Reel Background with Centered Landscape Video */}
           <div className={`overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-gradient-to-b from-[#0e0e18] via-[#05050a] to-[#0e0e18] shadow-elevated transition-all duration-300 flex items-center justify-center ${
             isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative w-full min-h-[360px] sm:min-h-[440px] md:min-h-[480px] lg:min-h-[520px] max-h-[75vh]"
@@ -1608,12 +1608,12 @@ function LearnPage() {
         </div>
 
         {/* Desktop Sidebar Course Content */}
-        <aside className="hidden lg:block h-fit rounded-2xl border border-border bg-card p-3.5 shadow-soft sticky top-20">
-          <div className="px-3 py-2 border-b border-border/60 mb-2">
+        <aside className="hidden lg:flex flex-col rounded-2xl border border-border bg-card p-3.5 shadow-soft sticky top-20 max-h-[calc(100vh-6rem)] z-30">
+          <div className="px-3 py-2 border-b border-border/60 mb-2 shrink-0">
             <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Course content</div>
             <div className="text-xs text-muted-foreground">{flatLessons.length} lessons • {course?.total_duration}</div>
           </div>
-          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-4 flex-1 overflow-y-auto overscroll-contain pr-1.5 course-sidebar-scroll">
             {sortedModules.map((m: any) => (
               <div key={m.id}>
                 <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-foreground bg-muted/40 rounded-lg">{m.title}</div>

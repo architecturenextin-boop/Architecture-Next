@@ -1,18 +1,54 @@
 /**
- * SkillSpring / ArchitectureNext Service Worker
- * Transparently intercepts offline .m3u8, .ts, and .mp4 requests
- * and serves decrypted video segments directly from IndexedDB.
+ * ArchitectureNext / SkillSpring Service Worker
+ * 
+ * 1. App Shell & Static Asset Caching (Zero-Dinosaur Offline Navigation)
+ * 2. API Course/Lesson metadata caching for offline learning
+ * 3. Transparent AES-GCM Encrypted Video/HLS Interception & Stream Decryption
  */
+
+const CACHE_VERSION = "architecturenext-v2";
+const APP_SHELL_CACHE = `app-shell-${CACHE_VERSION}`;
+const STATIC_ASSETS_CACHE = `static-assets-${CACHE_VERSION}`;
+const API_CACHE = `api-data-${CACHE_VERSION}`;
 
 const DB_NAME = "skillspring_offline_db";
 const DB_VERSION = 1;
 
-self.addEventListener("install", () => {
-  self.skipWaiting();
+// Core shell routes to pre-cache on install
+const PRECACHE_URLS = [
+  "/",
+  "/index.html",
+  "/dashboard",
+  "/downloads",
+  "/styles.css",
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(APP_SHELL_CACHE);
+      try {
+        await cache.addAll(PRECACHE_URLS);
+      } catch (err) {
+        console.warn("[SW] Pre-caching partial failure (ok during initial boot):", err);
+      }
+      await self.skipWaiting();
+    })()
+  );
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const cacheKeys = await caches.keys();
+      await Promise.all(
+        cacheKeys
+          .filter((k) => !k.includes(CACHE_VERSION))
+          .map((k) => caches.delete(k))
+      );
+      await self.clients.claim();
+    })()
+  );
 });
 
 // Helper: Open IndexedDB in Service Worker
@@ -72,20 +108,116 @@ async function importRawKey(base64Key) {
   );
 }
 
+// Intercept fetch requests
 self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
-  const isVideoOrStream = 
-    url.pathname.endsWith(".m3u8") || 
-    url.pathname.endsWith(".ts") || 
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // 1. VIDEO & HLS OFFLINE INTERCEPTION
+  const isVideoOrStream =
+    url.pathname.endsWith(".m3u8") ||
+    url.pathname.endsWith(".ts") ||
     url.pathname.endsWith(".mp4") ||
     url.pathname.includes("/hls/") ||
     url.pathname.includes("/media/");
 
-  if (!isVideoOrStream) {
-    return; // Pass through standard web requests
+  if (isVideoOrStream) {
+    event.respondWith(handleOfflineMedia(event, url));
+    return;
   }
 
-  // Extract lesson ID and file name
+  // 2. SPA PAGE NAVIGATION (e.g. /learn/:courseId, /dashboard, /downloads)
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse && networkResponse.status === 200) {
+            const cache = await caches.open(APP_SHELL_CACHE);
+            cache.put(request, networkResponse.clone());
+            cache.put("/index.html", networkResponse.clone());
+          }
+          return networkResponse;
+        } catch (err) {
+          // Offline fallback to cached HTML shell
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          const indexFallback = await caches.match("/index.html");
+          if (indexFallback) return indexFallback;
+          const rootFallback = await caches.match("/");
+          if (rootFallback) return rootFallback;
+          return new Response("Offline - Please reconnect to the internet.", {
+            status: 503,
+            headers: { "Content-Type": "text/plain" },
+          });
+        }
+      })()
+    );
+    return;
+  }
+
+  // 3. STATIC ASSETS (JS, CSS, FONTS, IMAGES) - Stale-While-Revalidate
+  const isStaticAsset =
+    url.pathname.startsWith("/assets/") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css") ||
+    url.pathname.endsWith(".png") ||
+    url.pathname.endsWith(".jpg") ||
+    url.pathname.endsWith(".jpeg") ||
+    url.pathname.endsWith(".webp") ||
+    url.pathname.endsWith(".svg") ||
+    url.pathname.endsWith(".woff2") ||
+    url.hostname.includes("fonts.googleapis.com") ||
+    url.hostname.includes("fonts.gstatic.com") ||
+    url.hostname.includes("unpkg.com");
+
+  if (isStaticAsset && request.method === "GET") {
+    event.respondWith(
+      (async () => {
+        const cached = await caches.match(request);
+        const fetchPromise = fetch(request)
+          .then(async (networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const cache = await caches.open(STATIC_ASSETS_CACHE);
+              cache.put(request, networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch(() => null);
+
+        return cached || (await fetchPromise) || new Response("", { status: 404 });
+      })()
+    );
+    return;
+  }
+
+  // 4. API GET REQUESTS (Courses, Profile, Progress) - Network-first with cache fallback
+  if (url.pathname.startsWith("/api/v1/") && request.method === "GET") {
+    event.respondWith(
+      (async () => {
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse && networkResponse.status === 200) {
+            const cache = await caches.open(API_CACHE);
+            cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        } catch (_) {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          return new Response(JSON.stringify({ error: "Offline - cached data not available." }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      })()
+    );
+    return;
+  }
+});
+
+// Video / HLS Stream decryptor and server
+async function handleOfflineMedia(event, url) {
   const pathParts = url.pathname.split("/").filter(Boolean);
   let lessonId = "";
   let fileName = "";
@@ -99,100 +231,101 @@ self.addEventListener("fetch", (event) => {
     fileName = pathParts[pathParts.length - 1];
   }
 
-  event.respondWith(
-    (async () => {
-      try {
-        const db = await openDatabase();
+  // If query has lessonId param
+  if (!lessonId && url.searchParams.get("lessonId")) {
+    lessonId = url.searchParams.get("lessonId");
+  }
 
-        // 1. Check if full MP4 exists in local storage
-        if (lessonId) {
-          const mp4Record = await getFromStore(db, "segments", `${lessonId}_full.mp4`);
-          if (mp4Record && mp4Record.encryptedData) {
-            const license = await getFromStore(db, "licenses", lessonId);
-            if (license && !license.revoked) {
-              const key = await importRawKey(license.rawKey);
-              const decryptedBuffer = await crypto.subtle.decrypt(
-                { name: "AES-GCM", iv: new Uint8Array(mp4Record.iv) },
-                key,
-                mp4Record.encryptedData
-              );
+  try {
+    const db = await openDatabase();
 
-              return new Response(decryptedBuffer, {
-                status: 200,
-                headers: {
-                  "Content-Type": "video/mp4",
-                  "Accept-Ranges": "bytes",
-                  "Content-Length": decryptedBuffer.byteLength.toString(),
-                  "Cache-Control": "public, max-age=31536000, immutable",
-                  "X-SkillSpring-Offline": "true",
-                },
-              });
-            }
-          }
+    // 1. Direct MP4 check
+    if (lessonId) {
+      const mp4Record = await getFromStore(db, "segments", `${lessonId}_full.mp4`);
+      if (mp4Record && mp4Record.encryptedData) {
+        const license = await getFromStore(db, "licenses", lessonId);
+        if (license && !license.revoked) {
+          const key = await importRawKey(license.rawKey);
+          const decryptedBuffer = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: new Uint8Array(mp4Record.iv) },
+            key,
+            mp4Record.encryptedData
+          );
+
+          return new Response(decryptedBuffer, {
+            status: 200,
+            headers: {
+              "Content-Type": "video/mp4",
+              "Accept-Ranges": "bytes",
+              "Content-Length": decryptedBuffer.byteLength.toString(),
+              "Cache-Control": "public, max-age=31536000, immutable",
+              "X-SkillSpring-Offline": "true",
+            },
+          });
         }
+      }
+    }
 
-        // 2. Check if playlist exists in local storage
-        if (fileName.endsWith(".m3u8") && lessonId) {
-          const playlistId = `${lessonId}_${fileName}`;
-          let playlistRecord = await getFromStore(db, "playlists", playlistId);
-          if (!playlistRecord && fileName === "master.m3u8") {
-            playlistRecord = await getFromStore(db, "playlists", `${lessonId}_master.m3u8`);
-          }
-
-          if (playlistRecord && playlistRecord.content) {
-            return new Response(playlistRecord.content, {
-              status: 200,
-              headers: {
-                "Content-Type": "application/vnd.apple.mpegurl; charset=utf-8",
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "X-SkillSpring-Offline": "true",
-              },
-            });
-          }
-        }
-
-        // 3. Check if .ts segment exists in local storage
-        if (fileName.endsWith(".ts") && lessonId) {
-          const segmentId = `${lessonId}_${fileName}`;
-          const segmentRecord = await getFromStore(db, "segments", segmentId);
-
-          if (segmentRecord && segmentRecord.encryptedData) {
-            const license = await getFromStore(db, "licenses", lessonId);
-            if (license && !license.revoked) {
-              const key = await importRawKey(license.rawKey);
-              const decryptedBuffer = await crypto.subtle.decrypt(
-                { name: "AES-GCM", iv: new Uint8Array(segmentRecord.iv) },
-                key,
-                segmentRecord.encryptedData
-              );
-
-              return new Response(decryptedBuffer, {
-                status: 200,
-                headers: {
-                  "Content-Type": "video/mp2t",
-                  "Accept-Ranges": "bytes",
-                  "Content-Length": decryptedBuffer.byteLength.toString(),
-                  "Cache-Control": "public, max-age=31536000, immutable",
-                  "X-SkillSpring-Offline": "true",
-                },
-              });
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("[SW Offline Intercept Error]", err);
+    // 2. HLS Playlist check (.m3u8)
+    if (fileName.endsWith(".m3u8") && lessonId) {
+      const playlistId = `${lessonId}_${fileName}`;
+      let playlistRecord = await getFromStore(db, "playlists", playlistId);
+      if (!playlistRecord && fileName === "master.m3u8") {
+        playlistRecord = await getFromStore(db, "playlists", `${lessonId}_master.m3u8`);
       }
 
-      // Fallback: network fetch with graceful offline/network failure catch
-      try {
-        return await fetch(event.request);
-      } catch (_) {
-        return new Response("Media stream unreachable offline.", {
-          status: 503,
-          statusText: "Service Unavailable",
-          headers: { "Content-Type": "text/plain" },
+      if (playlistRecord && playlistRecord.content) {
+        return new Response(playlistRecord.content, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/vnd.apple.mpegurl; charset=utf-8",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "X-SkillSpring-Offline": "true",
+          },
         });
       }
-    })()
-  );
-});
+    }
+
+    // 3. HLS Segment check (.ts)
+    if (fileName.endsWith(".ts") && lessonId) {
+      const segmentId = `${lessonId}_${fileName}`;
+      const segmentRecord = await getFromStore(db, "segments", segmentId);
+
+      if (segmentRecord && segmentRecord.encryptedData) {
+        const license = await getFromStore(db, "licenses", lessonId);
+        if (license && !license.revoked) {
+          const key = await importRawKey(license.rawKey);
+          const decryptedBuffer = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: new Uint8Array(segmentRecord.iv) },
+            key,
+            segmentRecord.encryptedData
+          );
+
+          return new Response(decryptedBuffer, {
+            status: 200,
+            headers: {
+              "Content-Type": "video/mp2t",
+              "Accept-Ranges": "bytes",
+              "Content-Length": decryptedBuffer.byteLength.toString(),
+              "Cache-Control": "public, max-age=31536000, immutable",
+              "X-SkillSpring-Offline": "true",
+            },
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[SW Offline Media Error]", err);
+  }
+
+  // Network fetch fallback with graceful offline catch
+  try {
+    return await fetch(event.request);
+  } catch (_) {
+    return new Response("Media stream unreachable offline.", {
+      status: 503,
+      statusText: "Service Unavailable",
+      headers: { "Content-Type": "text/plain" },
+    });
+  }
+}
