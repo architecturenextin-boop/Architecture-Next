@@ -111,9 +111,25 @@ async function importRawKey(base64Key) {
 // Intercept fetch requests
 self.addEventListener("fetch", (event) => {
   const request = event.request;
+
+  // NEVER intercept non-GET requests (uploads, PUT, POST, DELETE, etc.)
+  if (request.method !== "GET") {
+    return;
+  }
+
   const url = new URL(request.url);
 
-  // 1. VIDEO & HLS OFFLINE INTERCEPTION
+  // NEVER intercept admin API endpoints, uploads, or direct Cloudflare R2 uploads
+  if (
+    url.pathname.includes("/admin/") ||
+    url.pathname.includes("/upload") ||
+    url.pathname.includes("/presigned") ||
+    url.hostname.includes("r2.cloudflarestorage.com")
+  ) {
+    return;
+  }
+
+  // 1. VIDEO & HLS OFFLINE INTERCEPTION (GET only)
   const isVideoOrStream =
     url.pathname.endsWith(".m3u8") ||
     url.pathname.endsWith(".ts") ||
