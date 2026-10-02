@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive, Clock } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -39,6 +39,18 @@ function getYouTubeVideoId(url: string) {
 function getYouTubeEmbedUrl(url: string) {
   const videoId = getYouTubeVideoId(url);
   return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+}
+
+function formatLessonTitle(title?: string): string {
+  if (!title) return "";
+  if (title.includes("_")) {
+    return title
+      .split("_")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(" • ");
+  }
+  return title;
 }
 
 function formatVideoDuration(seconds: number): string {
@@ -1466,20 +1478,38 @@ function LearnPage() {
             </div>
           )}
 
-          {/* Now Playing Details & Action Bar */}
-          <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-soft">
-             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-md">
-                  {activeLesson?.is_free && !isEnrolled ? "Free Preview" : "Now playing"}
-                </span>
+          {/* Apple-Grade Now Playing Details & Dynamic Controls Card */}
+          <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-card/90 backdrop-blur-2xl p-5 sm:p-7 shadow-[0_12px_40px_-15px_rgba(0,0,0,0.07)] ring-1 ring-black/[0.03] transition-all">
+            {/* Subtle Apple Ambient Glow in Background */}
+            <div className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-primary/5 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-accent/5 blur-3xl" />
+
+            {/* Top Bar: Dynamic Status Capsule + Duration + Apple Segmented Action Pills */}
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center flex-wrap gap-2">
+                {/* Dynamic Status Capsule */}
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/15 px-3 py-1 text-[11px] font-bold text-primary tracking-wide">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  <span>{activeLesson?.is_free && !isEnrolled ? "Free Preview" : "Now Playing"}</span>
+                </div>
+
+                {/* Duration Capsule */}
                 {(liveDuration || activeLesson?.duration) && (
-                  <span className="text-[11px] sm:text-xs font-mono font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
-                    {liveDuration || activeLesson.duration}
-                  </span>
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 border border-border/60 px-3 py-1 text-[11px] font-mono font-medium text-muted-foreground shadow-2xs">
+                    <Clock className="h-3 w-3 opacity-65" />
+                    <span>{liveDuration || activeLesson.duration}</span>
+                  </div>
+                )}
+
+                {/* Lesson Counter Pill */}
+                {flatLessons.length > 0 && activeIdx >= 0 && (
+                  <div className="hidden sm:inline-flex items-center rounded-full bg-muted/40 border border-border/40 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+                    Lesson {activeIdx + 1} of {flatLessons.length}
+                  </div>
                 )}
               </div>
 
+              {/* Apple-Style Action Pills */}
               <div className="flex items-center gap-2">
                 {/* Offline Download Button for Video Lesson */}
                 {!isPdfLesson && isEnrolled && videoUrl && !videoUrl.includes("youtube.com") && (
@@ -1487,7 +1517,7 @@ function LearnPage() {
                     const activeOffline = offlineLessons.find((o) => o.id === activeId);
                     if (activeOffline?.status === "downloading") {
                       return (
-                        <div className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary shadow-xs">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary shadow-xs animate-pulse">
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           <span>Downloading {activeOffline.progressPercent}%</span>
                           <button
@@ -1507,7 +1537,7 @@ function LearnPage() {
                     if (activeOffline?.status === "completed") {
                       return (
                         <div className="inline-flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-600 shadow-xs">
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 shadow-2xs">
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             <span>Offline Ready</span>
                           </span>
@@ -1515,7 +1545,7 @@ function LearnPage() {
                             type="button"
                             onClick={() => downloadManager.deleteDownloadedLesson(activeId)}
                             title="Remove offline copy"
-                            className="inline-flex items-center justify-center h-8 w-8 rounded-xl border border-border/80 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-full border border-border/80 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition active:scale-95"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -1539,7 +1569,7 @@ function LearnPage() {
                           });
                         }}
                         title="Download for offline viewing"
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card/90 px-3 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40 hover:bg-muted shadow-xs transition active:scale-95"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background/80 hover:bg-muted px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
                       >
                         <Download className="h-3.5 w-3.5 text-primary" />
                         <span className="hidden sm:inline">Download</span>
@@ -1555,7 +1585,7 @@ function LearnPage() {
                     onClick={handleToggleFullscreen}
                     title={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
                     aria-label={isFullscreen ? "Exit Full Screen" : "Full Screen Mode"}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card/90 px-3 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40 hover:bg-muted shadow-xs transition active:scale-95"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background/80 hover:bg-muted px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
                   >
                     {isFullscreen ? (
                       <>
@@ -1577,7 +1607,7 @@ function LearnPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     download
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold shadow-xs transition"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 px-3.5 py-1.5 text-xs font-semibold shadow-2xs transition active:scale-95"
                   >
                     <Download className="h-3.5 w-3.5" /> Download PDF File
                   </a>
@@ -1585,63 +1615,73 @@ function LearnPage() {
               </div>
             </div>
 
-            <h1 className="mt-2.5 font-display text-base sm:text-xl md:text-2xl font-bold tracking-tight text-foreground">
-              {activeLesson?.title}
-            </h1>
-            
-            {activeLesson?.description && (
-              <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                {activeLesson.description}
-              </p>
-            )}
+            {/* Center: Module Subtitle & Apple Refined Title */}
+            <div className="relative z-10 mt-4 sm:mt-5">
+              {activeLesson?.moduleTitle && (
+                <div className="inline-block text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-1">
+                  {activeLesson.moduleTitle}
+                </div>
+              )}
+              
+              <h1 className="font-display text-lg sm:text-2xl font-bold tracking-tight text-foreground leading-snug">
+                {formatLessonTitle(activeLesson?.title)}
+              </h1>
+              
+              {activeLesson?.description && (
+                <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
+                  {activeLesson.description}
+                </p>
+              )}
+            </div>
 
-            {/* Action Buttons Row */}
-            <div className="mt-4 sm:mt-5 flex items-center justify-between gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-border/50">
-              {/* Interactive Completion Toggle Pill (or Free Preview Pill if not enrolled) */}
+            {/* Bottom Controls Row: Apple Fitness Style Mark Complete & Segmented Navigation */}
+            <div className="relative z-10 mt-6 flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-border/60">
+              {/* Interactive Completion Toggle Pill */}
               {isEnrolled ? (
                 <button 
                   type="button"
                   onClick={() => toggleProgressMutation.mutate(activeId)} 
                   disabled={toggleProgressMutation.isPending}
                   aria-pressed={isDone}
-                  className={`group inline-flex items-center gap-2 rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 ${
+                  className={`group inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs ${
                     isDone 
-                      ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15" 
-                      : "border border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted/60 hover:text-foreground"
+                      ? "border border-emerald-500/35 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/10 hover:bg-emerald-500/15" 
+                      : "border border-border/80 bg-background/90 text-muted-foreground hover:border-primary/40 hover:bg-muted/70 hover:text-foreground"
                   }`}
                 >
-                  <div className={`grid h-5 w-5 place-items-center rounded-md transition-colors ${
+                  <div className={`grid h-5 w-5 place-items-center rounded-full transition-all duration-200 ${
                     isDone 
-                      ? "bg-emerald-500 text-white shadow-xs" 
-                      : "border border-muted-foreground/40 bg-background group-hover:border-primary/60"
+                      ? "bg-emerald-500 text-white shadow-xs scale-105" 
+                      : "border-2 border-muted-foreground/40 bg-transparent group-hover:border-primary/60"
                   }`}>
-                    <Check className={`h-3.5 w-3.5 stroke-[2.5] transition-transform ${isDone ? "scale-100" : "scale-0 text-primary"}`} />
+                    <Check className={`h-3 w-3 stroke-[3] transition-transform duration-200 ${isDone ? "scale-100" : "scale-0 text-primary"}`} />
                   </div>
                   <span>{isDone ? "Completed" : "Mark Complete"}</span>
                 </button>
               ) : (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs font-semibold text-muted-foreground">
+                <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-muted/40 px-3.5 py-1.5 text-xs font-semibold text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   Free Preview Lesson
                 </div>
               )}
 
-              {/* Navigation Controls: Clean Symbols + Responsive Labels */}
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Navigation Controls: Apple Segmented Pill Style */}
+              <div className="flex items-center gap-2">
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={() => go(-1)} 
                   disabled={activeIdx === 0}
-                  className="h-10 sm:h-11 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold border-border/80 hover:bg-muted disabled:opacity-40"
+                  className="h-10 px-4 rounded-full text-xs sm:text-sm font-semibold border-border/80 bg-background/80 hover:bg-muted disabled:opacity-35 transition-all active:scale-95"
                   aria-label="Previous Lesson"
                 >
                   <ChevronLeft className="h-4 w-4 sm:mr-1" />
                   <span className="hidden sm:inline">Previous</span>
                 </Button>
+
                 <Button 
                   size="sm" 
-                  className="h-10 sm:h-11 px-3.5 sm:px-5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-primary text-primary-foreground hover:opacity-95 shadow-soft disabled:opacity-40" 
+                  className="h-10 px-5 rounded-full text-xs sm:text-sm font-bold bg-gradient-primary text-primary-foreground hover:brightness-105 shadow-soft hover:shadow-glow disabled:opacity-35 transition-all active:scale-95" 
                   onClick={() => go(1)} 
                   disabled={activeIdx === flatLessons.length - 1}
                   aria-label="Next Lesson"
