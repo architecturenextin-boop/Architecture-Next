@@ -1608,12 +1608,19 @@ function LearnPage() {
         </div>
 
         {/* Desktop Sidebar Course Content */}
-        <aside className="hidden lg:flex flex-col rounded-2xl border border-border bg-card p-3.5 shadow-soft sticky top-20 max-h-[calc(100vh-6rem)] z-30">
+        <aside 
+          data-lenis-prevent="true"
+          className="hidden lg:flex flex-col rounded-2xl border border-border bg-card p-3.5 shadow-soft sticky top-20 max-h-[calc(100vh-6rem)] h-[calc(100vh-6rem)] z-30"
+        >
           <div className="px-3 py-2 border-b border-border/60 mb-2 shrink-0">
             <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Course content</div>
             <div className="text-xs text-muted-foreground">{flatLessons.length} lessons • {course?.total_duration}</div>
           </div>
-          <div className="space-y-4 flex-1 overflow-y-auto overscroll-contain pr-1.5 course-sidebar-scroll">
+          <div 
+            data-lenis-prevent="true"
+            onWheel={(e) => e.stopPropagation()}
+            className="space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1.5 course-sidebar-scroll"
+          >
             {sortedModules.map((m: any) => (
               <div key={m.id}>
                 <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-foreground bg-muted/40 rounded-lg">{m.title}</div>
@@ -1713,7 +1720,11 @@ function LearnPage() {
                 </button>
               </div>
 
-              <div className="mt-3 space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div 
+                data-lenis-prevent="true"
+                onWheel={(e) => e.stopPropagation()}
+                className="mt-3 space-y-4 max-h-[60vh] overflow-y-auto overscroll-contain pr-1.5 course-sidebar-scroll"
+              >
                 {sortedModules.map((m: any) => (
                   <div key={m.id}>
                     <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-foreground bg-muted/40 rounded-lg">{m.title}</div>
