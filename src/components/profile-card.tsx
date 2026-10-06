@@ -37,13 +37,18 @@ export function ProfileCard() {
   if (!user) {
     return (
       <div className="hidden md:flex items-center gap-2">
-        <Button asChild variant="ghost" size="sm" className="font-semibold transition-colors hover:text-primary">
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="font-semibold text-foreground/80 hover:text-primary hover:bg-primary/10 transition-colors rounded-xl"
+        >
           <Link to="/auth">Sign in</Link>
         </Button>
         <Button
           asChild
           size="sm"
-          className="bg-gradient-primary px-5 font-semibold text-primary-foreground shadow-soft transition-all hover:scale-[1.02] hover:shadow-elevated hover:brightness-110"
+          className="bg-gradient-primary px-5 font-semibold text-primary-foreground shadow-soft transition-all hover:scale-[1.02] hover:shadow-elevated hover:brightness-110 rounded-xl"
         >
           <Link to="/courses">Enroll Now</Link>
         </Button>
