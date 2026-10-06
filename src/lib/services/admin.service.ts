@@ -161,25 +161,41 @@ export const adminService = {
     return apiClient<AdminPaymentItem[]>("/admin/payments");
   },
 
-  getPresignedUploadUrl: async (payload: { filename: string; contentType?: string; folder?: string }) => {
-    return apiClient<{
-      uploadUrl: string;
-      key: string;
-      filename: string;
-      publicUrl: string | null;
-      mediaUrl: string;
-      videoUrl: string;
-      videoPath: string;
-    }>("/admin/r2/presigned-url", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+  getPresignedUploadUrl: async (
+    payload: { filename: string; contentType?: string; folder?: string },
+    timeoutMs = 3000
+  ) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await apiClient<{
+        uploadUrl: string;
+        key: string;
+        filename: string;
+        publicUrl: string | null;
+        mediaUrl: string;
+        videoUrl: string;
+        videoPath: string;
+      }>("/admin/r2/presigned-url", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      return res;
+    } catch (err) {
+      clearTimeout(timer);
+      throw err;
+    }
   },
 
   uploadVideo: async (
     file: File,
-    onProgress?: (percent: number) => void
+    onProgress?: (progress: { percent: number; loaded: number; total: number; stage?: string }) => void,
+    abortSignalRef?: { abort?: () => void }
   ): Promise<{ filename: string; originalName: string; size: number; videoUrl: string; videoPath: string }> => {
+    onProgress?.({ percent: 0, loaded: 0, total: file.size, stage: "Checking storage endpoint..." });
+
     // 1. Try direct Cloudflare R2 Presigned Upload if configured
     try {
       const presigned = await adminService.getPresignedUploadUrl({
@@ -189,22 +205,35 @@ export const adminService = {
       });
 
       if (presigned && presigned.uploadUrl) {
+        onProgress?.({ percent: 0, loaded: 0, total: file.size, stage: "Uploading directly to Cloudflare R2..." });
         return await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
+          if (abortSignalRef) {
+            abortSignalRef.abort = () => {
+              xhr.abort();
+              reject(new Error("Upload cancelled by user"));
+            };
+          }
           xhr.open("PUT", presigned.uploadUrl);
           xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
 
-          if (xhr.upload && onProgress) {
+          if (xhr.upload) {
             xhr.upload.onprogress = (event) => {
               if (event.lengthComputable) {
-                const percent = Math.round((event.loaded / event.total) * 100);
-                onProgress(percent);
+                const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
+                onProgress?.({
+                  percent,
+                  loaded: event.loaded,
+                  total: event.total,
+                  stage: percent >= 99 ? "Finalizing upload..." : "Uploading directly to storage...",
+                });
               }
             };
           }
 
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
+              onProgress?.({ percent: 100, loaded: file.size, total: file.size, stage: "Upload complete!" });
               resolve({
                 filename: presigned.filename,
                 originalName: file.name,
@@ -228,6 +257,8 @@ export const adminService = {
       // Fallback to standard multipart upload
     }
 
+    onProgress?.({ percent: 0, loaded: 0, total: file.size, stage: "Uploading video to server..." });
+
     const formData = new FormData();
     formData.append("video", file);
 
@@ -235,6 +266,12 @@ export const adminService = {
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
+      if (abortSignalRef) {
+        abortSignalRef.abort = () => {
+          xhr.abort();
+          reject(new Error("Upload cancelled by user"));
+        };
+      }
       xhr.open("POST", url);
       xhr.withCredentials = true;
       
@@ -242,11 +279,16 @@ export const adminService = {
         xhr.setRequestHeader(key, val);
       });
 
-      if (xhr.upload && onProgress) {
+      if (xhr.upload) {
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            onProgress(percent);
+            const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
+            onProgress?.({
+              percent,
+              loaded: event.loaded,
+              total: event.total,
+              stage: percent >= 99 ? "Processing on server..." : "Uploading video...",
+            });
           }
         };
       }
@@ -255,6 +297,7 @@ export const adminService = {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const res = JSON.parse(xhr.responseText);
+            onProgress?.({ percent: 100, loaded: file.size, total: file.size, stage: "Upload complete!" });
             resolve(res.data);
           } catch {
             reject(new Error("Invalid JSON response from server"));
@@ -262,7 +305,7 @@ export const adminService = {
         } else {
           try {
             const res = JSON.parse(xhr.responseText);
-            reject(new Error(res.message || res.error || "Upload failed"));
+            reject(new Error(res.message || res.error || `Upload failed with status ${xhr.status}`));
           } catch {
             reject(new Error(`Upload failed with status ${xhr.status}`));
           }
@@ -270,7 +313,7 @@ export const adminService = {
       };
 
       xhr.onerror = () => {
-        reject(new Error("Network error during video upload"));
+        reject(new Error("Network error during video upload. Please check your connection."));
       };
 
       xhr.send(formData);
@@ -299,8 +342,11 @@ export const adminService = {
 
   uploadDocument: async (
     file: File,
-    onProgress?: (percent: number) => void
+    onProgress?: (progress: { percent: number; loaded: number; total: number; stage?: string }) => void,
+    abortSignalRef?: { abort?: () => void }
   ): Promise<{ filename: string; originalName: string; size: number; documentUrl: string; documentPath: string }> => {
+    onProgress?.({ percent: 0, loaded: 0, total: file.size, stage: "Preparing document upload..." });
+
     const formData = new FormData();
     formData.append("document", file);
 
@@ -308,6 +354,12 @@ export const adminService = {
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
+      if (abortSignalRef) {
+        abortSignalRef.abort = () => {
+          xhr.abort();
+          reject(new Error("Upload cancelled by user"));
+        };
+      }
       xhr.open("POST", url);
       xhr.withCredentials = true;
       
@@ -315,11 +367,16 @@ export const adminService = {
         xhr.setRequestHeader(key, val);
       });
 
-      if (xhr.upload && onProgress) {
+      if (xhr.upload) {
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            onProgress(percent);
+            const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
+            onProgress?.({
+              percent,
+              loaded: event.loaded,
+              total: event.total,
+              stage: percent >= 99 ? "Processing document..." : "Uploading document...",
+            });
           }
         };
       }
@@ -328,6 +385,7 @@ export const adminService = {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const res = JSON.parse(xhr.responseText);
+            onProgress?.({ percent: 100, loaded: file.size, total: file.size, stage: "Upload complete!" });
             resolve(res.data);
           } catch {
             reject(new Error("Invalid JSON response from server"));
@@ -335,7 +393,7 @@ export const adminService = {
         } else {
           try {
             const res = JSON.parse(xhr.responseText);
-            reject(new Error(res.message || res.error || "Upload failed"));
+            reject(new Error(res.message || res.error || `Upload failed with status ${xhr.status}`));
           } catch {
             reject(new Error(`Upload failed with status ${xhr.status}`));
           }

@@ -6,7 +6,7 @@
  * 3. Transparent AES-GCM Encrypted Video/HLS Interception & Stream Decryption
  */
 
-const CACHE_VERSION = "architecturenext-v2";
+const CACHE_VERSION = "architecturenext-v3";
 const APP_SHELL_CACHE = `app-shell-${CACHE_VERSION}`;
 const STATIC_ASSETS_CACHE = `static-assets-${CACHE_VERSION}`;
 const API_CACHE = `api-data-${CACHE_VERSION}`;
