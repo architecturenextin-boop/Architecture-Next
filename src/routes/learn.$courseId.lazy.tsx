@@ -950,10 +950,24 @@ function LearnPage() {
   }, [activeId, videoUrl]);
 
 
-  if (courseLoading || authLoading || !activeId) {
+  if (courseLoading || authLoading || (!activeId && flatLessons.length > 0)) {
     return (
       <div className="grid min-h-screen place-items-center bg-white">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!courseLoading && !course) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-surface-soft p-4">
+        <div className="max-w-md w-full rounded-2xl border border-border bg-card p-8 text-center shadow-elevated">
+          <h2 className="font-display text-xl font-bold">Course Not Found</h2>
+          <p className="mt-2 text-sm text-muted-foreground">The requested course could not be found or may have been removed.</p>
+          <Button className="mt-6 w-full" onClick={() => navigate({ to: "/dashboard" })}>
+            Back to Dashboard
+          </Button>
+        </div>
       </div>
     );
   }
@@ -990,7 +1004,61 @@ function LearnPage() {
     );
   }
 
-  if (!course) return <div className="grid min-h-screen place-items-center">Course not found</div>;
+  // Course has no lessons published yet
+  if (flatLessons.length === 0) {
+    return (
+      <div className="min-h-screen bg-surface-soft">
+        <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur-xl shadow-xs">
+          <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <Link
+                to="/dashboard"
+                aria-label="Back to Dashboard"
+                className="inline-flex h-9 w-9 sm:w-auto sm:px-3 items-center justify-center gap-1.5 rounded-xl border border-border/70 bg-card/80 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 shadow-xs transition"
+              >
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </Link>
+              <div className="hidden sm:block h-4 w-px bg-border/80 shrink-0" />
+              <h2 className="truncate text-xs sm:text-sm font-bold text-foreground leading-snug">
+                {course?.title || "Course"}
+              </h2>
+            </div>
+            <ProfileCard />
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-2xl px-4 py-16 sm:py-24 text-center">
+          <div className="rounded-3xl border border-border/80 bg-card p-8 sm:p-12 shadow-elevated">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-soft">
+              <BookOpen className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+              Lessons Coming Soon
+            </h1>
+            <p className="mt-3 text-sm sm:text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
+              The curriculum for <span className="font-semibold text-foreground">{course?.title || "this course"}</span> is currently being prepared. Lessons and downloadable materials will be available here once published.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Button
+                className="bg-gradient-primary text-primary-foreground font-semibold px-6 shadow-glow"
+                onClick={() => navigate({ to: "/dashboard" })}
+              >
+                Go to My Dashboard
+              </Button>
+              <Button
+                variant="outline"
+                className="border-border"
+                onClick={() => navigate({ to: "/courses" })}
+              >
+                Browse Other Courses
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const activeIdx = flatLessons.findIndex((l) => l.id === activeId);
   const pct = flatLessons.length ? Math.round((completed.length / flatLessons.length) * 100) : 0;

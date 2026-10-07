@@ -157,6 +157,28 @@ export const adminService = {
     });
   },
 
+  updateStudent: async (
+    userId: string,
+    payload: {
+      full_name?: string;
+      email?: string;
+      phone?: string;
+      goal?: string;
+      role?: "admin" | "student";
+    }
+  ): Promise<any> => {
+    return apiClient(`/admin/students/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteStudent: async (userId: string): Promise<any> => {
+    return apiClient(`/admin/students/${userId}`, {
+      method: "DELETE",
+    });
+  },
+
   getAllPayments: async (): Promise<AdminPaymentItem[]> => {
     return apiClient<AdminPaymentItem[]>("/admin/payments");
   },

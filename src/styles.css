@@ -631,5 +631,10 @@
   background: rgba(41, 67, 152, 0.55);
 }
 
-
-
+/* Google OAuth Responsive Container & Iframe */
+div[data-oauth-consumer],
+iframe[id^="gsi_"] {
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}

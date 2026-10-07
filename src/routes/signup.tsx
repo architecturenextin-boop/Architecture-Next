@@ -414,7 +414,7 @@ function SignupPage() {
           </div>
 
           {/* Google Sign Up */}
-          <div className="w-full flex justify-center">
+          <div className="w-full max-w-full min-w-0 flex justify-center overflow-hidden">
             <GoogleAuthButton text="signup_with" shape="rectangular" size="large" />
           </div>
 
