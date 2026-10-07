@@ -75,7 +75,7 @@ function StudentsPage() {
     return fullCourses.map((c: any) => ({ id: c.id, title: c.title, price: c.price }));
   }, [fullCourses]);
 
-  // 3. Query progress data for the selected student & enrolled courses
+  // 3. Query progress and complete course details (modules + lessons) for the selected student & enrolled courses
   const { data: myCoursesProgress = [] } = useQuery({
     queryKey: ["admin-dashboard-my-courses-progress", selectedStudent?.id],
     queryFn: async () => {
@@ -88,19 +88,20 @@ function StudentsPage() {
     enabled: !!selectedStudent?.id,
   });
 
-  const { data: coursesProgressMap = {} } = useQuery({
-    queryKey: ["admin-student-courses-progress", selectedStudent?.id, selectedStudent?.enrollments, fullCourses],
+  const { data: courseContentAndProgress = { progressMap: {}, detailsMap: {} } } = useQuery({
+    queryKey: ["admin-student-courses-content-progress", selectedStudent?.id, selectedStudent?.enrollments, fullCourses],
     queryFn: async () => {
-      if (!selectedStudent?.id || !selectedStudent?.enrollments?.length) return {};
-      const result: Record<string, any[]> = {};
+      if (!selectedStudent?.id || !selectedStudent?.enrollments?.length) return { progressMap: {}, detailsMap: {} };
+      const progressMap: Record<string, any[]> = {};
+      const detailsMap: Record<string, any> = {};
 
       // 1. Try student-specific admin progress endpoint
       try {
         const studentDetail = await adminService.getStudentProgress(selectedStudent.id);
         if (studentDetail?.progress && Array.isArray(studentDetail.progress)) {
-          result["all"] = studentDetail.progress;
+          progressMap["all"] = studentDetail.progress;
         } else if (Array.isArray(studentDetail)) {
-          result["all"] = studentDetail;
+          progressMap["all"] = studentDetail;
         }
       } catch (_) {}
 
@@ -108,7 +109,7 @@ function StudentsPage() {
       await Promise.allSettled(
         selectedStudent.enrollments.map(async (en: any) => {
           const cId = en.course?.id || en.course_id;
-          const matchingCourse = fullCourses.find((fc: any) => fc.id === cId || fc.title === en.course?.title);
+          const matchingCourse = fullCourses.find((fc: any) => fc.id === cId || (fc.title && fc.title.toLowerCase() === en.course?.title?.toLowerCase()));
           const cSlug = en.course?.slug || matchingCourse?.slug;
           const targets = [cSlug, cId].filter(Boolean) as string[];
 
@@ -120,12 +121,19 @@ function StudentsPage() {
                 data = await courseService.getCourseLearningContent(target);
               }
 
+              if (data?.course) {
+                if (cId) detailsMap[cId] = data.course;
+                if (cSlug) detailsMap[cSlug] = data.course;
+                if (matchingCourse?.id) detailsMap[matchingCourse.id] = data.course;
+                if (matchingCourse?.slug) detailsMap[matchingCourse.slug] = data.course;
+              }
+
               if (data?.progress && Array.isArray(data.progress)) {
-                if (cId) result[cId] = data.progress;
-                if (cSlug) result[cSlug] = data.progress;
-                if (matchingCourse?.id) result[matchingCourse.id] = data.progress;
-                if (matchingCourse?.slug) result[matchingCourse.slug] = data.progress;
-                result[target] = data.progress;
+                if (cId) progressMap[cId] = data.progress;
+                if (cSlug) progressMap[cSlug] = data.progress;
+                if (matchingCourse?.id) progressMap[matchingCourse.id] = data.progress;
+                if (matchingCourse?.slug) progressMap[matchingCourse.slug] = data.progress;
+                progressMap[target] = data.progress;
                 break;
               }
             } catch (_) {
@@ -135,10 +143,14 @@ function StudentsPage() {
                 const cached = localStorage.getItem(localKey);
                 if (cached) {
                   const parsed = JSON.parse(cached);
+                  if (parsed?.course) {
+                    if (cId) detailsMap[cId] = parsed.course;
+                    if (cSlug) detailsMap[cSlug] = parsed.course;
+                  }
                   if (parsed?.progress && Array.isArray(parsed.progress)) {
-                    if (cId) result[cId] = parsed.progress;
-                    if (cSlug) result[cSlug] = parsed.progress;
-                    result[target] = parsed.progress;
+                    if (cId) progressMap[cId] = parsed.progress;
+                    if (cSlug) progressMap[cSlug] = parsed.progress;
+                    progressMap[target] = parsed.progress;
                     break;
                   }
                 }
@@ -148,10 +160,13 @@ function StudentsPage() {
         })
       );
 
-      return result;
+      return { progressMap, detailsMap };
     },
     enabled: !!selectedStudent?.id && !!selectedStudent?.enrollments?.length,
   });
+
+  const coursesProgressMap = courseContentAndProgress.progressMap;
+  const coursesDetailsMap = courseContentAndProgress.detailsMap;
 
   // Consolidate all progress records for the selected student
   const studentProgressList = useMemo(() => {
@@ -177,6 +192,25 @@ function StudentsPage() {
 
     return Array.from(map.values());
   }, [selectedStudent, coursesProgressMap]);
+
+  // Lock background page scroll when modal is opened
+  useEffect(() => {
+    if (selectedStudent) {
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      document.body.style.overflow = "hidden";
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+      };
+    }
+  }, [selectedStudent]);
 
   const toggleCourseExpand = (courseId: string) => {
     setExpandedCourseIds((prev) => ({
@@ -687,14 +721,14 @@ function StudentsPage() {
       {/* Student Details & Course Enrollment Modal */}
       {selectedStudent && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-3 sm:p-5 md:p-6 lg:p-8 animate-fade-in overflow-hidden"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-3 sm:p-5 md:p-6 lg:p-8 animate-fade-in overflow-y-auto"
           onClick={() => {
             setSelectedStudent(null);
             setIsEditing(false);
           }}
         >
           <div
-            className="relative w-full max-w-lg sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl rounded-3xl border border-border bg-card shadow-elevated flex flex-col h-[88vh] max-h-[920px] overflow-hidden"
+            className="relative w-full max-w-lg sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl rounded-3xl border border-border bg-card shadow-elevated flex flex-col h-[88vh] max-h-[920px] overflow-hidden my-auto shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -757,7 +791,7 @@ function StudentsPage() {
             {/* Scrollable Modal Content - Guaranteed fluid scrolling */}
             <div 
               className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-7 space-y-6"
-              style={{ WebkitOverflowScrolling: "touch" }}
+              style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
             >
               {/* EDIT MODE FORM */}
               {isEditing ? (
@@ -900,10 +934,11 @@ function StudentsPage() {
                         let total = 0;
                         selectedStudent.enrollments.forEach((en: any) => {
                           const courseId = en.course?.id || en.course_id;
-                          const courseSlug = en.course?.slug;
-                          const courseDetail = fullCourses.find(
-                            (c: any) => c.id === courseId || (c.slug && c.slug === courseSlug) || (c.title && c.title.toLowerCase() === en.course?.title?.toLowerCase())
-                          ) || en.course;
+                          const matchingCourse = fullCourses.find(
+                            (c: any) => c.id === courseId || (c.title && c.title.toLowerCase() === en.course?.title?.toLowerCase())
+                          );
+                          const courseSlug = en.course?.slug || matchingCourse?.slug;
+                          const courseDetail = coursesDetailsMap[courseId] || coursesDetailsMap[courseSlug] || matchingCourse || en.course;
                           const rawModules = courseDetail?.modules || [];
                           const allLessons = rawModules.flatMap((m: any) => m.lessons || m.lessons_safe || []);
 
@@ -915,6 +950,10 @@ function StudentsPage() {
                             ...(coursesProgressMap["all"] || []),
                             ...studentProgressList,
                           ];
+
+                          const dashboardItem = myCoursesProgress.find(
+                            (mc: any) => mc.course_id === courseId || mc.slug === courseSlug || mc.title?.toLowerCase() === courseDetail?.title?.toLowerCase()
+                          );
 
                           const doneCount = allLessons.filter((lesson: any) => {
                             const lId = String(lesson.id || "").trim();
@@ -929,11 +968,11 @@ function StudentsPage() {
                             if (prog && (prog.completed === true || prog.completed === "true" || prog.completed === 1 || prog.status === "completed" || prog.is_completed === true)) return true;
                             if (Array.isArray(en?.completed_lessons) && en.completed_lessons.some((x: any) => String(x).trim() === lId)) return true;
                             if (Array.isArray(en?.completedLessons) && en.completedLessons.some((x: any) => String(x).trim() === lId)) return true;
+                            if (Array.isArray(dashboardItem?.completed_lessons) && dashboardItem.completed_lessons.some((x: any) => String(x).trim() === lId)) return true;
                             return false;
                           }).length;
 
-                          const dashboardItem = myCoursesProgress.find((mc: any) => mc.course_id === courseId || mc.slug === courseSlug || mc.title === courseDetail?.title);
-                          const finalCount = doneCount > 0 ? doneCount : (dashboardItem?.progress_count || (typeof en.completed_count === "number" ? en.completed_count : typeof en.progress_count === "number" ? en.progress_count : 0));
+                          const finalCount = doneCount > 0 ? doneCount : Number(dashboardItem?.progress_count ?? en.completed_count ?? en.progress_count ?? 0);
                           total += finalCount;
                         });
                         return total;
@@ -992,10 +1031,11 @@ function StudentsPage() {
                   <div className="space-y-3.5">
                     {selectedStudent.enrollments.map((en: any) => {
                       const courseId = en.course?.id || en.course_id;
-                      const courseSlug = en.course?.slug;
-                      const courseDetail = fullCourses.find(
-                        (c: any) => c.id === courseId || (c.slug && c.slug === courseSlug) || (c.title && c.title.toLowerCase() === en.course?.title?.toLowerCase())
-                      ) || en.course;
+                      const matchingCourse = fullCourses.find(
+                        (c: any) => c.id === courseId || (c.title && c.title.toLowerCase() === en.course?.title?.toLowerCase())
+                      );
+                      const courseSlug = en.course?.slug || matchingCourse?.slug;
+                      const courseDetail = coursesDetailsMap[courseId] || coursesDetailsMap[courseSlug] || matchingCourse || en.course;
                       
                       // Extract modules and lessons for this course
                       const rawModules = courseDetail?.modules || [];
@@ -1008,7 +1048,7 @@ function StudentsPage() {
                         }))
                       );
 
-                      const dashboardItem = myCoursesProgress.find((mc: any) => mc.course_id === courseId || mc.slug === courseSlug || mc.title === courseDetail?.title);
+                      const dashboardItem = myCoursesProgress.find((mc: any) => mc.course_id === courseId || mc.slug === courseSlug || mc.title?.toLowerCase() === courseDetail?.title?.toLowerCase());
                       const totalLessons = allLessons.length || en.total_lessons || courseDetail?.total_lessons || dashboardItem?.total_lessons || 0;
 
                       // Completed lessons for this course
@@ -1052,12 +1092,15 @@ function StudentsPage() {
                         if (Array.isArray(en?.completedLessons) && en.completedLessons.some((x: any) => String(x).trim() === lId)) {
                           return true;
                         }
+                        if (Array.isArray(dashboardItem?.completed_lessons) && dashboardItem.completed_lessons.some((x: any) => String(x).trim() === lId)) {
+                          return true;
+                        }
                         return false;
                       });
 
-                      const completedCount = completedLessons.length > 0
-                        ? completedLessons.length
-                        : (dashboardItem?.progress_count || (typeof en.completed_count === "number" ? en.completed_count : typeof en.progress_count === "number" ? en.progress_count : 0));
+                      const calculatedDone = completedLessons.length;
+                      const fallbackDone = Number(dashboardItem?.progress_count ?? en.completed_count ?? en.progress_count ?? 0);
+                      const completedCount = calculatedDone > 0 ? calculatedDone : fallbackDone;
                       const progressPct = totalLessons > 0 ? Math.min(100, Math.round((completedCount / totalLessons) * 100)) : 0;
                       const isExpanded = !!expandedCourseIds[courseId];
 
