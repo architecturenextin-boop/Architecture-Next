@@ -648,14 +648,14 @@ function StudentsPage() {
       {/* Student Details & Course Enrollment Modal */}
       {selectedStudent && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-5 md:p-6 lg:p-8 animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-3 sm:p-5 md:p-6 lg:p-8 animate-fade-in overflow-hidden"
           onClick={() => {
             setSelectedStudent(null);
             setIsEditing(false);
           }}
         >
           <div
-            className="relative w-full max-w-lg sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl rounded-3xl border border-border bg-card shadow-elevated flex flex-col max-h-[90vh] my-auto overflow-hidden"
+            className="relative w-full max-w-lg sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl rounded-3xl border border-border bg-card shadow-elevated flex flex-col h-[88vh] max-h-[920px] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -715,8 +715,11 @@ function StudentsPage() {
               </div>
             </div>
 
-            {/* Scrollable Modal Content */}
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-7 space-y-6">
+            {/* Scrollable Modal Content - Guaranteed fluid scrolling */}
+            <div 
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-7 space-y-6"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
               {/* EDIT MODE FORM */}
               {isEditing ? (
                 <form onSubmit={handleSaveEdit} className="space-y-4 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5">
@@ -869,12 +872,18 @@ function StudentsPage() {
                           ];
 
                           const doneCount = allLessons.filter((lesson: any) => {
-                            const prog = courseProg.find(
-                              (p: any) => p.lesson_id === lesson.id || p.lessonId === lesson.id || p.id === lesson.id
-                            );
-                            if (prog && (prog.completed === true || prog.completed === "true" || prog.completed === 1 || prog.status === "completed")) return true;
-                            if (Array.isArray(en?.completed_lessons) && en.completed_lessons.includes(lesson.id)) return true;
-                            if (Array.isArray(en?.completedLessons) && en.completedLessons.includes(lesson.id)) return true;
+                            const lId = String(lesson.id || "").trim();
+                            const lTitle = String(lesson.title || "").trim().toLowerCase();
+
+                            const prog = courseProg.find((p: any) => {
+                              const pLessonId = String(p.lesson_id || p.lessonId || p.id || "").trim();
+                              const pTitle = String(p.title || p.lesson_title || "").trim().toLowerCase();
+                              return (pLessonId && pLessonId === lId) || (pTitle && pTitle === lTitle);
+                            });
+
+                            if (prog && (prog.completed === true || prog.completed === "true" || prog.completed === 1 || prog.status === "completed" || prog.is_completed === true)) return true;
+                            if (Array.isArray(en?.completed_lessons) && en.completed_lessons.some((x: any) => String(x).trim() === lId)) return true;
+                            if (Array.isArray(en?.completedLessons) && en.completedLessons.some((x: any) => String(x).trim() === lId)) return true;
                             return false;
                           }).length;
 
@@ -959,19 +968,36 @@ function StudentsPage() {
                       ];
 
                       const completedLessons = allLessons.filter((lesson: any) => {
-                        const prog = courseProg.find(
-                          (p: any) => p.lesson_id === lesson.id || p.lessonId === lesson.id || p.id === lesson.id
-                        );
+                        const lId = String(lesson.id || "").trim();
+                        const lTitle = String(lesson.title || "").trim().toLowerCase();
+
+                        const prog = courseProg.find((p: any) => {
+                          const pLessonId = String(p.lesson_id || p.lessonId || p.id || "").trim();
+                          const pTitle = String(p.title || p.lesson_title || "").trim().toLowerCase();
+                          return (pLessonId && pLessonId === lId) || (pTitle && pTitle === lTitle);
+                        });
+
                         if (prog) {
-                          if (prog.completed === true || prog.completed === "true" || prog.completed === 1 || prog.status === "completed") {
+                          if (
+                            prog.completed === true ||
+                            prog.completed === "true" ||
+                            prog.completed === 1 ||
+                            prog.status === "completed" ||
+                            prog.is_completed === true
+                          ) {
                             return true;
                           }
-                          if (prog.progress_seconds && prog.duration && prog.progress_seconds >= prog.duration * 0.7) {
-                            return true;
+                          if (Number(prog.progress_seconds) > 0 && Number(prog.duration) > 0) {
+                            if (Number(prog.progress_seconds) >= Number(prog.duration) * 0.7) return true;
                           }
                         }
-                        if (Array.isArray(en?.completed_lessons) && en.completed_lessons.includes(lesson.id)) return true;
-                        if (Array.isArray(en?.completedLessons) && en.completedLessons.includes(lesson.id)) return true;
+
+                        if (Array.isArray(en?.completed_lessons) && en.completed_lessons.some((x: any) => String(x).trim() === lId)) {
+                          return true;
+                        }
+                        if (Array.isArray(en?.completedLessons) && en.completedLessons.some((x: any) => String(x).trim() === lId)) {
+                          return true;
+                        }
                         return false;
                       });
 
@@ -1088,7 +1114,15 @@ function StudentsPage() {
                                     const mLessons = [...rawMLessons].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
                                     if (mLessons.length === 0) return null;
 
-                                    const mDoneCount = mLessons.filter((l: any) => completedLessons.some((cl: any) => cl.id === l.id)).length;
+                                    const mDoneCount = mLessons.filter((l: any) => {
+                                      const lId = String(l.id || "").trim();
+                                      const lTitle = String(l.title || "").trim().toLowerCase();
+                                      return completedLessons.some((cl: any) => {
+                                        const clId = String(cl.id || "").trim();
+                                        const clTitle = String(cl.title || "").trim().toLowerCase();
+                                        return (clId && clId === lId) || (clTitle && clTitle === lTitle);
+                                      });
+                                    }).length;
 
                                     return (
                                       <div key={m.id || mIdx} className="space-y-1.5">
@@ -1103,7 +1137,13 @@ function StudentsPage() {
 
                                         <div className="space-y-1 rounded-xl bg-background border border-border/60 p-2">
                                           {mLessons.map((l: any, lIdx: number) => {
-                                            const isDone = completedLessons.some((cl: any) => cl.id === l.id);
+                                            const lId = String(l.id || "").trim();
+                                            const lTitle = String(l.title || "").trim().toLowerCase();
+                                            const isDone = completedLessons.some((cl: any) => {
+                                              const clId = String(cl.id || "").trim();
+                                              const clTitle = String(cl.title || "").trim().toLowerCase();
+                                              return (clId && clId === lId) || (clTitle && clTitle === lTitle);
+                                            });
 
                                             return (
                                               <div
