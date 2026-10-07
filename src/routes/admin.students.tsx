@@ -20,6 +20,11 @@ import {
   UserCheck,
   UserX,
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Circle,
+  Clock,
+  PlayCircle,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
@@ -47,6 +52,7 @@ function StudentsPage() {
     role: "student" as "student" | "admin",
   });
   const [enrollCourseId, setEnrollCourseId] = useState("");
+  const [expandedCourseIds, setExpandedCourseIds] = useState<Record<string, boolean>>({});
   const queryClient = useQueryClient();
 
   // 1. Query all profiles from Backend REST API
@@ -57,14 +63,65 @@ function StudentsPage() {
     },
   });
 
-  // 2. Fetch all courses for manual enrollment dropdown
-  const { data: courses = [] } = useQuery({
-    queryKey: ["admin-all-courses-list"],
+  // 2. Fetch all courses with full modules & lessons
+  const { data: fullCourses = [] } = useQuery({
+    queryKey: ["admin-all-courses-full"],
     queryFn: async () => {
-      const all = await adminService.getAllCourses();
-      return all.map((c) => ({ id: c.id, title: c.title, price: c.price }));
+      return adminService.getAllCourses();
     },
   });
+
+  const courses = useMemo(() => {
+    return fullCourses.map((c: any) => ({ id: c.id, title: c.title, price: c.price }));
+  }, [fullCourses]);
+
+  // 3. Query progress data for the selected student
+  const { data: studentProgressData } = useQuery({
+    queryKey: ["admin-student-progress", selectedStudent?.id],
+    queryFn: async () => {
+      if (!selectedStudent?.id) return null;
+      return adminService.getStudentProgress(selectedStudent.id);
+    },
+    enabled: !!selectedStudent?.id,
+  });
+
+  // Consolidate all progress records for the selected student
+  const studentProgressList = useMemo(() => {
+    if (!selectedStudent) return [];
+    const fromApi = Array.isArray(studentProgressData?.progress)
+      ? studentProgressData.progress
+      : Array.isArray(studentProgressData?.lesson_progress)
+      ? studentProgressData.lesson_progress
+      : Array.isArray(studentProgressData)
+      ? studentProgressData
+      : [];
+
+    const fromStudent = Array.isArray(selectedStudent.progress)
+      ? selectedStudent.progress
+      : Array.isArray(selectedStudent.lesson_progress)
+      ? selectedStudent.lesson_progress
+      : [];
+
+    const fromEnrollments = (selectedStudent.enrollments || []).flatMap((en: any) =>
+      Array.isArray(en.progress) ? en.progress : []
+    );
+
+    const map = new Map<string, any>();
+    [...fromEnrollments, ...fromStudent, ...fromApi].forEach((item: any) => {
+      if (item && (item.lesson_id || item.id)) {
+        map.set(item.lesson_id || item.id, item);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [selectedStudent, studentProgressData]);
+
+  const toggleCourseExpand = (courseId: string) => {
+    setExpandedCourseIds((prev) => ({
+      ...prev,
+      [courseId]: !prev[courseId],
+    }));
+  };
 
   // Sync edit form whenever selected student changes
   useEffect(() => {
@@ -770,9 +827,10 @@ function StudentsPage() {
                   </div>
 
                   <div className="rounded-2xl border border-border bg-muted/20 p-3.5 flex flex-col justify-center">
-                    <span className="text-muted-foreground block font-medium text-[11px]">Learning Goal</span>
-                    <span className="font-semibold text-foreground block mt-0.5 truncate" title={selectedStudent.goal}>
-                      {selectedStudent.goal || "Architecture & BIM Mastery"}
+                    <span className="text-muted-foreground block font-medium text-[11px]">Completed Lessons</span>
+                    <span className="font-semibold text-foreground text-sm block mt-0.5 flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      {studentProgressList.filter((p: any) => p.completed).length} Total Completed
                     </span>
                   </div>
 
@@ -810,82 +868,223 @@ function StudentsPage() {
                 </div>
               )}
 
-              {/* Enrolled Courses Section */}
-              <div className="space-y-3 pt-2">
+              {/* Enrolled Courses Section with Completed Lessons Breakdown */}
+              <div className="space-y-3.5 pt-2">
                 <div className="flex items-center justify-between">
                   <h4 className="font-display text-sm font-bold flex items-center gap-1.5 text-foreground">
-                    <BookOpen className="h-4 w-4 text-primary" /> Active Course Enrollments (
+                    <BookOpen className="h-4 w-4 text-primary" /> Active Course Enrollments &amp; Progress (
                     {selectedStudent.enrollments?.length || 0})
                   </h4>
                 </div>
 
                 {selectedStudent.enrollments?.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+                  <div className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
                     This student is not enrolled in any courses yet.
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto overscroll-contain pr-1">
-                    {selectedStudent.enrollments.map((en: any) => (
-                      <div
-                        key={en.id}
-                        className="flex items-center justify-between rounded-xl border border-border bg-card p-3 shadow-xs"
-                      >
-                        <div className="flex-1 pr-2">
-                          <span className="font-semibold text-xs text-foreground block line-clamp-1">
-                            {en.course?.title || "Course"}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            Enrolled on {new Date(en.enrolled_at || en.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success uppercase">
-                            {en.status || "active"}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={revokeEnrollmentMutation.isPending}
-                            className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
-                            title="Revoke course access"
-                            onClick={() => {
-                              confirmAction({
-                                title: "Revoke Course Access?",
-                                description: `Are you sure you want to remove access to "${
-                                  en.course?.title || "this course"
-                                }" for ${
-                                  selectedStudent.full_name || selectedStudent.email
-                                }? They will no longer be able to view course lessons.`,
-                                confirmLabel: "Revoke Access",
-                                variant: "destructive",
-                                onConfirm: () => {
-                                  revokeEnrollmentMutation.mutate(
-                                    {
-                                      userId: selectedStudent.id,
-                                      courseId: en.course?.id,
-                                      enrollmentId: en.id,
+                  <div className="space-y-3 max-h-[420px] overflow-y-auto overscroll-contain pr-1">
+                    {selectedStudent.enrollments.map((en: any) => {
+                      const courseId = en.course?.id || en.course_id;
+                      const courseDetail = fullCourses.find((c: any) => c.id === courseId) || en.course;
+                      
+                      // Extract modules and lessons for this course
+                      const rawModules = courseDetail?.modules || [];
+                      const modules = [...rawModules].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+                      const allLessons = modules.flatMap((m: any) =>
+                        (m.lessons || m.lessons_safe || []).map((l: any) => ({
+                          ...l,
+                          moduleId: m.id,
+                          moduleTitle: m.title,
+                        }))
+                      );
+
+                      const totalLessons = allLessons.length || en.total_lessons || courseDetail?.total_lessons || 0;
+
+                      // Completed lessons for this course
+                      const completedLessons = allLessons.filter((lesson: any) => {
+                        const prog = studentProgressList.find((p: any) => p.lesson_id === lesson.id);
+                        if (prog && prog.completed) return true;
+                        if (Array.isArray(en.completed_lessons) && en.completed_lessons.includes(lesson.id)) return true;
+                        return false;
+                      });
+
+                      const completedCount = completedLessons.length || en.completed_count || en.progress_count || 0;
+                      const progressPct = totalLessons > 0 ? Math.min(100, Math.round((completedCount / totalLessons) * 100)) : 0;
+                      const isExpanded = !!expandedCourseIds[courseId];
+
+                      return (
+                        <div
+                          key={en.id}
+                          className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs space-y-3 transition hover:border-primary/30"
+                        >
+                          {/* Course Header */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-foreground truncate">
+                                  {en.course?.title || courseDetail?.title || "Course"}
+                                </span>
+                                <span className="rounded-full bg-success/15 px-2.5 py-0.5 text-[10px] font-bold text-success uppercase shrink-0">
+                                  {en.status || "active"}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-muted-foreground block mt-0.5">
+                                Enrolled on {new Date(en.enrolled_at || en.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={revokeEnrollmentMutation.isPending}
+                                className="h-7.5 px-2.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                                title="Revoke course access"
+                                onClick={() => {
+                                  confirmAction({
+                                    title: "Revoke Course Access?",
+                                    description: `Are you sure you want to remove access to "${
+                                      en.course?.title || "this course"
+                                    }" for ${
+                                      selectedStudent.full_name || selectedStudent.email
+                                    }? They will no longer be able to view course lessons.`,
+                                    confirmLabel: "Revoke Access",
+                                    variant: "destructive",
+                                    onConfirm: () => {
+                                      revokeEnrollmentMutation.mutate(
+                                        {
+                                          userId: selectedStudent.id,
+                                          courseId: en.course?.id,
+                                          enrollmentId: en.id,
+                                        },
+                                        {
+                                          onSuccess: () => {
+                                            setSelectedStudent({
+                                              ...selectedStudent,
+                                              coursesCount: Math.max(0, (selectedStudent.coursesCount || 1) - 1),
+                                              enrollments: (selectedStudent.enrollments || []).filter(
+                                                (item: any) => item.id !== en.id
+                                              ),
+                                            });
+                                          },
+                                        }
+                                      );
                                     },
-                                    {
-                                      onSuccess: () => {
-                                        setSelectedStudent({
-                                          ...selectedStudent,
-                                          coursesCount: Math.max(0, (selectedStudent.coursesCount || 1) - 1),
-                                          enrollments: (selectedStudent.enrollments || []).filter(
-                                            (item: any) => item.id !== en.id
-                                          ),
-                                        });
-                                      },
-                                    }
-                                  );
-                                },
-                              });
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove
-                          </Button>
+                                  });
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Progress Bar & Completed Stats */}
+                          <div className="rounded-xl bg-muted/30 p-3 space-y-2 border border-border/50">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                                <CheckCircle2 className={`h-4 w-4 ${completedCount > 0 ? "text-emerald-500" : "text-muted-foreground"}`} />
+                                {completedCount} of {totalLessons} Lessons Completed
+                              </span>
+                              <span className="font-bold text-primary font-mono">{progressPct}%</span>
+                            </div>
+
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-border/70">
+                              <div
+                                className="h-full bg-gradient-primary rounded-full transition-all duration-500"
+                                style={{ width: `${progressPct}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Expandable Lesson-by-Lesson Breakdown */}
+                          {allLessons.length > 0 && (
+                            <div className="pt-1">
+                              <button
+                                onClick={() => toggleCourseExpand(courseId)}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline cursor-pointer"
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <ChevronUp className="h-3.5 w-3.5" /> Hide Completed Lessons
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="h-3.5 w-3.5" /> View Completed Lessons ({completedCount}/{totalLessons})
+                                  </>
+                                )}
+                              </button>
+
+                              {isExpanded && (
+                                <div className="mt-3 space-y-3 pt-3 border-t border-border/60">
+                                  {modules.map((m: any, mIdx: number) => {
+                                    const rawMLessons = m.lessons || m.lessons_safe || [];
+                                    const mLessons = [...rawMLessons].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+                                    if (mLessons.length === 0) return null;
+
+                                    return (
+                                      <div key={m.id || mIdx} className="space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                                            {m.title || `Module ${mIdx + 1}`}
+                                          </span>
+                                          <span className="text-[10px] text-muted-foreground">
+                                            {mLessons.filter((l: any) => completedLessons.some((cl: any) => cl.id === l.id)).length}/{mLessons.length} completed
+                                          </span>
+                                        </div>
+
+                                        <div className="space-y-1 rounded-xl bg-background border border-border/60 p-2">
+                                          {mLessons.map((l: any, lIdx: number) => {
+                                            const isDone = completedLessons.some((cl: any) => cl.id === l.id);
+                                            const progInfo = studentProgressList.find((p: any) => p.lesson_id === l.id);
+
+                                            return (
+                                              <div
+                                                key={l.id || lIdx}
+                                                className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs transition ${
+                                                  isDone ? "bg-emerald-500/10 text-foreground" : "text-muted-foreground hover:bg-muted/30"
+                                                }`}
+                                              >
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                  {isDone ? (
+                                                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                                                  ) : (
+                                                    <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                                                  )}
+                                                  <span className={`truncate ${isDone ? "font-semibold text-foreground" : ""}`}>
+                                                    {l.title}
+                                                  </span>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                  {l.duration && (
+                                                    <span className="text-[10px] text-muted-foreground font-mono">
+                                                      {l.duration}
+                                                    </span>
+                                                  )}
+                                                  {isDone ? (
+                                                    <span className="rounded-md bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                                      Completed
+                                                    </span>
+                                                  ) : (
+                                                    <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground font-medium">
+                                                      Not Started
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 

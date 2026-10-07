@@ -179,6 +179,18 @@ export const adminService = {
     });
   },
 
+  getStudentProgress: async (userId: string): Promise<any> => {
+    try {
+      return await apiClient(`/admin/students/${userId}/progress`);
+    } catch {
+      try {
+        return await apiClient(`/admin/students/${userId}`);
+      } catch {
+        return null;
+      }
+    }
+  },
+
   getAllPayments: async (): Promise<AdminPaymentItem[]> => {
     return apiClient<AdminPaymentItem[]>("/admin/payments");
   },
