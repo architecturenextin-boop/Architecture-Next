@@ -76,18 +76,25 @@ function StudentsPage() {
   }, [fullCourses]);
 
   // 3. Query progress data for the selected student & enrolled courses
-  const enrolledCourseIds = useMemo(() => {
-    if (!selectedStudent?.enrollments) return [];
-    return selectedStudent.enrollments.map((en: any) => en.course?.id || en.course_id).filter(Boolean);
-  }, [selectedStudent]);
+  const { data: myCoursesProgress = [] } = useQuery({
+    queryKey: ["admin-dashboard-my-courses-progress", selectedStudent?.id],
+    queryFn: async () => {
+      try {
+        return await dashboardService.getMyCourses();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!selectedStudent?.id,
+  });
 
   const { data: coursesProgressMap = {} } = useQuery({
-    queryKey: ["admin-student-courses-progress", selectedStudent?.id, enrolledCourseIds],
+    queryKey: ["admin-student-courses-progress", selectedStudent?.id, selectedStudent?.enrollments, fullCourses],
     queryFn: async () => {
-      if (!selectedStudent?.id || enrolledCourseIds.length === 0) return {};
+      if (!selectedStudent?.id || !selectedStudent?.enrollments?.length) return {};
       const result: Record<string, any[]> = {};
 
-      // Try student progress endpoint
+      // 1. Try student-specific admin progress endpoint
       try {
         const studentDetail = await adminService.getStudentProgress(selectedStudent.id);
         if (studentDetail?.progress && Array.isArray(studentDetail.progress)) {
@@ -97,21 +104,53 @@ function StudentsPage() {
         }
       } catch (_) {}
 
-      // Query course-specific learn content/progress for each enrolled course
+      // 2. Query each enrolled course by both slug and ID
       await Promise.allSettled(
-        enrolledCourseIds.map(async (cId: string) => {
-          try {
-            const data = await courseService.getCourseLearningContent(cId);
-            if (data?.progress && Array.isArray(data.progress)) {
-              result[cId] = data.progress;
+        selectedStudent.enrollments.map(async (en: any) => {
+          const cId = en.course?.id || en.course_id;
+          const matchingCourse = fullCourses.find((fc: any) => fc.id === cId || fc.title === en.course?.title);
+          const cSlug = en.course?.slug || matchingCourse?.slug;
+          const targets = [cSlug, cId].filter(Boolean) as string[];
+
+          for (const target of targets) {
+            try {
+              // Check React Query cache first
+              let data: any = queryClient.getQueryData(["learn-course", target]);
+              if (!data) {
+                data = await courseService.getCourseLearningContent(target);
+              }
+
+              if (data?.progress && Array.isArray(data.progress)) {
+                if (cId) result[cId] = data.progress;
+                if (cSlug) result[cSlug] = data.progress;
+                if (matchingCourse?.id) result[matchingCourse.id] = data.progress;
+                if (matchingCourse?.slug) result[matchingCourse.slug] = data.progress;
+                result[target] = data.progress;
+                break;
+              }
+            } catch (_) {
+              // Check localStorage cache fallback
+              try {
+                const localKey = `skillspring_course_learn_${target}`;
+                const cached = localStorage.getItem(localKey);
+                if (cached) {
+                  const parsed = JSON.parse(cached);
+                  if (parsed?.progress && Array.isArray(parsed.progress)) {
+                    if (cId) result[cId] = parsed.progress;
+                    if (cSlug) result[cSlug] = parsed.progress;
+                    result[target] = parsed.progress;
+                    break;
+                  }
+                }
+              } catch (_) {}
             }
-          } catch (_) {}
+          }
         })
       );
 
       return result;
     },
-    enabled: !!selectedStudent?.id && enrolledCourseIds.length > 0,
+    enabled: !!selectedStudent?.id && !!selectedStudent?.enrollments?.length,
   });
 
   // Consolidate all progress records for the selected student
@@ -861,12 +900,18 @@ function StudentsPage() {
                         let total = 0;
                         selectedStudent.enrollments.forEach((en: any) => {
                           const courseId = en.course?.id || en.course_id;
-                          const courseDetail = fullCourses.find((c: any) => c.id === courseId) || en.course;
+                          const courseSlug = en.course?.slug;
+                          const courseDetail = fullCourses.find(
+                            (c: any) => c.id === courseId || (c.slug && c.slug === courseSlug) || (c.title && c.title.toLowerCase() === en.course?.title?.toLowerCase())
+                          ) || en.course;
                           const rawModules = courseDetail?.modules || [];
                           const allLessons = rawModules.flatMap((m: any) => m.lessons || m.lessons_safe || []);
 
                           const courseProg = [
                             ...(coursesProgressMap[courseId] || []),
+                            ...(coursesProgressMap[courseSlug] || []),
+                            ...(coursesProgressMap[courseDetail?.slug] || []),
+                            ...(coursesProgressMap[courseDetail?.id] || []),
                             ...(coursesProgressMap["all"] || []),
                             ...studentProgressList,
                           ];
@@ -887,7 +932,9 @@ function StudentsPage() {
                             return false;
                           }).length;
 
-                          total += doneCount || (typeof en.completed_count === "number" ? en.completed_count : typeof en.progress_count === "number" ? en.progress_count : 0);
+                          const dashboardItem = myCoursesProgress.find((mc: any) => mc.course_id === courseId || mc.slug === courseSlug || mc.title === courseDetail?.title);
+                          const finalCount = doneCount > 0 ? doneCount : (dashboardItem?.progress_count || (typeof en.completed_count === "number" ? en.completed_count : typeof en.progress_count === "number" ? en.progress_count : 0));
+                          total += finalCount;
                         });
                         return total;
                       })()} Total Completed
@@ -945,7 +992,10 @@ function StudentsPage() {
                   <div className="space-y-3.5">
                     {selectedStudent.enrollments.map((en: any) => {
                       const courseId = en.course?.id || en.course_id;
-                      const courseDetail = fullCourses.find((c: any) => c.id === courseId) || en.course;
+                      const courseSlug = en.course?.slug;
+                      const courseDetail = fullCourses.find(
+                        (c: any) => c.id === courseId || (c.slug && c.slug === courseSlug) || (c.title && c.title.toLowerCase() === en.course?.title?.toLowerCase())
+                      ) || en.course;
                       
                       // Extract modules and lessons for this course
                       const rawModules = courseDetail?.modules || [];
@@ -958,11 +1008,15 @@ function StudentsPage() {
                         }))
                       );
 
-                      const totalLessons = allLessons.length || en.total_lessons || courseDetail?.total_lessons || 0;
+                      const dashboardItem = myCoursesProgress.find((mc: any) => mc.course_id === courseId || mc.slug === courseSlug || mc.title === courseDetail?.title);
+                      const totalLessons = allLessons.length || en.total_lessons || courseDetail?.total_lessons || dashboardItem?.total_lessons || 0;
 
                       // Completed lessons for this course
                       const courseProg = [
                         ...(coursesProgressMap[courseId] || []),
+                        ...(coursesProgressMap[courseSlug] || []),
+                        ...(coursesProgressMap[courseDetail?.slug] || []),
+                        ...(coursesProgressMap[courseDetail?.id] || []),
                         ...(coursesProgressMap["all"] || []),
                         ...studentProgressList,
                       ];
@@ -1001,7 +1055,9 @@ function StudentsPage() {
                         return false;
                       });
 
-                      const completedCount = completedLessons.length || (typeof en.completed_count === "number" ? en.completed_count : typeof en.progress_count === "number" ? en.progress_count : 0);
+                      const completedCount = completedLessons.length > 0
+                        ? completedLessons.length
+                        : (dashboardItem?.progress_count || (typeof en.completed_count === "number" ? en.completed_count : typeof en.progress_count === "number" ? en.progress_count : 0));
                       const progressPct = totalLessons > 0 ? Math.min(100, Math.round((completedCount / totalLessons) * 100)) : 0;
                       const isExpanded = !!expandedCourseIds[courseId];
 
