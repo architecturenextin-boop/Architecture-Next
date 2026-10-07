@@ -259,7 +259,11 @@ function LearnPage() {
         setVideoLoading(true);
         setVideoError(null);
         setPdfBlobUrl((prev) => {
-          if (prev) URL.revokeObjectURL(prev);
+          if (prev && typeof prev === "string" && prev.startsWith("blob:")) {
+            try {
+              URL.revokeObjectURL(prev);
+            } catch (_) {}
+          }
           return null;
         });
         setPdfLoading(false);

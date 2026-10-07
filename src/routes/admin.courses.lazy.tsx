@@ -392,11 +392,23 @@ function getVideoDurationFromFile(file: File): Promise<string> {
       const objectUrl = URL.createObjectURL(file);
       video.src = objectUrl;
 
+      let isCleanedUp = false;
       const cleanup = () => {
+        if (isCleanedUp) return;
+        isCleanedUp = true;
         try {
-          URL.revokeObjectURL(objectUrl);
+          video.pause();
+          video.removeAttribute("src");
+          video.load();
           video.remove();
         } catch (_) {}
+
+        // Release objectUrl after brief delay to allow browser decoding pipeline to release handles cleanly
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(objectUrl);
+          } catch (_) {}
+        }, 1500);
       };
 
       video.onloadedmetadata = () => {
