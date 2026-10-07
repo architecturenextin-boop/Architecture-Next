@@ -461,6 +461,7 @@ function LessonVideoManager({
   const [showUrlPreview, setShowUrlPreview] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState("");
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -480,6 +481,7 @@ function LessonVideoManager({
 
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadStage("Preparing upload...");
     setUploadError("");
 
     try {
@@ -488,8 +490,12 @@ function LessonVideoManager({
         const detectedDuration = await getVideoDurationFromFile(file);
 
         // 2. Upload file
-        const res = await adminService.uploadVideo(file, (percent) => {
+        const res = await adminService.uploadVideo(file, (progress) => {
+          const percent = typeof progress === "number" ? progress : (progress?.percent ?? 0);
           setUploadProgress(percent);
+          if (typeof progress === "object" && progress?.stage) {
+            setUploadStage(progress.stage);
+          }
         });
 
         // 3. Update lesson
@@ -504,8 +510,12 @@ function LessonVideoManager({
         setUrlInput(res.videoPath || res.videoUrl);
       } else if (tab === "pdf") {
         // 1. Upload PDF document
-        const res = await adminService.uploadDocument(file, (percent) => {
+        const res = await adminService.uploadDocument(file, (progress) => {
+          const percent = typeof progress === "number" ? progress : (progress?.percent ?? 0);
           setUploadProgress(percent);
+          if (typeof progress === "object" && progress?.stage) {
+            setUploadStage(progress.stage);
+          }
         });
 
         // 2. Update lesson to represent a PDF document lesson
@@ -654,7 +664,7 @@ function LessonVideoManager({
               <div className="flex items-center justify-between text-xs font-bold text-foreground">
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  Uploading Video File...
+                  {uploadStage || "Uploading Video File..."}
                 </span>
                 <span className="font-mono text-primary">{uploadProgress}%</span>
               </div>
@@ -706,7 +716,7 @@ function LessonVideoManager({
               <div className="flex items-center justify-between text-xs font-bold text-foreground">
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  Uploading Resource File...
+                  {uploadStage || "Uploading Resource File..."}
                 </span>
                 <span className="font-mono text-primary">{uploadProgress}%</span>
               </div>
