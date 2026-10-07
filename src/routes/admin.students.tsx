@@ -567,10 +567,19 @@ function StudentsPage() {
 
       {/* Student Details & Course Enrollment Modal */}
       {selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 animate-fade-in overflow-hidden">
-          <div className="relative w-full max-w-2xl rounded-3xl border border-border bg-card shadow-elevated flex flex-col max-h-[90vh] overflow-hidden">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-5 md:p-6 lg:p-8 animate-fade-in"
+          onClick={() => {
+            setSelectedStudent(null);
+            setIsEditing(false);
+          }}
+        >
+          <div
+            className="relative w-full max-w-lg sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl rounded-3xl border border-border bg-card shadow-elevated flex flex-col max-h-[90vh] my-auto overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-border/80 px-5 sm:px-6 py-4 shrink-0 bg-card z-10">
+            <div className="flex items-center justify-between border-b border-border/80 px-5 sm:px-7 py-4 shrink-0 bg-card z-10">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-primary font-display text-lg font-bold text-primary-foreground shadow-soft">
                   {(selectedStudent.full_name || selectedStudent.email || "L")[0].toUpperCase()}
@@ -583,7 +592,7 @@ function StudentsPage() {
                     <span
                       className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                         selectedStudent.role === "admin"
-                          ? "bg-purple-500/15 text-purple-600"
+                          ? "bg-purple-500/15 text-purple-600 border border-purple-500/20"
                           : "bg-emerald-500/15 text-emerald-600"
                       }`}
                     >
@@ -596,7 +605,7 @@ function StudentsPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   size="sm"
                   variant={isEditing ? "secondary" : "outline"}
@@ -627,7 +636,7 @@ function StudentsPage() {
             </div>
 
             {/* Scrollable Modal Content */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-5 sm:p-6 space-y-6">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-7 space-y-6">
               {/* EDIT MODE FORM */}
               {isEditing ? (
                 <form onSubmit={handleSaveEdit} className="space-y-4 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5">
@@ -638,7 +647,7 @@ function StudentsPage() {
                     <span className="text-[11px] text-muted-foreground">Admin Mode</span>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
                         Full Name
@@ -739,18 +748,18 @@ function StudentsPage() {
                 </form>
               ) : (
                 /* VIEW DETAILS OVERVIEW */
-                <div className="grid gap-3 sm:grid-cols-2 text-xs">
-                  <div className="rounded-2xl border border-border bg-muted/20 p-3.5">
-                    <span className="text-muted-foreground block font-medium">Email Address</span>
-                    <span className="font-semibold text-foreground text-sm truncate block mt-0.5">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
+                  <div className="rounded-2xl border border-border bg-muted/20 p-3.5 flex flex-col justify-center">
+                    <span className="text-muted-foreground block font-medium text-[11px]">Email Address</span>
+                    <span className="font-semibold text-foreground text-sm truncate block mt-0.5" title={selectedStudent.email}>
                       {selectedStudent.email || "N/A"}
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-border bg-muted/20 p-3.5">
-                    <span className="text-muted-foreground block font-medium">Mobile Number</span>
+                  <div className="rounded-2xl border border-border bg-muted/20 p-3.5 flex flex-col justify-center">
+                    <span className="text-muted-foreground block font-medium text-[11px]">Mobile Number</span>
                     <span
-                      className={`text-sm block mt-0.5 ${
+                      className={`text-sm block mt-0.5 truncate ${
                         selectedStudent.phone
                           ? "font-semibold text-foreground"
                           : "text-amber-600 dark:text-amber-400 font-medium italic text-xs"
@@ -760,24 +769,24 @@ function StudentsPage() {
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-border bg-muted/20 p-3.5">
-                    <span className="text-muted-foreground block font-medium">Learning Goal</span>
-                    <span className="font-semibold text-foreground block mt-0.5">
+                  <div className="rounded-2xl border border-border bg-muted/20 p-3.5 flex flex-col justify-center">
+                    <span className="text-muted-foreground block font-medium text-[11px]">Learning Goal</span>
+                    <span className="font-semibold text-foreground block mt-0.5 truncate" title={selectedStudent.goal}>
                       {selectedStudent.goal || "Architecture & BIM Mastery"}
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-border bg-muted/20 p-3.5 flex items-center justify-between">
-                    <div>
-                      <span className="text-muted-foreground block font-medium">System Role</span>
-                      <span className="font-bold uppercase tracking-wider text-primary text-xs mt-0.5 block">
+                  <div className="rounded-2xl border border-border bg-muted/20 p-3.5 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-muted-foreground block font-medium text-[11px]">System Role</span>
+                      <span className="font-bold uppercase tracking-wider text-primary text-xs mt-0.5 block truncate">
                         {selectedStudent.role || "student"}
                       </span>
                     </div>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-xs h-7.5 cursor-pointer"
+                      className="text-xs h-7.5 px-2.5 shrink-0 cursor-pointer"
                       disabled={updateRoleMutation.isPending}
                       onClick={() => {
                         const newRole = selectedStudent.role === "admin" ? "student" : "admin";
@@ -815,7 +824,7 @@ function StudentsPage() {
                     This student is not enrolled in any courses yet.
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-60 overflow-y-auto overscroll-contain pr-1">
                     {selectedStudent.enrollments.map((en: any) => (
                       <div
                         key={en.id}
@@ -881,9 +890,9 @@ function StudentsPage() {
                 )}
 
                 {/* Grant Instant Course Access */}
-                <div className="mt-3 pt-3 border-t border-border space-y-2">
+                <div className="mt-3 pt-4 border-t border-border space-y-2">
                   <span className="text-xs font-semibold text-foreground block">Grant Instant Course Access</span>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2.5">
                     <select
                       value={enrollCourseId}
                       onChange={(e) => setEnrollCourseId(e.target.value)}
@@ -914,6 +923,7 @@ function StudentsPage() {
                                   { ...newEnroll, course: courseObj },
                                 ],
                               });
+                              setEnrollCourseId("");
                             },
                           }
                         );
