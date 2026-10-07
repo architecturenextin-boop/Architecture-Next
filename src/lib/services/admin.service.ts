@@ -249,7 +249,14 @@ export const adminService = {
             };
           }
           xhr.open("PUT", presigned.uploadUrl);
-          xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
+          
+          // Only send Content-Type header if signed or if no strict SignedHeaders constraint
+          const uploadUrlLower = presigned.uploadUrl.toLowerCase();
+          const hasSignedHeaders = uploadUrlLower.includes("x-amz-signedheaders");
+          const isContentTypeSigned = uploadUrlLower.includes("content-type");
+          if (!hasSignedHeaders || isContentTypeSigned) {
+            xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
+          }
 
           if (xhr.upload) {
             xhr.upload.onprogress = (event) => {
@@ -336,6 +343,8 @@ export const adminService = {
           } catch {
             reject(new Error("Invalid JSON response from server"));
           }
+        } else if (xhr.status === 413) {
+          reject(new Error("Video file size is too large for backend server limit (413). Please configure R2 storage CORS or compress the video file."));
         } else {
           try {
             const res = JSON.parse(xhr.responseText);
@@ -347,7 +356,7 @@ export const adminService = {
       };
 
       xhr.onerror = () => {
-        reject(new Error("Network error during video upload. Please check your connection."));
+        reject(new Error("Network error during video upload. Please check server connection or file size limit."));
       };
 
       xhr.send(formData);
@@ -380,6 +389,73 @@ export const adminService = {
     abortSignalRef?: { abort?: () => void }
   ): Promise<{ filename: string; originalName: string; size: number; documentUrl: string; documentPath: string }> => {
     onProgress?.({ percent: 0, loaded: 0, total: file.size, stage: "Preparing document upload..." });
+
+    // 1. Try direct Cloudflare R2 Presigned Upload if configured
+    try {
+      const presigned = await adminService.getPresignedUploadUrl({
+        filename: file.name,
+        contentType: file.type || "application/octet-stream",
+        folder: "documents",
+      });
+
+      if (presigned && presigned.uploadUrl) {
+        onProgress?.({ percent: 0, loaded: 0, total: file.size, stage: "Uploading directly to Cloudflare R2..." });
+        return await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          if (abortSignalRef) {
+            abortSignalRef.abort = () => {
+              xhr.abort();
+              reject(new Error("Upload cancelled by user"));
+            };
+          }
+          xhr.open("PUT", presigned.uploadUrl);
+          
+          const uploadUrlLower = presigned.uploadUrl.toLowerCase();
+          const hasSignedHeaders = uploadUrlLower.includes("x-amz-signedheaders");
+          const isContentTypeSigned = uploadUrlLower.includes("content-type");
+          if (!hasSignedHeaders || isContentTypeSigned) {
+            xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+          }
+
+          if (xhr.upload) {
+            xhr.upload.onprogress = (event) => {
+              if (event.lengthComputable) {
+                const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
+                onProgress?.({
+                  percent,
+                  loaded: event.loaded,
+                  total: event.total,
+                  stage: percent >= 99 ? "Finalizing document upload..." : "Uploading directly to storage...",
+                });
+              }
+            };
+          }
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              onProgress?.({ percent: 100, loaded: file.size, total: file.size, stage: "Upload complete!" });
+              resolve({
+                filename: presigned.filename,
+                originalName: file.name,
+                size: file.size,
+                documentUrl: presigned.videoUrl || presigned.publicUrl || "",
+                documentPath: presigned.videoPath || presigned.key || "",
+              });
+            } else {
+              reject(new Error(`Direct R2 upload failed with status ${xhr.status}`));
+            }
+          };
+
+          xhr.onerror = () => {
+            reject(new Error("Network error during direct Cloudflare R2 upload"));
+          };
+
+          xhr.send(file);
+        });
+      }
+    } catch (_) {
+      // Fallback to standard multipart upload
+    }
 
     const formData = new FormData();
     formData.append("document", file);
@@ -424,6 +500,8 @@ export const adminService = {
           } catch {
             reject(new Error("Invalid JSON response from server"));
           }
+        } else if (xhr.status === 413) {
+          reject(new Error("Document file size is too large for backend server limit (413)."));
         } else {
           try {
             const res = JSON.parse(xhr.responseText);
