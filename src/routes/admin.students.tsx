@@ -75,27 +75,48 @@ function StudentsPage() {
     return fullCourses.map((c: any) => ({ id: c.id, title: c.title, price: c.price }));
   }, [fullCourses]);
 
-  // 3. Query progress data for the selected student
-  const { data: studentProgressData } = useQuery({
-    queryKey: ["admin-student-progress", selectedStudent?.id],
+  // 3. Query progress data for the selected student & enrolled courses
+  const enrolledCourseIds = useMemo(() => {
+    if (!selectedStudent?.enrollments) return [];
+    return selectedStudent.enrollments.map((en: any) => en.course?.id || en.course_id).filter(Boolean);
+  }, [selectedStudent]);
+
+  const { data: coursesProgressMap = {} } = useQuery({
+    queryKey: ["admin-student-courses-progress", selectedStudent?.id, enrolledCourseIds],
     queryFn: async () => {
-      if (!selectedStudent?.id) return null;
-      return adminService.getStudentProgress(selectedStudent.id);
+      if (!selectedStudent?.id || enrolledCourseIds.length === 0) return {};
+      const result: Record<string, any[]> = {};
+
+      // Try student progress endpoint
+      try {
+        const studentDetail = await adminService.getStudentProgress(selectedStudent.id);
+        if (studentDetail?.progress && Array.isArray(studentDetail.progress)) {
+          result["all"] = studentDetail.progress;
+        } else if (Array.isArray(studentDetail)) {
+          result["all"] = studentDetail;
+        }
+      } catch (_) {}
+
+      // Query course-specific learn content/progress for each enrolled course
+      await Promise.allSettled(
+        enrolledCourseIds.map(async (cId: string) => {
+          try {
+            const data = await courseService.getCourseLearningContent(cId);
+            if (data?.progress && Array.isArray(data.progress)) {
+              result[cId] = data.progress;
+            }
+          } catch (_) {}
+        })
+      );
+
+      return result;
     },
-    enabled: !!selectedStudent?.id,
+    enabled: !!selectedStudent?.id && enrolledCourseIds.length > 0,
   });
 
   // Consolidate all progress records for the selected student
   const studentProgressList = useMemo(() => {
     if (!selectedStudent) return [];
-    const fromApi = Array.isArray(studentProgressData?.progress)
-      ? studentProgressData.progress
-      : Array.isArray(studentProgressData?.lesson_progress)
-      ? studentProgressData.lesson_progress
-      : Array.isArray(studentProgressData)
-      ? studentProgressData
-      : [];
-
     const fromStudent = Array.isArray(selectedStudent.progress)
       ? selectedStudent.progress
       : Array.isArray(selectedStudent.lesson_progress)
@@ -103,18 +124,20 @@ function StudentsPage() {
       : [];
 
     const fromEnrollments = (selectedStudent.enrollments || []).flatMap((en: any) =>
-      Array.isArray(en.progress) ? en.progress : []
+      Array.isArray(en.progress) ? en.progress : Array.isArray(en.lesson_progress) ? en.lesson_progress : []
     );
 
+    const fromCourseMap = Object.values(coursesProgressMap).flat();
+
     const map = new Map<string, any>();
-    [...fromEnrollments, ...fromStudent, ...fromApi].forEach((item: any) => {
+    [...fromEnrollments, ...fromStudent, ...fromCourseMap].forEach((item: any) => {
       if (item && (item.lesson_id || item.id)) {
         map.set(item.lesson_id || item.id, item);
       }
     });
 
     return Array.from(map.values());
-  }, [selectedStudent, studentProgressData]);
+  }, [selectedStudent, coursesProgressMap]);
 
   const toggleCourseExpand = (courseId: string) => {
     setExpandedCourseIds((prev) => ({
@@ -830,7 +853,35 @@ function StudentsPage() {
                     <span className="text-muted-foreground block font-medium text-[11px]">Completed Lessons</span>
                     <span className="font-semibold text-foreground text-sm block mt-0.5 flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      {studentProgressList.filter((p: any) => p.completed).length} Total Completed
+                      {(() => {
+                        if (!selectedStudent?.enrollments) return 0;
+                        let total = 0;
+                        selectedStudent.enrollments.forEach((en: any) => {
+                          const courseId = en.course?.id || en.course_id;
+                          const courseDetail = fullCourses.find((c: any) => c.id === courseId) || en.course;
+                          const rawModules = courseDetail?.modules || [];
+                          const allLessons = rawModules.flatMap((m: any) => m.lessons || m.lessons_safe || []);
+
+                          const courseProg = [
+                            ...(coursesProgressMap[courseId] || []),
+                            ...(coursesProgressMap["all"] || []),
+                            ...studentProgressList,
+                          ];
+
+                          const doneCount = allLessons.filter((lesson: any) => {
+                            const prog = courseProg.find(
+                              (p: any) => p.lesson_id === lesson.id || p.lessonId === lesson.id || p.id === lesson.id
+                            );
+                            if (prog && (prog.completed === true || prog.completed === "true" || prog.completed === 1 || prog.status === "completed")) return true;
+                            if (Array.isArray(en?.completed_lessons) && en.completed_lessons.includes(lesson.id)) return true;
+                            if (Array.isArray(en?.completedLessons) && en.completedLessons.includes(lesson.id)) return true;
+                            return false;
+                          }).length;
+
+                          total += doneCount || (typeof en.completed_count === "number" ? en.completed_count : typeof en.progress_count === "number" ? en.progress_count : 0);
+                        });
+                        return total;
+                      })()} Total Completed
                     </span>
                   </div>
 
@@ -869,7 +920,7 @@ function StudentsPage() {
               )}
 
               {/* Enrolled Courses Section with Completed Lessons Breakdown */}
-              <div className="space-y-3.5 pt-2">
+              <div className="space-y-4 pt-2">
                 <div className="flex items-center justify-between">
                   <h4 className="font-display text-sm font-bold flex items-center gap-1.5 text-foreground">
                     <BookOpen className="h-4 w-4 text-primary" /> Active Course Enrollments &amp; Progress (
@@ -882,7 +933,7 @@ function StudentsPage() {
                     This student is not enrolled in any courses yet.
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-[420px] overflow-y-auto overscroll-contain pr-1">
+                  <div className="space-y-3.5">
                     {selectedStudent.enrollments.map((en: any) => {
                       const courseId = en.course?.id || en.course_id;
                       const courseDetail = fullCourses.find((c: any) => c.id === courseId) || en.course;
@@ -901,14 +952,30 @@ function StudentsPage() {
                       const totalLessons = allLessons.length || en.total_lessons || courseDetail?.total_lessons || 0;
 
                       // Completed lessons for this course
+                      const courseProg = [
+                        ...(coursesProgressMap[courseId] || []),
+                        ...(coursesProgressMap["all"] || []),
+                        ...studentProgressList,
+                      ];
+
                       const completedLessons = allLessons.filter((lesson: any) => {
-                        const prog = studentProgressList.find((p: any) => p.lesson_id === lesson.id);
-                        if (prog && prog.completed) return true;
-                        if (Array.isArray(en.completed_lessons) && en.completed_lessons.includes(lesson.id)) return true;
+                        const prog = courseProg.find(
+                          (p: any) => p.lesson_id === lesson.id || p.lessonId === lesson.id || p.id === lesson.id
+                        );
+                        if (prog) {
+                          if (prog.completed === true || prog.completed === "true" || prog.completed === 1 || prog.status === "completed") {
+                            return true;
+                          }
+                          if (prog.progress_seconds && prog.duration && prog.progress_seconds >= prog.duration * 0.7) {
+                            return true;
+                          }
+                        }
+                        if (Array.isArray(en?.completed_lessons) && en.completed_lessons.includes(lesson.id)) return true;
+                        if (Array.isArray(en?.completedLessons) && en.completedLessons.includes(lesson.id)) return true;
                         return false;
                       });
 
-                      const completedCount = completedLessons.length || en.completed_count || en.progress_count || 0;
+                      const completedCount = completedLessons.length || (typeof en.completed_count === "number" ? en.completed_count : typeof en.progress_count === "number" ? en.progress_count : 0);
                       const progressPct = totalLessons > 0 ? Math.min(100, Math.round((completedCount / totalLessons) * 100)) : 0;
                       const isExpanded = !!expandedCourseIds[courseId];
 
@@ -1021,21 +1088,22 @@ function StudentsPage() {
                                     const mLessons = [...rawMLessons].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
                                     if (mLessons.length === 0) return null;
 
+                                    const mDoneCount = mLessons.filter((l: any) => completedLessons.some((cl: any) => cl.id === l.id)).length;
+
                                     return (
                                       <div key={m.id || mIdx} className="space-y-1.5">
                                         <div className="flex items-center justify-between">
                                           <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                                             {m.title || `Module ${mIdx + 1}`}
                                           </span>
-                                          <span className="text-[10px] text-muted-foreground">
-                                            {mLessons.filter((l: any) => completedLessons.some((cl: any) => cl.id === l.id)).length}/{mLessons.length} completed
+                                          <span className="text-[10px] text-muted-foreground font-medium">
+                                            {mDoneCount}/{mLessons.length} completed
                                           </span>
                                         </div>
 
                                         <div className="space-y-1 rounded-xl bg-background border border-border/60 p-2">
                                           {mLessons.map((l: any, lIdx: number) => {
                                             const isDone = completedLessons.some((cl: any) => cl.id === l.id);
-                                            const progInfo = studentProgressList.find((p: any) => p.lesson_id === l.id);
 
                                             return (
                                               <div
