@@ -39,41 +39,49 @@ export function SiteHeader({ action }: SiteHeaderProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
 
-  // Track scroll position for frosted-glass & scroll direction for hide/show effect
+  // Track scroll position for frosted-glass & scroll direction for hide/show effect (desktop only)
   useEffect(() => {
+    let ticking = false;
+
     const handleScroll = () => {
-      // Clamp negative values from iOS elastic pull-to-refresh overscroll
-      const currentScrollY = Math.max(0, window.scrollY);
-      const scrollHeight = document.documentElement.scrollHeight;
-      const clientHeight = document.documentElement.clientHeight;
-      const maxScrollY = Math.max(0, scrollHeight - clientHeight);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          // Clamp negative values from iOS elastic pull-to-refresh overscroll
+          const currentScrollY = Math.max(0, window.scrollY);
 
-      // Immediately activate frosted-glass as soon as user starts scrolling (> 10px)
-      setIsScrolled(currentScrollY > 10);
+          // Hysteresis threshold to prevent toggle flicker
+          setIsScrolled(currentScrollY > 15);
 
-      // Keep navbar visible if mobile drawer is active
-      if (mobileMenuOpen) {
-        setIsVisible(true);
-        lastScrollY.current = currentScrollY;
-        return;
+          // On mobile screens (< 768px), ALWAYS keep navbar visible to prevent iOS address-bar shivering
+          if (window.innerWidth < 768 || mobileMenuOpen) {
+            setIsVisible(true);
+            lastScrollY.current = currentScrollY;
+            ticking = false;
+            return;
+          }
+
+          const scrollHeight = document.documentElement.scrollHeight;
+          const clientHeight = document.documentElement.clientHeight;
+          const maxScrollY = Math.max(0, scrollHeight - clientHeight);
+
+          // Always show navbar when near the top of the page (<= 80px) or during bottom overscroll
+          if (currentScrollY <= 80 || currentScrollY >= maxScrollY - 20) {
+            setIsVisible(true);
+          } else {
+            const delta = currentScrollY - lastScrollY.current;
+            // Generous threshold for desktop hide/show
+            if (delta > 20) {
+              setIsVisible(false);
+            } else if (delta < -15) {
+              setIsVisible(true);
+            }
+          }
+
+          lastScrollY.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
       }
-
-      // Always show navbar when near the top of the page (<= 80px) or during bottom overscroll
-      if (currentScrollY <= 80 || currentScrollY >= maxScrollY - 20) {
-        setIsVisible(true);
-      } else {
-        const delta = currentScrollY - lastScrollY.current;
-        // Increased threshold to prevent jitter from iOS Safari address bar resizing
-        if (delta > 16) {
-          // Scrolling down -> hide navbar
-          setIsVisible(false);
-        } else if (delta < -10) {
-          // Scrolling up -> reveal navbar
-          setIsVisible(true);
-        }
-      }
-
-      lastScrollY.current = currentScrollY;
     };
 
     handleScroll();
@@ -126,19 +134,16 @@ export function SiteHeader({ action }: SiteHeaderProps) {
 
   return (
     <header
-      className={`sticky top-0 z-40 border-b transform-gpu will-change-transform transition-all duration-300 ease-in-out ${
-        isVisible ? "translate-y-0" : "-translate-y-full"
+      className={`sticky top-0 z-40 border-b backdrop-blur-md transition-[background-color,border-color,box-shadow,transform] duration-200 ease-out ${
+        isVisible ? "translate-y-0" : "max-md:translate-y-0 -translate-y-full"
       } ${
         isScrolled
-          ? "border-[#E5E0D8]/60 bg-white/85 backdrop-blur-[12px] shadow-[0_1px_20px_rgba(0,0,0,0.08)]"
-          : "border-transparent bg-transparent backdrop-blur-none shadow-none"
+          ? "border-border/70 bg-white/90 dark:bg-background/90 shadow-xs"
+          : "border-transparent bg-white/60 dark:bg-background/60 shadow-none"
       }`}
       style={{
         WebkitBackfaceVisibility: "hidden",
         backfaceVisibility: "hidden",
-        WebkitTransform: isVisible ? "translate3d(0, 0, 0)" : "translate3d(0, -100%, 0)",
-        transition:
-          "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease",
       }}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 md:px-8">

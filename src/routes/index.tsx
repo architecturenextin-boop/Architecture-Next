@@ -98,7 +98,7 @@ function Landing() {
   const activeCourse = courses[0] || mainCourse || mainCourseFallback;
 
   return (
-    <div className="min-h-screen bg-background animate-fade-in overflow-x-clip">
+    <div className="min-h-screen bg-background overflow-x-clip">
       <SiteHeader />
       <Hero />
       <TrustBar />
@@ -163,13 +163,13 @@ function Hero() {
               </Link>
             </Button>
           </div>
-          <dl className="grid max-w-xl grid-cols-2 gap-4 pt-6 sm:grid-cols-4">
+          <dl className="grid max-w-xl grid-cols-4 gap-2 pt-6 sm:gap-4">
             {heroStats.map((s) => (
-              <div key={s.label} className="border-l-2 border-primary/20 pl-3">
-                <dt className="type-h3 font-extrabold text-foreground">
+              <div key={s.label} className="border-l-2 border-primary/20 pl-2.5 sm:pl-3">
+                <dt className="text-base font-extrabold text-foreground sm:type-h3">
                   {s.value}
                 </dt>
-                <dd className="mt-0.5 type-small text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <dd className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight sm:type-small sm:text-xs">
                   {s.label}
                 </dd>
               </div>
@@ -204,20 +204,34 @@ function Hero() {
 
 function TrustBar() {
   const items = [
-    "AI Workflow",
-    "360 Rendering",
-    "Presentation",
-    "Animation",
-    "Portfolio",
-    "Skill Development",
+    { label: "AI Workflow", icon: Sparkles },
+    { label: "360 Rendering", icon: Compass },
+    { label: "Presentation", icon: Layers },
+    { label: "Animation", icon: PlayCircle },
+    { label: "Portfolio", icon: Award },
+    { label: "Skill Development", icon: Trophy },
   ];
 
   return (
-    <div className="border-y border-border bg-surface/60 py-6">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-6 gap-y-3 px-5 type-small font-semibold uppercase tracking-widest text-muted-foreground sm:text-sm md:gap-x-10 md:px-8">
+    <div className="border-y border-border bg-surface/60 py-4 md:py-6">
+      {/* Small Screens (< md): Clean badges without broken trailing dots */}
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-2 px-4 sm:px-6 md:hidden">
+        {items.map((item) => (
+          <span
+            key={item.label}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card/90 px-3 py-1.5 text-xs font-semibold tracking-wide text-foreground/85 shadow-2xs"
+          >
+            <item.icon className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
+            <span>{item.label}</span>
+          </span>
+        ))}
+      </div>
+
+      {/* Large Screens (>= md): Original elegant single-line typography with dots */}
+      <div className="mx-auto hidden max-w-7xl items-center justify-center gap-x-6 lg:gap-x-10 px-8 type-small font-semibold uppercase tracking-widest text-muted-foreground sm:text-sm md:flex">
         {items.map((item, index) => (
-          <div key={item} className="flex items-center gap-x-6 md:gap-x-10">
-            <span className="opacity-75 transition-opacity hover:opacity-100">{item}</span>
+          <div key={item.label} className="flex items-center gap-x-6 lg:gap-x-10">
+            <span className="opacity-75 transition-opacity hover:opacity-100">{item.label}</span>
             {index < items.length - 1 && (
               <span className="h-1.5 w-1.5 rounded-full bg-primary/40" aria-hidden="true" />
             )}
