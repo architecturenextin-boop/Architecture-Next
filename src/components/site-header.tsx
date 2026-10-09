@@ -42,10 +42,13 @@ export function SiteHeader({ action }: SiteHeaderProps) {
   // Track scroll position for frosted-glass & scroll direction for hide/show effect
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+      // Clamp negative values from iOS elastic pull-to-refresh overscroll
+      const currentScrollY = Math.max(0, window.scrollY);
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+      const maxScrollY = Math.max(0, scrollHeight - clientHeight);
 
       // Immediately activate frosted-glass as soon as user starts scrolling (> 10px)
-      // This eliminates the bug where content scrolls under a transparent header
       setIsScrolled(currentScrollY > 10);
 
       // Keep navbar visible if mobile drawer is active
@@ -55,15 +58,19 @@ export function SiteHeader({ action }: SiteHeaderProps) {
         return;
       }
 
-      // Always show navbar when near the top of the page (<= 80px)
-      if (currentScrollY <= 80) {
+      // Always show navbar when near the top of the page (<= 80px) or during bottom overscroll
+      if (currentScrollY <= 80 || currentScrollY >= maxScrollY - 20) {
         setIsVisible(true);
-      } else if (currentScrollY > lastScrollY.current + 8) {
-        // Scrolling down -> hide navbar
-        setIsVisible(false);
-      } else if (currentScrollY < lastScrollY.current - 4) {
-        // Scrolling up -> reveal navbar
-        setIsVisible(true);
+      } else {
+        const delta = currentScrollY - lastScrollY.current;
+        // Increased threshold to prevent jitter from iOS Safari address bar resizing
+        if (delta > 16) {
+          // Scrolling down -> hide navbar
+          setIsVisible(false);
+        } else if (delta < -10) {
+          // Scrolling up -> reveal navbar
+          setIsVisible(true);
+        }
       }
 
       lastScrollY.current = currentScrollY;
@@ -119,7 +126,7 @@ export function SiteHeader({ action }: SiteHeaderProps) {
 
   return (
     <header
-      className={`sticky top-0 z-40 border-b transition-all duration-300 ease-in-out ${
+      className={`sticky top-0 z-40 border-b transform-gpu will-change-transform transition-all duration-300 ease-in-out ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       } ${
         isScrolled
@@ -127,6 +134,9 @@ export function SiteHeader({ action }: SiteHeaderProps) {
           : "border-transparent bg-transparent backdrop-blur-none shadow-none"
       }`}
       style={{
+        WebkitBackfaceVisibility: "hidden",
+        backfaceVisibility: "hidden",
+        WebkitTransform: isVisible ? "translate3d(0, 0, 0)" : "translate3d(0, -100%, 0)",
         transition:
           "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease",
       }}
