@@ -698,14 +698,22 @@ function CourseDetailPage() {
                   </div>
 
                   <div className="relative flex min-h-[250px] items-center justify-center rounded-2xl border border-border/70 bg-white p-5 shadow-soft">
-                    <picture>
-                      <source srcSet={certificateWebp} type="image/webp" />
+                    {course?.certificate_url ? (
                       <img
-                        src={certificateImg}
-                        alt="ArchitectureNext certificate of completion"
-                        className="max-h-[230px] w-full object-contain"
+                        src={getMediaUrl(course.certificate_url)}
+                        alt={`${course.title} certificate of completion`}
+                        className="max-h-[250px] w-full object-contain rounded-lg shadow-xs"
                       />
-                    </picture>
+                    ) : (
+                      <picture>
+                        <source srcSet={certificateWebp} type="image/webp" />
+                        <img
+                          src={certificateImg}
+                          alt="ArchitectureNext certificate of completion"
+                          className="max-h-[230px] w-full object-contain"
+                        />
+                      </picture>
+                    )}
                   </div>
                 </div>
               </section>

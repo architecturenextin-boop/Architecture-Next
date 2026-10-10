@@ -61,6 +61,8 @@ function StudentsPage() {
     queryFn: async () => {
       return adminService.getAllStudents();
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   // 2. Fetch all courses with full modules & lessons
@@ -309,7 +311,10 @@ function StudentsPage() {
     mutationFn: async (userId: string) => {
       return adminService.deleteStudent(userId);
     },
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
+      queryClient.setQueryData(["admin-students"], (old: any) =>
+        Array.isArray(old) ? old.filter((s: any) => s.id !== userId) : []
+      );
       queryClient.invalidateQueries({ queryKey: ["admin-students"] });
       setSelectedStudent(null);
       toast.success("User deleted successfully.");

@@ -77,13 +77,14 @@ export function WhatsAppWidget() {
     ? "bottom-20 right-4 sm:bottom-6 sm:right-6"
     : "bottom-6 right-4 sm:bottom-6 sm:right-6";
 
-  // Hide on admin, learning classroom, and authentication flow routes to prevent overlaying action buttons & inputs
+  // Hide on admin, learning classroom, onboarding, and authentication flow routes to prevent overlaying action buttons & inputs
   if (
     path.startsWith("/admin") ||
     path.startsWith("/learn") ||
     path.startsWith("/auth") ||
     path.startsWith("/signup") ||
-    path.startsWith("/verify-otp")
+    path.startsWith("/verify-otp") ||
+    path.startsWith("/onboarding")
   ) {
     return null;
   }

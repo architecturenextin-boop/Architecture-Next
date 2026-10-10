@@ -75,6 +75,7 @@ export interface Database {
           description: string | null
           cover_url: string | null
           thumbnail_url: string | null
+          certificate_url?: string | null
           price: number
           original_price: number
           currency: string
@@ -103,6 +104,7 @@ export interface Database {
           description?: string | null
           cover_url?: string | null
           thumbnail_url?: string | null
+          certificate_url?: string | null
           price?: number
           original_price?: number
           currency?: string
@@ -131,6 +133,7 @@ export interface Database {
           description?: string | null
           cover_url?: string | null
           thumbnail_url?: string | null
+          certificate_url?: string | null
           price?: number
           original_price?: number
           currency?: string

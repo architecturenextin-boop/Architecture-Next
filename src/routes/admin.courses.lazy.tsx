@@ -2,7 +2,7 @@ import { createLazyFileRoute } from "@tanstack/react-router";
 import { 
   Edit3, Plus, Trash2, Upload, Video, Loader2, ArrowUp, ArrowDown, Image, Info,
   Pause, Play, RefreshCw, XCircle, CheckCircle2, PlayCircle, Eye, EyeOff, AlertCircle, FileVideo,
-  UploadCloud, Link2, FileText, X
+  UploadCloud, Link2, FileText, X, Award
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -101,6 +101,7 @@ function AdminCourses() {
         description: formData.description || "",
         cover_url: formData.coverUrl || editing?.cover_url || "/course-cover.jpeg",
         thumbnail_url: formData.coverUrl || editing?.cover_url || "/course-cover.jpeg",
+        certificate_url: formData.certificateUrl || formData.certificate_url || editing?.certificate_url || null,
         price: Number(formData.price),
         original_price: Number(formData.originalPrice) || editing?.original_price || Math.round(Number(formData.price) * 2.5),
         currency: "₹",
@@ -897,6 +898,12 @@ function CourseForm({ initial, isPending, onSubmit }: { initial?: any; isPending
   const [coverUploading, setCoverUploading] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
 
+  const [certificateUrl, setCertificateUrl] = useState(
+    initial?.certificate_url ?? initial?.certificateUrl ?? ""
+  );
+  const [certificateUploading, setCertificateUploading] = useState(false);
+  const certificateInputRef = useRef<HTMLInputElement | null>(null);
+
   // Multi-Module and Lessons state structure
   const [modules, setModules] = useState<any[]>(
     initial?.modules ?? [
@@ -1040,6 +1047,23 @@ function CourseForm({ initial, isPending, onSubmit }: { initial?: any; isPending
     }
   };
 
+  const handleCertificateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCertificateUploading(true);
+    try {
+      const res = await adminService.uploadImage(file);
+      if (res?.imageUrl || res?.imagePath) {
+        setCertificateUrl(res.imageUrl || res.imagePath);
+        toast.success("Certificate template uploaded successfully!");
+      }
+      setCertificateUploading(false);
+    } catch (err: any) {
+      toast.error("Certificate upload failed: " + err.message);
+      setCertificateUploading(false);
+    }
+  };
+
   const autoCalculateTotalDuration = () => {
     let totalSeconds = 0;
     for (const m of modules || []) {
@@ -1103,6 +1127,8 @@ function CourseForm({ initial, isPending, onSubmit }: { initial?: any; isPending
       language,
       totalDuration,
       coverUrl,
+      certificateUrl,
+      certificate_url: certificateUrl,
       previewVideoUrl,
       rating: Number(rating) || 4.9,
       reviewCount: Number(reviewCount) || 1240,
@@ -1227,6 +1253,111 @@ function CourseForm({ initial, isPending, onSubmit }: { initial?: any; isPending
             <Button type="button" variant="outline" disabled={coverUploading} onClick={() => coverInputRef.current?.click()} className="flex items-center gap-1">
               {coverUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />} Upload Image
             </Button>
+          </div>
+        </div>
+
+        {/* Course Certificate of Completion */}
+        <div className="rounded-2xl border border-border/80 bg-surface/50 p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary shrink-0">
+                <Award className="h-4 w-4" />
+              </div>
+              <div>
+                <span className="text-sm font-bold text-foreground block">Course Certificate of Completion</span>
+                <span className="text-xs text-muted-foreground block">
+                  Upload a course-specific completion certificate template. Students receive this when finishing the course.
+                </span>
+              </div>
+            </div>
+            {certificateUrl && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shrink-0">
+                Uploaded
+              </span>
+            )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 items-start pt-1">
+            <div className="space-y-2.5">
+              <label className="block">
+                <span className="text-xs font-semibold text-muted-foreground">Certificate Image URL or Path</span>
+                <Input
+                  value={certificateUrl}
+                  onChange={(e) => setCertificateUrl(e.target.value)}
+                  placeholder="Paste URL or click upload below..."
+                  className="mt-1 font-mono text-xs bg-surface"
+                />
+              </label>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={certificateInputRef}
+                  onChange={handleCertificateUpload}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={certificateUploading}
+                  onClick={() => certificateInputRef.current?.click()}
+                  className="flex items-center gap-1.5 text-xs h-9 cursor-pointer"
+                >
+                  {certificateUploading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <UploadCloud className="h-3.5 w-3.5" />
+                  )}
+                  {certificateUrl ? "Replace Certificate" : "Upload Certificate (PNG/JPG/WebP)"}
+                </Button>
+
+                {certificateUrl && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCertificateUrl("")}
+                    className="text-xs text-destructive hover:bg-destructive/10 h-9"
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-normal">
+                Recommended resolution: 1920×1080px (16:9 Landscape) or standard A4 certificate template.
+              </p>
+            </div>
+
+            {/* Certificate Preview Card */}
+            <div className="relative flex min-h-[130px] items-center justify-center rounded-xl border border-dashed border-border bg-card/60 p-3 overflow-hidden">
+              {certificateUrl ? (
+                <div className="relative group w-full flex flex-col items-center">
+                  <img
+                    src={getMediaUrl(certificateUrl)}
+                    alt="Course Certificate Template"
+                    className="max-h-[140px] w-full object-contain rounded-lg shadow-xs"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                    <a
+                      href={getMediaUrl(certificateUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-white font-medium bg-black/70 px-2.5 py-1 rounded-md hover:bg-black/90 flex items-center gap-1"
+                    >
+                      <Eye className="h-3.5 w-3.5" /> View Full
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-3 px-2">
+                  <Award className="h-7 w-7 text-muted-foreground/30 mx-auto mb-1" />
+                  <span className="text-xs text-muted-foreground block font-medium">No custom certificate uploaded</span>
+                  <span className="text-[11px] text-muted-foreground/70 block">Default ArchitectureNext certificate will be shown</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
