@@ -663,10 +663,6 @@ function StudentsPage() {
                         {/* Details Button in the place of Joined */}
                         <td className="px-5 py-3.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center justify-end gap-2">
-                            <div className="hidden xl:flex items-center gap-1 text-muted-foreground text-xs mr-1" title={`Joined on ${date}`}>
-                              <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <span>{date}</span>
-                            </div>
                             <Button
                               size="sm"
                               variant="outline"
@@ -822,8 +818,15 @@ function StudentsPage() {
                       {selectedStudent.role || "student"}
                     </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground font-mono truncate">
-                    User ID: {selectedStudent.id}
+                  <p className="text-[11px] text-muted-foreground font-mono truncate flex items-center gap-1.5 mt-0.5">
+                    <span>User ID: {selectedStudent.id}</span>
+                    {selectedStudent.created_at && (
+                      <>
+                        <span>•</span>
+                        <Calendar className="h-3 w-3 shrink-0" />
+                        <span>Joined {new Date(selectedStudent.created_at).toLocaleDateString()}</span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
