@@ -15,6 +15,7 @@ import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 import { getApiConfig } from "@/lib/api-client";
 import { downloadManager, OfflineLessonRecord } from "@/lib/offline/download-manager";
+import { useModalScrollLock } from "@/hooks/use-modal-scroll-lock";
 
 export const Route = createLazyFileRoute("/learn/$courseId")({
   component: LearnPage,
@@ -73,6 +74,7 @@ function LearnPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useModalScrollLock(sidebarOpen);
   const [liveDuration, setLiveDuration] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -270,10 +272,11 @@ function LearnPage() {
       }
 
       try {
+        let offlineBlob: string | null = null;
         // Check if device is offline - if so, load offline decrypted video from IndexedDB
         const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
         if (isOffline) {
-          const offlineBlob = await downloadManager.getOfflineVideoUrl(activeId);
+          offlineBlob = await downloadManager.getOfflineVideoUrl(activeId);
           if (offlineBlob && active) {
             setVideoUrl(offlineBlob);
             setVideoLoading(false);

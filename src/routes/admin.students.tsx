@@ -28,13 +28,14 @@ import {
   Clock,
   PlayCircle,
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminService } from "@/lib/services/admin.service";
 import { toast } from "sonner";
 import { confirmAction } from "@/lib/confirm";
+import { useModalScrollLock } from "@/hooks/use-modal-scroll-lock";
 
 export const Route = createFileRoute("/admin/students")({
   head: () => ({ meta: [{ title: "Students Management — Admin" }] }),
@@ -48,6 +49,11 @@ function StudentsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [statusExplainerStudent, setStatusExplainerStudent] = useState<any | null>(null);
+  const studentModalScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Lock background scroll and guarantee modal scrolling
+  useModalScrollLock(!!selectedStudent, { scrollContainerRef: studentModalScrollRef });
+  useModalScrollLock(!!statusExplainerStudent);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     full_name: "",
@@ -819,10 +825,12 @@ function StudentsPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 animate-fade-in"
           onClick={() => setStatusExplainerStudent(null)}
+          data-lenis-prevent="true"
         >
           <div
             className="relative w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-elevated"
             onClick={(e) => e.stopPropagation()}
+            data-lenis-prevent="true"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
@@ -944,15 +952,24 @@ function StudentsPage() {
       {/* Student Details & Course Enrollment Modal */}
       {selectedStudent && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-3 sm:p-5 md:p-6 lg:p-8 animate-fade-in overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-3 sm:p-5 md:p-6 lg:p-8 animate-fade-in overflow-hidden"
           onClick={() => {
             setSelectedStudent(null);
             setIsEditing(false);
           }}
+          data-lenis-prevent="true"
         >
           <div
             className="relative w-full max-w-lg sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl rounded-3xl border border-border bg-card shadow-elevated flex flex-col h-[88vh] max-h-[920px] overflow-hidden my-auto shrink-0"
             onClick={(e) => e.stopPropagation()}
+            data-lenis-prevent="true"
+            onWheel={(e) => {
+              const el = studentModalScrollRef.current;
+              if (el && !el.contains(e.target as Node)) {
+                el.scrollTop += e.deltaY;
+                e.stopPropagation();
+              }
+            }}
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-border/80 px-5 sm:px-7 py-4 shrink-0 bg-card z-10">
@@ -1020,7 +1037,10 @@ function StudentsPage() {
 
             {/* Scrollable Modal Content - Guaranteed fluid scrolling */}
             <div 
-              className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-7 space-y-6"
+              ref={studentModalScrollRef}
+              data-lenis-prevent="true"
+              tabIndex={0}
+              className="flex-1 min-h-0 modal-scroll-container p-5 sm:p-7 space-y-6 focus:outline-none"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
             >
               {/* EDIT MODE FORM */}

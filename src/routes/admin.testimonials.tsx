@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { testimonialService } from "@/lib/services/testimonial.service";
 import type { AdminTestimonialItem, TestimonialStatus } from "@/lib/database.types";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { useModalScrollLock } from "@/hooks/use-modal-scroll-lock";
 import {
   MessageSquareQuote,
   Star,
@@ -40,10 +41,15 @@ function AdminTestimonialsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedItem, setSelectedItem] = useState<AdminTestimonialItem | null>(null);
+  const testimonialModalScrollRef = useRef<HTMLDivElement | null>(null);
   
   // Rejection modal state
   const [rejectModalItem, setRejectModalItem] = useState<AdminTestimonialItem | null>(null);
   const [rejectNote, setRejectNote] = useState("");
+
+  // Lock background scroll and guarantee modal scrolling
+  useModalScrollLock(!!selectedItem, { scrollContainerRef: testimonialModalScrollRef });
+  useModalScrollLock(!!rejectModalItem);
 
   // Fetch admin testimonials
   const { data, isLoading } = useQuery({
@@ -747,8 +753,18 @@ function AdminTestimonialsPage() {
 
       {/* View Full Testimonial Modal */}
       {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-hidden"
+          onClick={() => setSelectedItem(null)}
+          data-lenis-prevent="true"
+        >
+          <div
+            ref={testimonialModalScrollRef}
+            tabIndex={0}
+            onClick={(e) => e.stopPropagation()}
+            data-lenis-prevent="true"
+            className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 max-h-[90vh] modal-scroll-container focus:outline-none"
+          >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-3">
                 <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary font-bold text-sm">
@@ -765,7 +781,8 @@ function AdminTestimonialsPage() {
               </div>
               <button
                 onClick={() => setSelectedItem(null)}
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted cursor-pointer transition-colors"
+                title="Close modal"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -805,7 +822,7 @@ function AdminTestimonialsPage() {
                   <>
                     <Button
                       size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 cursor-pointer"
                       onClick={() => {
                         approveMutation.mutate(selectedItem.id);
                         setSelectedItem(null);
@@ -816,7 +833,7 @@ function AdminTestimonialsPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-rose-600 border-rose-200 text-xs h-8"
+                      className="text-rose-600 border-rose-200 text-xs h-8 cursor-pointer"
                       onClick={() => {
                         handleOpenRejectModal(selectedItem);
                         setSelectedItem(null);
@@ -829,7 +846,7 @@ function AdminTestimonialsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs h-8"
+                  className="text-xs h-8 cursor-pointer"
                   onClick={() => setSelectedItem(null)}
                 >
                   Close
@@ -842,8 +859,16 @@ function AdminTestimonialsPage() {
 
       {/* Reject Modal Dialog */}
       {rejectModalItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-hidden"
+          onClick={() => setRejectModalItem(null)}
+          data-lenis-prevent="true"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            data-lenis-prevent="true"
+            className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 max-h-[90vh] modal-scroll-container focus:outline-none"
+          >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
                 <div className="grid h-8 w-8 place-items-center rounded-xl bg-rose-500/10 text-rose-600">

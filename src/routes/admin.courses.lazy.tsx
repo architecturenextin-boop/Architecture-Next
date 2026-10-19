@@ -13,6 +13,7 @@ import { adminService } from "@/lib/services/admin.service";
 import { getMediaUrl } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirmAction } from "@/lib/confirm";
+import { useModalScrollLock } from "@/hooks/use-modal-scroll-lock";
 
 export const Route = createLazyFileRoute("/admin/courses")({
   component: AdminCourses,
@@ -269,57 +270,18 @@ function AdminCourses() {
 function Modal({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
+  // Lock background scroll and guarantee modal scrolling
+  useModalScrollLock(true, { scrollContainerRef });
+
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    // Pause global Lenis smooth scroll while modal is open
-    try {
-      (window as any).lenis?.stop();
-    } catch (_) {}
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-
-    // Direct wheel handler on scroll container to ensure 100% reliable wheel scrolling
-    const container = scrollContainerRef.current;
-    let onWheelHandler: ((e: WheelEvent) => void) | null = null;
-
-    if (container) {
-      container.focus();
-
-      onWheelHandler = (e: WheelEvent) => {
-        if (!container) return;
-        const { deltaY, deltaX } = e;
-        const prevScrollTop = container.scrollTop;
-        container.scrollTop += deltaY;
-        if (deltaX) container.scrollLeft += deltaX;
-
-        // If container scrolled, prevent window event propagation
-        if (container.scrollTop !== prevScrollTop) {
-          e.stopPropagation();
-        }
-      };
-
-      container.addEventListener("wheel", onWheelHandler, { passive: false });
-    }
-
     return () => {
-      document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", handleKeyDown);
-
-      if (container && onWheelHandler) {
-        container.removeEventListener("wheel", onWheelHandler);
-      }
-
-      // Resume global Lenis smooth scroll
-      try {
-        (window as any).lenis?.start();
-      } catch (_) {}
     };
   }, [onClose]);
 
@@ -327,7 +289,7 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 md:p-8 bg-black/70 backdrop-blur-xs animate-fade-in" 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 md:p-8 bg-black/70 backdrop-blur-xs animate-fade-in overflow-hidden" 
       onClick={onClose}
       data-lenis-prevent="true"
       style={{ touchAction: "none" }}
@@ -336,6 +298,13 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
         className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border border-border bg-card shadow-2xl overflow-hidden animate-fade-up" 
         onClick={(e) => e.stopPropagation()}
         data-lenis-prevent="true"
+        onWheel={(e) => {
+          const el = scrollContainerRef.current;
+          if (el && !el.contains(e.target as Node)) {
+            el.scrollTop += e.deltaY;
+            e.stopPropagation();
+          }
+        }}
         style={{ touchAction: "pan-y" }}
       >
         {/* Sticky Modal Header */}
@@ -356,7 +325,7 @@ function Modal({ children, onClose, title }: { children: React.ReactNode; onClos
           ref={scrollContainerRef}
           tabIndex={0}
           data-lenis-prevent="true"
-          className="flex-1 overflow-y-auto p-6 sm:p-8 outline-none overscroll-contain"
+          className="flex-1 min-h-0 modal-scroll-container p-6 sm:p-8 outline-none overscroll-contain focus:outline-none"
           style={{ 
             WebkitOverflowScrolling: "touch",
             overscrollBehavior: "contain",

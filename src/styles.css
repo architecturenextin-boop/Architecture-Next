@@ -668,3 +668,45 @@ iframe[id^="gsi_"] {
 .table-scrollbar-x::-webkit-scrollbar-thumb:hover {
   background: rgba(41, 67, 152, 0.75) !important;
 }
+
+/* Modal background lock & scroll isolation */
+body.modal-open,
+body[data-modal-open="true"] {
+  overflow: hidden !important;
+  overscroll-behavior: contain !important;
+}
+
+[data-lenis-prevent] {
+  overscroll-behavior: contain !important;
+}
+
+/* Modal scrollable content styling with guaranteed fluid wheel scrolling */
+.modal-scroll-container {
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(100, 116, 139, 0.45) rgba(0, 0, 0, 0.05) !important;
+}
+
+.modal-scroll-container::-webkit-scrollbar {
+  width: 8px !important;
+  display: block !important;
+}
+
+.modal-scroll-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-radius: 9999px !important;
+  margin: 6px 0 !important;
+}
+
+.modal-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.45) !important;
+  border-radius: 9999px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.8) !important;
+}
+
+.modal-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(41, 67, 152, 0.75) !important;
+}

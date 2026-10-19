@@ -24,13 +24,14 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useModalScrollLock } from "@/hooks/use-modal-scroll-lock";
 
 export const Route = createFileRoute("/admin/coupons")({
   head: () => ({ meta: [{ title: "Coupons & Discounts — Admin" }] }),
@@ -80,6 +81,11 @@ function AdminCouponsPage() {
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [deletingCoupon, setDeletingCoupon] = useState<Coupon | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const couponModalScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Lock background scroll and guarantee modal scrolling
+  useModalScrollLock(isCreateOpen || !!editingCoupon, { scrollContainerRef: couponModalScrollRef });
+  useModalScrollLock(!!deletingCoupon);
 
   // 1. Fetch Coupons
   const { data: coupons = [], isLoading } = useQuery({
@@ -710,8 +716,16 @@ function AdminCouponsPage() {
 
       {/* Create / Edit Modal Dialog */}
       {(isCreateOpen || !!editingCoupon) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in-0">
-          <div className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in-0 overflow-hidden"
+          data-lenis-prevent="true"
+        >
+          <div
+            ref={couponModalScrollRef}
+            tabIndex={0}
+            data-lenis-prevent="true"
+            className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-5 max-h-[90vh] modal-scroll-container focus:outline-none"
+          >
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-border/70 pb-3">
               <div>
@@ -980,8 +994,14 @@ function AdminCouponsPage() {
 
       {/* Delete / Deactivate Confirmation Modal */}
       {deletingCoupon && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in-0">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in-0 overflow-hidden"
+          data-lenis-prevent="true"
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 max-h-[90vh] modal-scroll-container"
+            data-lenis-prevent="true"
+          >
             <div className="flex items-start gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-destructive/15 text-destructive shrink-0">
                 <ShieldAlert className="h-5 w-5" />

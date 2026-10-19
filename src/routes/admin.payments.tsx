@@ -2,10 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { adminService } from "@/lib/services/admin.service";
 import { Loader2, Search, CreditCard, ArrowUpRight, CheckCircle2, Clock, AlertTriangle, IndianRupee, Eye, X, BookOpen, User, Calendar, Mail, Phone, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useModalScrollLock } from "@/hooks/use-modal-scroll-lock";
 
 export const Route = createFileRoute("/admin/payments")({
   head: () => ({ meta: [{ title: "Payments & Revenue — Admin" }] }),
@@ -19,6 +20,11 @@ function PaymentsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
   const [pendingExplainerPayment, setPendingExplainerPayment] = useState<any | null>(null);
+  const paymentModalScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Lock background scroll and guarantee modal scrolling
+  useModalScrollLock(!!selectedPayment, { scrollContainerRef: paymentModalScrollRef });
+  useModalScrollLock(!!pendingExplainerPayment);
 
   // 1. Fetch all payment records with joined student profiles & courses from REST API
   const { data: payments = [], isLoading } = useQuery({
@@ -518,12 +524,14 @@ function PaymentsPage() {
       {/* Why is Payment Pending? Diagnostic Modal */}
       {pendingExplainerPayment && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 animate-fade-in overflow-hidden"
           onClick={() => setPendingExplainerPayment(null)}
+          data-lenis-prevent="true"
         >
           <div
-            className="relative w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-elevated"
+            className="relative w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-elevated max-h-[90vh] overflow-y-auto modal-scroll-container"
             onClick={(e) => e.stopPropagation()}
+            data-lenis-prevent="true"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
@@ -616,22 +624,43 @@ function PaymentsPage() {
 
       {/* Transaction Details Modal */}
       {selectedPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 shadow-glow">
-            <div className="flex items-center justify-between border-b border-border pb-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in overflow-hidden"
+          onClick={() => setSelectedPayment(null)}
+          data-lenis-prevent="true"
+        >
+          <div
+            className="relative w-full max-w-lg rounded-3xl border border-border bg-card shadow-glow flex flex-col max-h-[90vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            data-lenis-prevent="true"
+            onWheel={(e) => {
+              const el = paymentModalScrollRef.current;
+              if (el && !el.contains(e.target as Node)) {
+                el.scrollTop += e.deltaY;
+                e.stopPropagation();
+              }
+            }}
+          >
+            <div className="flex items-center justify-between border-b border-border p-6 shrink-0 bg-card z-10">
               <div>
                 <h3 className="font-display text-lg font-bold text-foreground">Transaction Details</h3>
                 <p className="text-xs font-mono text-muted-foreground">ID: {selectedPayment.id}</p>
               </div>
               <button
                 onClick={() => setSelectedPayment(null)}
-                className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors"
+                title="Close modal"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mt-4 space-y-4 text-xs">
+            <div
+              ref={paymentModalScrollRef}
+              data-lenis-prevent="true"
+              tabIndex={0}
+              className="flex-1 min-h-0 modal-scroll-container p-6 space-y-4 text-xs focus:outline-none"
+            >
               <div className="rounded-2xl bg-muted/20 p-4 border border-border flex items-center justify-between">
                 <div>
                   <span className="text-muted-foreground block">Amount Paid</span>

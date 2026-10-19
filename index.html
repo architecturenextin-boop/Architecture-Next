@@ -19,6 +19,22 @@
               duration: 1.2,
               easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
               smooth: true,
+              prevent: (node) => {
+                try {
+                  return (
+                    document.body.classList.contains("modal-open") ||
+                    document.body.style.overflow === "hidden" ||
+                    Boolean(node?.hasAttribute?.("data-lenis-prevent")) ||
+                    Boolean(node?.closest?.("[data-lenis-prevent]")) ||
+                    Boolean(node?.closest?.(".modal-scroll-container")) ||
+                    Boolean(node?.closest?.(".modal-overlay")) ||
+                    Boolean(node?.closest?.("[role='dialog']")) ||
+                    Boolean(node?.closest?.(".fixed.inset-0"))
+                  );
+                } catch (_) {
+                  return false;
+                }
+              },
             });
 
             window.lenis = lenis;
