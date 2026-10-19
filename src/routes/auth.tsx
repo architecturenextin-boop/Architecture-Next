@@ -9,12 +9,31 @@ import { authService } from "@/lib/services/auth.service";
 import { dispatchAuthChange } from "@/hooks/use-auth";
 import { tokenStorage } from "@/lib/api-client";
 
+interface AuthSearch {
+  redirect?: string;
+}
+
+function getSafeRedirect(redirect?: string): string | null {
+  if (!redirect) return null;
+  // Must be a relative URL starting with / and not // (to prevent open redirect vulnerabilities)
+  if (redirect.startsWith("/") && !redirect.startsWith("//") && !redirect.includes("javascript:")) {
+    return redirect;
+  }
+  return null;
+}
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): AuthSearch => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
   head: () => ({ meta: [{ title: "Sign In — ArchitectureNext" }] }),
   component: AuthPage,
 });
 
 function AuthPage() {
+  const search = Route.useSearch();
+  const safeRedirect = getSafeRedirect(search.redirect);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +46,21 @@ function AuthPage() {
 
   const navigate = useNavigate();
 
+  const handlePostAuthRedirect = (user: any) => {
+    if (user?.role === "admin") {
+      navigate({ to: "/admin" });
+    } else if (!user?.onboarded) {
+      navigate({
+        to: "/onboarding",
+        search: safeRedirect ? { redirect: safeRedirect } : undefined,
+      });
+    } else if (safeRedirect) {
+      window.location.href = safeRedirect;
+    } else {
+      navigate({ to: "/" });
+    }
+  };
+
   useEffect(() => {
     let active = true;
     if (tokenStorage.get()) {
@@ -34,13 +68,7 @@ function AuthPage() {
         .getMe()
         .then(({ user }) => {
           if (!active) return;
-          if (user?.role === "admin") {
-            navigate({ to: "/admin" });
-          } else if (user?.onboarded) {
-            navigate({ to: "/" });
-          } else {
-            navigate({ to: "/onboarding" });
-          }
+          handlePostAuthRedirect(user);
         })
         .catch(() => {
           tokenStorage.clear();
@@ -49,7 +77,7 @@ function AuthPage() {
     return () => {
       active = false;
     };
-  }, [navigate]);
+  }, [navigate, safeRedirect]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,19 +94,16 @@ function AuthPage() {
       });
 
       dispatchAuthChange();
-
-      if (user?.role === "admin") {
-        navigate({ to: "/admin" });
-      } else if (user?.onboarded) {
-        navigate({ to: "/" });
-      } else {
-        navigate({ to: "/onboarding" });
-      }
+      handlePostAuthRedirect(user);
     } catch (error: any) {
       if (error?.code === "UNVERIFIED_EMAIL" || error?.data?.code === "UNVERIFIED_EMAIL" || error?.message?.includes("not verified")) {
         navigate({
           to: "/verify-otp",
-          search: { email: email.trim(), purpose: "signup" },
+          search: {
+            email: email.trim(),
+            purpose: "signup",
+            redirect: safeRedirect || undefined,
+          },
         });
         return;
       }
@@ -274,7 +299,12 @@ function AuthPage() {
 
               {/* Google Sign In */}
               <div className="w-full max-w-full min-w-0 flex justify-center overflow-hidden">
-                <GoogleAuthButton text="signin_with" shape="rectangular" size="large" />
+                <GoogleAuthButton
+                  redirect={safeRedirect || undefined}
+                  text="signin_with"
+                  shape="rectangular"
+                  size="large"
+                />
               </div>
             </>
           ) : (
@@ -360,7 +390,11 @@ function AuthPage() {
           {/* Don't have an account link */}
           <div className="border-t border-border pt-6 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
-            <Link to="/signup" className="font-bold text-primary hover:underline">
+            <Link
+              to="/signup"
+              search={safeRedirect ? { redirect: safeRedirect } : undefined}
+              className="font-bold text-primary hover:underline"
+            >
               Create account
             </Link>
           </div>

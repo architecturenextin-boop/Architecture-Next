@@ -43,7 +43,18 @@ export function ProfileCard() {
           size="sm"
           className="font-semibold text-foreground/80 hover:text-primary hover:bg-primary/10 transition-colors rounded-xl"
         >
-          <Link to="/auth">Sign in</Link>
+          <Link
+            to="/auth"
+            search={
+              typeof window !== "undefined" &&
+              window.location.pathname !== "/auth" &&
+              window.location.pathname !== "/"
+                ? { redirect: window.location.pathname + window.location.search }
+                : undefined
+            }
+          >
+            Sign in
+          </Link>
         </Button>
         <Button
           asChild

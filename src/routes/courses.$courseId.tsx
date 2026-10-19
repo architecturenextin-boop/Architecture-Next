@@ -186,8 +186,13 @@ function CourseDetailPage() {
 
   const handleAddToCart = () => {
     if (!course) return;
-    if (!cartAdded) {
-      setCartAdded(true);
+    if (!user) {
+      navigate({
+        to: "/auth",
+        search: {
+          redirect: window.location.pathname + window.location.search,
+        },
+      });
       return;
     }
 
@@ -360,7 +365,14 @@ function CourseDetailPage() {
 
                 {!user ? (
                   <Button
-                    onClick={() => navigate({ to: "/auth" })}
+                    onClick={() =>
+                      navigate({
+                        to: "/auth",
+                        search: {
+                          redirect: window.location.pathname + window.location.search,
+                        },
+                      })
+                    }
                     className="mt-6 h-12 w-full bg-gradient-primary text-base font-bold text-primary-foreground shadow-glow transition-all hover:-translate-y-0.5 hover:brightness-110"
                   >
                     Login to Enroll
@@ -912,7 +924,7 @@ function CourseDetailPage() {
                 onClick={handleAddToCart}
                 className="h-11 bg-gradient-primary px-6 font-bold text-primary-foreground hover:brightness-110"
               >
-                {cartAdded ? "Checkout" : "Enroll now"}
+                {!user ? "Login to Enroll" : "Buy Course"}
               </Button>
             </>
           )}

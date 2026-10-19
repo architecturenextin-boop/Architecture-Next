@@ -20,9 +20,15 @@ export const Route = createFileRoute("/checkout")({
     course: typeof search.course === "string" ? search.course : undefined,
   }),
   head: () => ({ meta: [{ title: "Checkout — ArchitectureNext" }] }),
-  beforeLoad: async () => {
+  beforeLoad: async ({ search }) => {
     const token = tokenStorage.get();
-    if (!token) throw redirect({ to: "/auth" });
+    if (!token) {
+      const courseParam = search?.course ? `?course=${encodeURIComponent(search.course)}` : "";
+      throw redirect({
+        to: "/auth",
+        search: { redirect: `/checkout${courseParam}` },
+      });
+    }
   },
   component: CheckoutPage,
 });

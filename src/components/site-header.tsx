@@ -349,7 +349,17 @@ export function SiteHeader({ action }: SiteHeaderProps) {
                   size="lg"
                   className="w-full min-h-[48px] rounded-xl font-semibold border-border text-foreground hover:bg-muted"
                 >
-                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                  <Link
+                    to="/auth"
+                    search={
+                      typeof window !== "undefined" &&
+                      window.location.pathname !== "/auth" &&
+                      window.location.pathname !== "/"
+                        ? { redirect: window.location.pathname + window.location.search }
+                        : undefined
+                    }
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
                     <LogIn className="h-4 w-4 mr-2" /> Sign in
                   </Link>
                 </Button>

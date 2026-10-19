@@ -8,12 +8,30 @@ import { GoogleAuthButton } from "@/components/google-auth-button";
 import { authService } from "@/lib/services/auth.service";
 import { dispatchAuthChange } from "@/hooks/use-auth";
 
+interface SignupSearch {
+  redirect?: string;
+}
+
+function getSafeRedirect(redirect?: string): string | null {
+  if (!redirect) return null;
+  if (redirect.startsWith("/") && !redirect.startsWith("//") && !redirect.includes("javascript:")) {
+    return redirect;
+  }
+  return null;
+}
+
 export const Route = createFileRoute("/signup")({
+  validateSearch: (search: Record<string, unknown>): SignupSearch => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
   head: () => ({ meta: [{ title: "Create Account — ArchitectureNext" }] }),
   component: SignupPage,
 });
 
 function SignupPage() {
+  const search = Route.useSearch();
+  const safeRedirect = getSafeRedirect(search.redirect);
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
@@ -94,7 +112,11 @@ function SignupPage() {
       setIsLoading(false);
       navigate({
         to: "/verify-otp",
-        search: { email: email.trim(), purpose: "signup" },
+        search: {
+          email: email.trim(),
+          purpose: "signup",
+          redirect: safeRedirect || undefined,
+        },
       });
     } catch (error: any) {
       setIsLoading(false);
@@ -175,7 +197,7 @@ function SignupPage() {
                 </p>
               </div>
               <Button asChild size="lg" className="w-full min-h-[46px] h-11 sm:h-12 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated rounded-xl">
-                <Link to="/auth">Go to Login</Link>
+                <Link to="/auth" search={safeRedirect ? { redirect: safeRedirect } : undefined}>Go to Login</Link>
               </Button>
             </div>
           ) : (
@@ -415,13 +437,22 @@ function SignupPage() {
 
           {/* Google Sign Up */}
           <div className="w-full max-w-full min-w-0 flex justify-center overflow-hidden">
-            <GoogleAuthButton text="signup_with" shape="rectangular" size="large" />
+            <GoogleAuthButton
+              redirect={safeRedirect || undefined}
+              text="signup_with"
+              shape="rectangular"
+              size="large"
+            />
           </div>
 
           {/* Already have an account */}
           <div className="border-t border-border pt-4 text-center text-xs sm:text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/auth" className="font-bold text-primary hover:underline">
+            <Link
+              to="/auth"
+              search={safeRedirect ? { redirect: safeRedirect } : undefined}
+              className="font-bold text-primary hover:underline"
+            >
               Sign in
             </Link>
           </div>

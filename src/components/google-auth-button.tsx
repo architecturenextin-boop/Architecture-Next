@@ -12,6 +12,7 @@ interface GoogleAuthButtonProps {
   size?: "large" | "medium" | "small";
   width?: string;
   theme?: "outline" | "filled_blue" | "filled_black";
+  redirect?: string;
 }
 
 export function GoogleAuthButton({
@@ -20,11 +21,24 @@ export function GoogleAuthButton({
   size = "large",
   theme = "outline",
   width,
+  redirect: redirectProp,
 }: GoogleAuthButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const getRedirectUrl = () => {
+    const raw =
+      redirectProp ||
+      (typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("redirect")
+        : null);
+    if (raw && raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("javascript:")) {
+      return raw;
+    }
+    return null;
+  };
 
   useEffect(() => {
     const updateWidth = () => {
@@ -68,10 +82,16 @@ export function GoogleAuthButton({
       );
 
       const user = res.user;
+      const targetRedirect = getRedirectUrl();
       if (user?.role === "admin") {
         navigate({ to: "/admin" });
       } else if (!user?.onboarded) {
-        navigate({ to: "/onboarding" });
+        navigate({
+          to: "/onboarding",
+          search: targetRedirect ? { redirect: targetRedirect } : undefined,
+        });
+      } else if (targetRedirect) {
+        window.location.href = targetRedirect;
       } else {
         navigate({ to: "/" });
       }

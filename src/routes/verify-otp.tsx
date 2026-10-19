@@ -10,6 +10,7 @@ import { dispatchAuthChange } from "@/hooks/use-auth";
 interface VerifyOtpSearch {
   email?: string;
   purpose?: "signup" | "reset";
+  redirect?: string;
 }
 
 export const Route = createFileRoute("/verify-otp")({
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/verify-otp")({
     return {
       email: typeof search.email === "string" ? search.email : undefined,
       purpose: search.purpose === "reset" ? "reset" : "signup",
+      redirect: typeof search.redirect === "string" ? search.redirect : undefined,
     };
   },
   head: () => ({ meta: [{ title: "Verify Code — ArchitectureNext" }] }),
@@ -26,6 +28,14 @@ export const Route = createFileRoute("/verify-otp")({
 function VerifyOtpPage() {
   const search = useSearch({ from: "/verify-otp" });
   const navigate = useNavigate();
+
+  const safeRedirect =
+    search.redirect &&
+    search.redirect.startsWith("/") &&
+    !search.redirect.startsWith("//") &&
+    !search.redirect.includes("javascript:")
+      ? search.redirect
+      : null;
 
   const [email, setEmail] = useState(search.email || "");
   const [purpose] = useState<"signup" | "reset">(search.purpose || "signup");
@@ -158,9 +168,16 @@ function VerifyOtpPage() {
           if (res.user?.role === "admin") {
             navigate({ to: "/admin" });
           } else if (res.user?.onboarded) {
-            navigate({ to: "/" });
+            if (safeRedirect) {
+              window.location.href = safeRedirect;
+            } else {
+              navigate({ to: "/" });
+            }
           } else {
-            navigate({ to: "/onboarding" });
+            navigate({
+              to: "/onboarding",
+              search: safeRedirect ? { redirect: safeRedirect } : undefined,
+            });
           }
         }, 1200);
       } else {
@@ -285,6 +302,7 @@ function VerifyOtpPage() {
             </div>
             <Link
               to="/auth"
+              search={safeRedirect ? { redirect: safeRedirect } : undefined}
               className="inline-flex min-h-[36px] items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-primary bg-muted/40 hover:bg-primary/10 border border-border/60 hover:border-primary/25 transition-all group ml-auto"
             >
               <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
@@ -504,9 +522,9 @@ function VerifyOtpPage() {
           {/* Bottom helper text */}
           <div className="border-t border-border pt-4 text-center text-xs text-muted-foreground">
             {purpose === "reset" ? (
-              <span>Remember your password? <Link to="/auth" className="font-bold text-primary hover:underline">Sign in</Link></span>
+              <span>Remember your password? <Link to="/auth" search={safeRedirect ? { redirect: safeRedirect } : undefined} className="font-bold text-primary hover:underline">Sign in</Link></span>
             ) : (
-              <span>Already verified? <Link to="/auth" className="font-bold text-primary hover:underline">Sign in</Link></span>
+              <span>Already verified? <Link to="/auth" search={safeRedirect ? { redirect: safeRedirect } : undefined} className="font-bold text-primary hover:underline">Sign in</Link></span>
             )}
           </div>
         </div>

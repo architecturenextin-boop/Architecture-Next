@@ -8,25 +8,63 @@ import { authService } from "@/lib/services/auth.service";
 import { tokenStorage } from "@/lib/api-client";
 import { toast } from "sonner";
 
+interface OnboardingSearch {
+  redirect?: string;
+}
+
 export const Route = createFileRoute("/onboarding")({
+  validateSearch: (search: Record<string, unknown>): OnboardingSearch => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
   head: () => ({ meta: [{ title: "Welcome — ArchitectureNext" }] }),
-  beforeLoad: async () => {
+  beforeLoad: async ({ search }) => {
     const token = tokenStorage.get();
-    if (!token) throw redirect({ to: "/auth" });
+    const safeRedirect =
+      search?.redirect &&
+      search.redirect.startsWith("/") &&
+      !search.redirect.startsWith("//") &&
+      !search.redirect.includes("javascript:")
+        ? search.redirect
+        : null;
+
+    if (!token) {
+      throw redirect({
+        to: "/auth",
+        search: safeRedirect ? { redirect: safeRedirect } : undefined,
+      });
+    }
+
     try {
       const { user } = await authService.getMe();
       if (user?.role === "admin") throw redirect({ to: "/admin" });
-      if (user?.onboarded) throw redirect({ to: "/dashboard" });
+      if (user?.onboarded) {
+        if (safeRedirect) {
+          throw redirect({ href: safeRedirect });
+        }
+        throw redirect({ to: "/dashboard" });
+      }
     } catch (err: any) {
       if (isRedirect(err)) throw err;
       tokenStorage.clear();
-      throw redirect({ to: "/auth" });
+      throw redirect({
+        to: "/auth",
+        search: safeRedirect ? { redirect: safeRedirect } : undefined,
+      });
     }
   },
   component: Onboarding,
 });
 
 function Onboarding() {
+  const search = Route.useSearch();
+  const safeRedirect =
+    search?.redirect &&
+    search.redirect.startsWith("/") &&
+    !search.redirect.startsWith("//") &&
+    !search.redirect.includes("javascript:")
+      ? search.redirect
+      : null;
+
   const navigate = useNavigate();
   const { user, profile, refreshProfile, signOut, isLoading: isAuthLoading } = useAuth();
   const [name, setName] = useState("");
@@ -50,7 +88,11 @@ function Onboarding() {
         return;
       }
       if (profile.onboarded) {
-        navigate({ to: "/dashboard" });
+        if (safeRedirect) {
+          window.location.href = safeRedirect;
+        } else {
+          navigate({ to: "/dashboard" });
+        }
         return;
       }
     }
@@ -143,7 +185,11 @@ function Onboarding() {
       dispatchAuthChange();
       await refreshProfile();
       toast.success("Profile setup complete! Welcome aboard.");
-      navigate({ to: "/dashboard" });
+      if (safeRedirect) {
+        window.location.href = safeRedirect;
+      } else {
+        navigate({ to: "/dashboard" });
+      }
     } catch (err: any) {
       setErr(err?.message || "An error occurred while setting up your profile.");
       toast.error(err?.message || "An error occurred.");
