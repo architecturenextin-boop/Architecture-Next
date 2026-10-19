@@ -77,94 +77,49 @@ function StudentsPage() {
     return fullCourses.map((c: any) => ({ id: c.id, title: c.title, price: c.price }));
   }, [fullCourses]);
 
-  // 3. Query progress and complete course details (modules + lessons) for the selected student & enrolled courses
-  const { data: myCoursesProgress = [] } = useQuery({
-    queryKey: ["admin-dashboard-my-courses-progress", selectedStudent?.id],
-    queryFn: async () => {
-      try {
-        return await dashboardService.getMyCourses();
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!selectedStudent?.id,
-  });
-
-  const { data: courseContentAndProgress = { progressMap: {}, detailsMap: {} } } = useQuery({
+  // 3. Query real database progress & complete course details (modules + lessons) for the selected student
+  const { data: courseContentAndProgress = { progressMap: {}, detailsMap: {} }, isLoading: isProgressLoading } = useQuery({
     queryKey: ["admin-student-courses-content-progress", selectedStudent?.id, selectedStudent?.enrollments, fullCourses],
     queryFn: async () => {
-      if (!selectedStudent?.id || !selectedStudent?.enrollments?.length) return { progressMap: {}, detailsMap: {} };
+      if (!selectedStudent?.id) return { progressMap: {}, detailsMap: {} };
       const progressMap: Record<string, any[]> = {};
       const detailsMap: Record<string, any> = {};
 
-      // 1. Try student-specific admin progress endpoint
+      // 1. Fetch live student progress and enrollments directly from backend database
       try {
         const studentDetail = await adminService.getStudentProgress(selectedStudent.id);
         if (studentDetail?.progress && Array.isArray(studentDetail.progress)) {
           progressMap["all"] = studentDetail.progress;
-        } else if (Array.isArray(studentDetail)) {
-          progressMap["all"] = studentDetail;
-        }
-      } catch (_) {}
-
-      // 2. Query each enrolled course by both slug and ID
-      await Promise.allSettled(
-        selectedStudent.enrollments.map(async (en: any) => {
-          const cId = en.course?.id || en.course_id;
-          const matchingCourse = fullCourses.find((fc: any) => fc.id === cId || (fc.title && fc.title.toLowerCase() === en.course?.title?.toLowerCase()));
-          const cSlug = en.course?.slug || matchingCourse?.slug;
-          const targets = [cSlug, cId].filter(Boolean) as string[];
-
-          for (const target of targets) {
-            try {
-              // Check React Query cache first
-              let data: any = queryClient.getQueryData(["learn-course", target]);
-              if (!data) {
-                data = await courseService.getCourseLearningContent(target);
-              }
-
-              if (data?.course) {
-                if (cId) detailsMap[cId] = data.course;
-                if (cSlug) detailsMap[cSlug] = data.course;
-                if (matchingCourse?.id) detailsMap[matchingCourse.id] = data.course;
-                if (matchingCourse?.slug) detailsMap[matchingCourse.slug] = data.course;
-              }
-
-              if (data?.progress && Array.isArray(data.progress)) {
-                if (cId) progressMap[cId] = data.progress;
-                if (cSlug) progressMap[cSlug] = data.progress;
-                if (matchingCourse?.id) progressMap[matchingCourse.id] = data.progress;
-                if (matchingCourse?.slug) progressMap[matchingCourse.slug] = data.progress;
-                progressMap[target] = data.progress;
-                break;
-              }
-            } catch (_) {
-              // Check localStorage cache fallback
-              try {
-                const localKey = `skillspring_course_learn_${target}`;
-                const cached = localStorage.getItem(localKey);
-                if (cached) {
-                  const parsed = JSON.parse(cached);
-                  if (parsed?.course) {
-                    if (cId) detailsMap[cId] = parsed.course;
-                    if (cSlug) detailsMap[cSlug] = parsed.course;
-                  }
-                  if (parsed?.progress && Array.isArray(parsed.progress)) {
-                    if (cId) progressMap[cId] = parsed.progress;
-                    if (cSlug) progressMap[cSlug] = parsed.progress;
-                    progressMap[target] = parsed.progress;
-                    break;
-                  }
-                }
-              } catch (_) {}
+          studentDetail.progress.forEach((p: any) => {
+            if (p.course_id) {
+              if (!progressMap[p.course_id]) progressMap[p.course_id] = [];
+              progressMap[p.course_id].push(p);
             }
-          }
-        })
-      );
+          });
+        }
+        if (studentDetail?.enrollments && Array.isArray(studentDetail.enrollments)) {
+          studentDetail.enrollments.forEach((en: any) => {
+            if (en.course) {
+              if (en.course.id) detailsMap[en.course.id] = en.course;
+              if (en.course.slug) detailsMap[en.course.slug] = en.course;
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load student progress from server:", err);
+      }
+
+      // 2. Ensure all courses have full module & lesson structure from fullCourses
+      if (fullCourses && Array.isArray(fullCourses)) {
+        fullCourses.forEach((fc: any) => {
+          if (fc.id) detailsMap[fc.id] = detailsMap[fc.id] || fc;
+          if (fc.slug) detailsMap[fc.slug] = detailsMap[fc.slug] || fc;
+        });
+      }
 
       return { progressMap, detailsMap };
     },
-    enabled: !!selectedStudent?.id && !!selectedStudent?.enrollments?.length,
+    enabled: !!selectedStudent?.id,
   });
 
   const coursesProgressMap = courseContentAndProgress.progressMap;
@@ -933,7 +888,11 @@ function StudentsPage() {
                   <div className="rounded-2xl border border-border bg-muted/20 p-3.5 flex flex-col justify-center">
                     <span className="text-muted-foreground block font-medium text-[11px]">Completed Lessons</span>
                     <span className="font-semibold text-foreground text-sm block mt-0.5 flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      {isProgressLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      )}
                       {(() => {
                         if (!selectedStudent?.enrollments) return 0;
                         let total = 0;
@@ -956,10 +915,6 @@ function StudentsPage() {
                             ...studentProgressList,
                           ];
 
-                          const dashboardItem = myCoursesProgress.find(
-                            (mc: any) => mc.course_id === courseId || mc.slug === courseSlug || mc.title?.toLowerCase() === courseDetail?.title?.toLowerCase()
-                          );
-
                           const doneCount = allLessons.filter((lesson: any) => {
                             const lId = String(lesson.id || "").trim();
                             const lTitle = String(lesson.title || "").trim().toLowerCase();
@@ -973,11 +928,10 @@ function StudentsPage() {
                             if (prog && (prog.completed === true || prog.completed === "true" || prog.completed === 1 || prog.status === "completed" || prog.is_completed === true)) return true;
                             if (Array.isArray(en?.completed_lessons) && en.completed_lessons.some((x: any) => String(x).trim() === lId)) return true;
                             if (Array.isArray(en?.completedLessons) && en.completedLessons.some((x: any) => String(x).trim() === lId)) return true;
-                            if (Array.isArray(dashboardItem?.completed_lessons) && dashboardItem.completed_lessons.some((x: any) => String(x).trim() === lId)) return true;
                             return false;
                           }).length;
 
-                          const finalCount = doneCount > 0 ? doneCount : Number(dashboardItem?.progress_count ?? en.completed_count ?? en.progress_count ?? 0);
+                          const finalCount = doneCount > 0 ? doneCount : Number(en.completed_count ?? en.progress_count ?? 0);
                           total += finalCount;
                         });
                         return total;
@@ -1053,8 +1007,7 @@ function StudentsPage() {
                         }))
                       );
 
-                      const dashboardItem = myCoursesProgress.find((mc: any) => mc.course_id === courseId || mc.slug === courseSlug || mc.title?.toLowerCase() === courseDetail?.title?.toLowerCase());
-                      const totalLessons = allLessons.length || en.total_lessons || courseDetail?.total_lessons || dashboardItem?.total_lessons || 0;
+                      const totalLessons = allLessons.length || en.total_lessons || courseDetail?.total_lessons || 0;
 
                       // Completed lessons for this course
                       const courseProg = [
@@ -1097,14 +1050,11 @@ function StudentsPage() {
                         if (Array.isArray(en?.completedLessons) && en.completedLessons.some((x: any) => String(x).trim() === lId)) {
                           return true;
                         }
-                        if (Array.isArray(dashboardItem?.completed_lessons) && dashboardItem.completed_lessons.some((x: any) => String(x).trim() === lId)) {
-                          return true;
-                        }
                         return false;
                       });
 
                       const calculatedDone = completedLessons.length;
-                      const fallbackDone = Number(dashboardItem?.progress_count ?? en.completed_count ?? en.progress_count ?? 0);
+                      const fallbackDone = Number(en.completed_count ?? en.progress_count ?? 0);
                       const completedCount = calculatedDone > 0 ? calculatedDone : fallbackDone;
                       const progressPct = totalLessons > 0 ? Math.min(100, Math.round((completedCount / totalLessons) * 100)) : 0;
                       const isExpanded = !!expandedCourseIds[courseId];
