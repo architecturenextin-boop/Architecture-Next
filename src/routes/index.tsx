@@ -24,6 +24,7 @@ import {
   features,
   heroStats,
   instructor,
+  mentors,
   pricingFeatures,
 } from "@/lib/static-data";
 import { useQuery } from "@tanstack/react-query";
@@ -283,57 +284,69 @@ function Features() {
 function Instructor() {
   return (
     <section id="instructor" className="scroll-mt-24 border-y border-border bg-surface py-20 md:py-28">
-      <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 md:grid-cols-12 md:px-8">
-        {/* Left Mentor Image Card (5 Cols) */}
-        <div className="relative md:col-span-5">
-          <div className="relative overflow-hidden rounded-[2.25rem] border border-border/80 bg-card shadow-elevated transition-transform duration-500 hover:scale-[1.01]">
-            <img
-              src={instructor.image}
-              alt={instructor.name}
-              width={800}
-              height={1000}
-              loading="lazy"
-              className="aspect-[4/5] w-full object-cover"
-            />
-          </div>
-        </div>
-
-        {/* Right Details & Stats Content (7 Cols) */}
-        <div className="md:col-span-7 space-y-6">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
-              Your Mentor
-            </span>
-            <h2 className="mt-2 type-h1 text-foreground tracking-tight">
-              {instructor.name}
-            </h2>
-            <p className="mt-2 type-body font-semibold text-muted-foreground">
-              {instructor.title} · {instructor.experience}
-            </p>
-          </div>
-
-          <div className="space-y-4 type-body leading-relaxed text-muted-foreground">
-            {instructor.bio.split("\n\n").map((paragraph, idx) => (
-              <p key={idx}>{paragraph}</p>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 pt-2 sm:gap-4">
-            {instructor.stats.map((s) => (
-              <div
-                key={s.label}
-                className="rounded-2xl border border-border/80 bg-card/80 p-4 text-center shadow-soft backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-elevated"
-              >
-                <div className="type-h2 font-black text-foreground">
-                  {s.value}
-                </div>
-                <div className="mt-1 type-small text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  {s.label}
-                </div>
+      <div className="mx-auto max-w-6xl px-5 md:px-8 space-y-20 md:space-y-28">
+        {mentors.map((m) => (
+          <div key={m.name} className="grid items-center gap-10 md:grid-cols-12">
+            {/* Left Mentor Image Card (5 Cols) */}
+            <div className="relative md:col-span-5">
+              <div className="relative overflow-hidden rounded-[2.25rem] border border-border/80 bg-card shadow-elevated transition-transform duration-500 hover:scale-[1.01]">
+                <img
+                  src={m.image}
+                  alt={m.name}
+                  width={800}
+                  height={1000}
+                  loading="lazy"
+                  className="aspect-[4/5] w-full object-cover"
+                />
               </div>
-            ))}
+            </div>
+
+            {/* Right Details & Stats Content (7 Cols) */}
+            <div className="md:col-span-7 space-y-6">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+                  Your Mentor
+                </span>
+                <h2 className="mt-2 type-h1 text-foreground tracking-tight">
+                  {m.name}
+                </h2>
+                <p className="mt-2 type-body font-semibold text-muted-foreground">
+                  {m.title}{m.experience ? ` · ${m.experience}` : ""}
+                </p>
+              </div>
+
+              <div className="space-y-4 type-body leading-relaxed text-muted-foreground">
+                {m.bio.split("\n\n").map((paragraph, idx) => (
+                  <p key={idx}>{paragraph}</p>
+                ))}
+                {m.expertise && (
+                  <p className="pt-1">
+                    <strong className="font-bold text-foreground">Areas of Expertise: </strong>
+                    {m.expertise}
+                  </p>
+                )}
+              </div>
+
+              {m.stats && m.stats.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 pt-2 sm:gap-4">
+                  {m.stats.map((s) => (
+                    <div
+                      key={s.label}
+                      className="rounded-2xl border border-border/80 bg-card/80 p-4 text-center shadow-soft backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-elevated"
+                    >
+                      <div className="type-h2 font-black text-foreground">
+                        {s.value}
+                      </div>
+                      <div className="mt-1 type-small text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        {s.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </section>
   );

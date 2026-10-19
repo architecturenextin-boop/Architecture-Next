@@ -1,17 +1,47 @@
 import instructorImg from "@/assets/instructor.jpeg";
+import keerthanaImg from "@/assets/mentor-keerthana.jpeg";
+import sahalaImg from "@/assets/mentor-sahala.jpeg";
 
-export const instructor = {
-  name: "Nikhil AP",
-  title: "Architectural Designer | Design Mentor | Founder of Architecture Next",
-  experience: "18+ years experience",
-  bio: "Nikhil AP is an Architectural Designer, design consultant, and Founder of ArchitectureNext with extensive experience across residential, commercial, and hospitality projects. He bridges the gap between academic learning and industry expectations through practical, project-based education.\n\nHis courses focus on developing studio-ready professionals by teaching CAD/BIM workflows, 3D visualization, AI-powered design tools, and presentation techniques.",
-  image: instructorImg,
-  stats: [
-    { label: "Students mentored", value: "10K+" },
-    { label: "Avg. rating", value: "4.9" },
-    { label: "Years practising", value: "18+" },
-  ],
-};
+export interface Mentor {
+  name: string;
+  title: string;
+  experience?: string;
+  bio: string;
+  image: string;
+  expertise?: string;
+  stats?: { label: string; value: string }[];
+}
+
+export const mentors: Mentor[] = [
+  {
+    name: "Nikhil AP",
+    title: "Architectural Designer | Design Mentor | Founder of Architecture Next",
+    experience: "18+ years experience",
+    bio: "Nikhil AP is an Architectural Designer, design consultant, and Founder of ArchitectureNext with extensive experience across residential, commercial, and hospitality projects. He bridges the gap between academic learning and industry expectations through practical, project-based education.\n\nHis courses focus on developing studio-ready professionals by teaching CAD/BIM workflows, 3D visualization, AI-powered design tools, and presentation techniques.",
+    image: instructorImg,
+    stats: [
+      { label: "Students mentored", value: "10K+" },
+      { label: "Avg. rating", value: "4.9" },
+      { label: "Years practising", value: "18+" },
+    ],
+  },
+  {
+    name: "Keerthana R",
+    title: "Architectural Designer | Software Trainer & Mentor",
+    bio: "Keerthana R is an Architectural Designer and Software Trainer at Architecture Next, specializing in architectural design, 3D visualization, interior design, and industry-oriented software training. She mentors students in developing practical design skills and mastering essential architectural tools through hands-on learning and real-world applications.",
+    expertise: "AutoCAD, Revit Architecture, 3ds Max, V-Ray, SketchUp, Lumion, D5 Render, Photoshop, Interior Design, and Vastu. Space Planning, Design Concept Development, and Practical Project Mentoring",
+    image: keerthanaImg,
+  },
+  {
+    name: "Sahala C.P.",
+    title: "Architectural Designer | Interior Design Mentor",
+    bio: "Sahala C.P. is an Architectural Designer and Mentor at Architecture Next, specializing in interior design, space planning, and creative design development. She guides students in transforming design concepts into practical and aesthetically appealing spaces, emphasizing design thinking, functionality, and real-world project applications.",
+    expertise: "Architectural Design, Interior Design, Space Planning, Design Concept Development, and Practical Project Mentoring.",
+    image: sahalaImg,
+  },
+];
+
+export const instructor = mentors[0];
 
 export const heroStats = [
   { label: "Students", value: "10,000+" },
