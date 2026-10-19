@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Receipt, Loader2 } from "lucide-react";
+import { Receipt, Loader2, BookOpen, Calendar, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { dashboardService } from "@/lib/services/dashboard.service";
 
@@ -85,11 +85,11 @@ function PurchasesPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3 text-left">Order</th>
-                    <th className="px-4 py-3 text-left">Course</th>
-                    <th className="px-4 py-3 text-left">Date</th>
-                    <th className="px-4 py-3 text-left">Status</th>
-                    <th className="px-4 py-3 text-right">Amount</th>
+                    <th className="px-5 py-3.5 text-left">Order ID</th>
+                    <th className="px-5 py-3.5 text-left">Course</th>
+                    <th className="hidden px-5 py-3.5 text-left sm:table-cell">Date</th>
+                    <th className="px-5 py-3.5 text-left">Status</th>
+                    <th className="px-5 py-3.5 text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -97,25 +97,39 @@ function PurchasesPage() {
                     const courseTitle = (p.courses as any)?.title || "Course";
                     const date = new Date(p.created_at).toLocaleDateString();
                     return (
-                      <tr key={p.id}>
-                        <td className="px-4 py-3 font-mono text-xs truncate max-w-[120px] uppercase">
+                      <tr key={p.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-5 py-3.5 font-mono text-xs font-bold text-foreground truncate max-w-[150px]">
                           {p.razorpay_order_id || p.id.substring(0, 8)}
                         </td>
-                        <td className="px-4 py-3 font-medium">{courseTitle}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{date}</td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            p.status === "completed" 
-                              ? "bg-success/15 text-success" 
-                              : p.status === "pending" 
-                              ? "bg-amber-100 text-amber-700" 
-                              : "bg-destructive/15 text-destructive"
-                          }`}>
-                            {p.status}
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary truncate max-w-[220px]" title={courseTitle}>
+                            <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{courseTitle}</span>
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold">
-                          {p.currency}{p.amount.toLocaleString()}
+                        <td className="hidden px-5 py-3.5 text-muted-foreground text-xs sm:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{date}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {p.status === "completed" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">
+                              <CheckCircle2 className="h-3 w-3" /> Completed
+                            </span>
+                          ) : p.status === "pending" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600">
+                              <Clock className="h-3 w-3" /> Pending
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600">
+                              <XCircle className="h-3 w-3" /> Failed
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-display font-bold text-base text-foreground whitespace-nowrap">
+                          {p.currency || "₹"}{p.amount.toLocaleString()}
                         </td>
                       </tr>
                     );

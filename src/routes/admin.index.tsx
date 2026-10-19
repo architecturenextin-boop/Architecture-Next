@@ -9,6 +9,10 @@ import {
   ChevronRight,
   ChevronDown,
   Tag,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -181,8 +185,8 @@ function Overview() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
-                    {["Order", "Student", "Course", "Date", "Status", "Amount"].map((h) => (
-                      <th key={h} className="px-5 py-3.5 text-left">{h}</th>
+                    {["Student / User", "Course", "Date", "Status", "Amount"].map((h, i) => (
+                      <th key={h} className={`px-5 py-3.5 ${i === 4 ? "text-right" : "text-left"}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -200,8 +204,7 @@ function Overview() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
-                    <th className="px-5 py-3.5 text-left">Order ID</th>
-                    <th className="px-5 py-3.5 text-left">Student</th>
+                    <th className="px-5 py-3.5 text-left">Student / User</th>
                     <th className="hidden px-5 py-3.5 text-left sm:table-cell">Course</th>
                     <th className="hidden px-5 py-3.5 text-left md:table-cell">Date</th>
                     <th className="px-5 py-3.5 text-left">Status</th>
@@ -211,34 +214,59 @@ function Overview() {
                 <tbody className="divide-y divide-border">
                   {recent.map((r: any) => {
                     const date = r.created_at
-                      ? new Date(r.created_at).toLocaleString([], { dateStyle: "short", timeStyle: "short" })
+                      ? new Date(r.created_at).toLocaleDateString()
                       : "N/A";
+                    const initial = (r.studentName || "L")[0].toUpperCase();
+
                     return (
                       <tr key={r.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-5 py-3.5 font-mono text-xs uppercase font-bold text-foreground">
-                          {r.orderId}
-                        </td>
-                        <td className="px-5 py-3.5 font-medium text-foreground">{r.studentName}</td>
-                        <td className="hidden px-5 py-3.5 text-muted-foreground sm:table-cell truncate max-w-[200px]">
-                          {r.courseTitle}
-                        </td>
-                        <td className="hidden px-5 py-3.5 text-muted-foreground text-xs md:table-cell whitespace-nowrap">
-                          {date}
-                        </td>
                         <td className="px-5 py-3.5">
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
-                              r.status === "completed"
-                                ? "bg-success/15 text-success"
-                                : r.status === "pending"
-                                ? "bg-amber-500/15 text-amber-600"
-                                : "bg-destructive/15 text-destructive"
-                            }`}
-                          >
-                            {r.status}
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground">
+                              {initial}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-semibold text-foreground block truncate">
+                                {r.studentName || "Learner"}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground font-mono block">
+                                Order: {r.orderId}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="hidden px-5 py-3.5 sm:table-cell">
+                          <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary truncate max-w-[200px]" title={r.courseTitle}>
+                            <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{r.courseTitle}</span>
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-right font-display font-bold text-foreground whitespace-nowrap">
+
+                        <td className="hidden px-5 py-3.5 text-muted-foreground text-xs md:table-cell whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{date}</span>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          {r.status === "completed" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">
+                              <CheckCircle2 className="h-3 w-3" /> Completed
+                            </span>
+                          ) : r.status === "pending" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600">
+                              <Clock className="h-3 w-3" /> Pending
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600">
+                              <XCircle className="h-3 w-3" /> Failed
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-5 py-3.5 text-right font-display font-bold text-base text-foreground whitespace-nowrap">
                           {r.currency || "₹"}{Number(r.amount).toLocaleString()}
                         </td>
                       </tr>

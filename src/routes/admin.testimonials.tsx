@@ -428,15 +428,16 @@ function AdminTestimonialsPage() {
           {/* Desktop & Tablet Minimal Table (>= 640px) */}
           <div className="hidden sm:block overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-muted/40 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3">Student</th>
-                    <th className="px-3 py-3 w-24">Rating</th>
-                    <th className="px-4 py-3 max-w-[200px]">Program</th>
-                    <th className="px-4 py-3">Testimonial Review</th>
-                    <th className="px-3 py-3 w-28">Status</th>
-                    <th className="px-4 py-3 text-right w-44">Actions</th>
+                    <th className="px-5 py-3.5 text-left">Student / User</th>
+                    <th className="px-5 py-3.5 text-left">Rating</th>
+                    <th className="hidden px-5 py-3.5 text-left md:table-cell">Program</th>
+                    <th className="hidden px-5 py-3.5 text-left lg:table-cell">Testimonial Review</th>
+                    <th className="px-5 py-3.5 text-left">Status</th>
+                    <th className="hidden px-5 py-3.5 text-left sm:table-cell">Submitted</th>
+                    <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -451,52 +452,54 @@ function AdminTestimonialsPage() {
                     const initial = (studentName || "S")[0].toUpperCase();
 
                     return (
-                      <tr key={item.id} className="hover:bg-muted/20 transition-colors group">
+                      <tr key={item.id} className="hover:bg-muted/20 transition-colors">
                         {/* Student */}
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary font-bold text-xs">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground">
                               {initial}
                             </div>
                             <div className="min-w-0">
-                              <div className="font-semibold text-foreground text-xs truncate max-w-[150px]">
+                              <span className="font-semibold text-foreground block truncate">
                                 {studentName}
-                              </div>
-                              <div className="text-[11px] text-muted-foreground truncate max-w-[150px]">
-                                {studentEmail}
-                              </div>
+                              </span>
+                              <span className="text-[11px] text-muted-foreground truncate block">
+                                {studentEmail || `ID: ${item.id.substring(0, 8)}...`}
+                              </span>
                             </div>
                           </div>
                         </td>
 
                         {/* Rating */}
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1 font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md text-[11px]">
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 font-bold text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-md text-xs">
                             <span>★</span>
                             <span>{item.rating}.0</span>
-                          </div>
+                          </span>
                         </td>
 
                         {/* Course */}
-                        <td className="px-4 py-3">
+                        <td className="hidden px-5 py-3.5 md:table-cell">
                           {courseTitle ? (
-                            <span className="inline-flex items-center gap-1 text-primary text-xs font-medium truncate max-w-[180px] bg-primary/5 px-2 py-0.5 rounded border border-primary/10" title={courseTitle}>
-                              <BookOpen className="h-3 w-3 shrink-0" />
+                            <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary truncate max-w-[200px]" title={courseTitle}>
+                              <BookOpen className="h-3.5 w-3.5 shrink-0" />
                               <span className="truncate">{courseTitle}</span>
                             </span>
                           ) : (
-                            <span className="text-muted-foreground text-xs italic">Platform Review</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                              Platform Review
+                            </span>
                           )}
                         </td>
 
                         {/* Review Quote */}
-                        <td className="px-4 py-3">
+                        <td className="hidden px-5 py-3.5 lg:table-cell">
                           <div
                             onClick={() => setSelectedItem(item)}
-                            className="cursor-pointer group/quote max-w-sm"
+                            className="cursor-pointer max-w-xs group/quote"
                             title="Click to view full testimonial"
                           >
-                            <p className="text-xs text-foreground/85 italic line-clamp-2 leading-relaxed group-hover/quote:text-primary transition-colors">
+                            <p className="text-xs text-foreground/85 italic line-clamp-2 group-hover/quote:text-primary transition-colors">
                               "{item.quote}"
                             </p>
                             {item.adminNote && (
@@ -508,42 +511,50 @@ function AdminTestimonialsPage() {
                         </td>
 
                         {/* Status */}
-                        <td className="px-3 py-3 whitespace-nowrap">
+                        <td className="px-5 py-3.5 whitespace-nowrap">
                           {isApproved && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">
                               <CheckCircle2 className="h-3 w-3" /> Approved
                             </span>
                           )}
                           {isPending && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600">
                               <Clock className="h-3 w-3" /> Pending
                             </span>
                           )}
                           {isRejected && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600">
                               <XCircle className="h-3 w-3" /> Rejected
                             </span>
                           )}
                         </td>
 
+                        {/* Submitted Date */}
+                        <td className="hidden px-5 py-3.5 text-muted-foreground text-xs sm:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span>{createdAt ? new Date(createdAt).toLocaleDateString() : "N/A"}</span>
+                          </div>
+                        </td>
+
                         {/* Actions */}
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1">
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
                             <Button
                               size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground rounded-lg"
+                              variant="outline"
+                              className="h-8 text-xs font-semibold gap-1 cursor-pointer"
                               onClick={() => setSelectedItem(item)}
                               title="View full review"
                             >
-                              <Eye className="h-3.5 w-3.5" />
+                              <Eye className="h-3.5 w-3.5" /> View
                             </Button>
 
                             {isPending && (
                               <>
                                 <Button
                                   size="sm"
-                                  className="h-7 text-xs px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg"
+                                  className="h-8 text-xs px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
                                   onClick={() => approveMutation.mutate(item.id)}
                                   disabled={approveMutation.isPending}
                                 >
@@ -552,7 +563,7 @@ function AdminTestimonialsPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-7 text-xs px-2 text-rose-600 border-rose-200 hover:bg-rose-50 rounded-lg"
+                                  className="h-8 text-xs px-2 text-rose-600 border-rose-200 hover:bg-rose-50 font-semibold cursor-pointer"
                                   onClick={() => handleOpenRejectModal(item)}
                                 >
                                   Reject
@@ -564,7 +575,7 @@ function AdminTestimonialsPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-7 text-[11px] px-2 text-muted-foreground hover:text-rose-600 rounded-lg"
+                                className="h-8 text-xs px-2 text-muted-foreground hover:text-rose-600 font-semibold cursor-pointer"
                                 onClick={() => handleOpenRejectModal(item)}
                               >
                                 Unpublish
@@ -575,7 +586,7 @@ function AdminTestimonialsPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-7 text-[11px] px-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50 rounded-lg"
+                                className="h-8 text-xs px-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50 font-semibold cursor-pointer"
                                 onClick={() => approveMutation.mutate(item.id)}
                               >
                                 Approve
@@ -585,7 +596,7 @@ function AdminTestimonialsPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-600 rounded-lg"
+                              className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer shrink-0"
                               onClick={() => handleDelete(item.id, studentName)}
                               title="Delete permanently"
                             >

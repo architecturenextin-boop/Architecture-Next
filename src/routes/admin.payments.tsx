@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { adminService } from "@/lib/services/admin.service";
-import { Loader2, Search, CreditCard, ArrowUpRight, CheckCircle2, Clock, AlertTriangle, IndianRupee, Eye, X, BookOpen, User } from "lucide-react";
+import { Loader2, Search, CreditCard, ArrowUpRight, CheckCircle2, Clock, AlertTriangle, IndianRupee, Eye, X, BookOpen, User, Calendar, Mail, Phone, XCircle } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -239,66 +239,97 @@ function PaymentsPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
-                    <th className="px-5 py-3.5 text-left">Order & Gateway</th>
-                    <th className="px-5 py-3.5 text-left">Student</th>
+                    <th className="px-5 py-3.5 text-left">Student / User</th>
+                    <th className="hidden px-5 py-3.5 text-left md:table-cell">Contact & Order</th>
                     <th className="hidden px-5 py-3.5 text-left sm:table-cell">Course</th>
-                    <th className="hidden px-5 py-3.5 text-left md:table-cell">Date</th>
                     <th className="px-5 py-3.5 text-left">Status</th>
+                    <th className="hidden px-5 py-3.5 text-left lg:table-cell">Date</th>
                     <th className="px-5 py-3.5 text-right">Amount</th>
                     <th className="px-5 py-3.5 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filteredPayments.map((r: any) => {
-                    const date = r.created_at ? new Date(r.created_at).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "N/A";
+                    const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : "N/A";
                     const currSymbol = r.currency === "INR" || !r.currency ? "₹" : r.currency;
                     const isManual = r.gateway === "manual";
+                    const initial = (r.studentName || r.studentEmail || "L")[0].toUpperCase();
+
                     return (
                       <tr key={r.id} className="hover:bg-muted/20 transition-colors">
+                        {/* Student / User */}
                         <td className="px-5 py-3.5">
-                          <div className="space-y-0.5">
-                            <span className="font-mono text-xs font-bold text-foreground block truncate max-w-[180px]">
-                              {r.orderId}
-                            </span>
-                            <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md inline-block ${
-                              isManual
-                                ? "bg-purple-500/10 text-purple-600 border border-purple-500/20"
-                                : r.gateway === "COUPON"
-                                ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                                : "bg-muted text-muted-foreground"
-                            }`}>
-                              {isManual ? "Direct Enrollment" : r.gateway || "Razorpay"}
-                            </span>
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground">
+                              {initial}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-semibold text-foreground block truncate">
+                                {r.studentName || "Learner"}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground font-mono block">
+                                ID: {(r.studentId || r.userId || r.id).substring(0, 8)}...
+                              </span>
+                            </div>
                           </div>
                         </td>
 
-                        <td className="px-5 py-3.5">
-                          <div className="space-y-0.5">
-                            <span className="font-semibold text-foreground block">{r.studentName}</span>
-                            <span className="text-[11px] text-muted-foreground block truncate max-w-[160px]">{r.studentEmail}</span>
+                        {/* Contact & Order */}
+                        <td className="hidden px-5 py-3.5 md:table-cell">
+                          <div className="space-y-0.5 text-xs">
+                            <div className="flex items-center gap-1.5 text-foreground">
+                              <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate max-w-[200px]">{r.studentEmail || "No email"}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-muted-foreground font-mono text-[11px]">
+                              <span className="truncate max-w-[180px]">{r.orderId}</span>
+                              <span className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
+                                isManual
+                                  ? "bg-purple-500/10 text-purple-600"
+                                  : r.gateway === "COUPON"
+                                  ? "bg-emerald-500/10 text-emerald-600"
+                                  : "bg-muted text-muted-foreground"
+                              }`}>
+                                {isManual ? "Direct" : r.gateway || "Razorpay"}
+                              </span>
+                            </div>
                           </div>
                         </td>
 
-                        <td className="hidden px-5 py-3.5 text-muted-foreground sm:table-cell font-medium max-w-[200px] truncate">
-                          {r.courseTitle}
-                        </td>
-
-                        <td className="hidden px-5 py-3.5 text-muted-foreground text-xs md:table-cell whitespace-nowrap">
-                          {date}
-                        </td>
-
-                        <td className="px-5 py-3.5">
-                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
-                            r.status === "completed" 
-                              ? "bg-success/15 text-success" 
-                              : r.status === "pending" 
-                              ? "bg-amber-500/15 text-amber-600" 
-                              : "bg-destructive/15 text-destructive"
-                          }`}>
-                            {r.status}
+                        {/* Course */}
+                        <td className="hidden px-5 py-3.5 sm:table-cell">
+                          <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold bg-primary/10 text-primary truncate max-w-[200px]" title={r.courseTitle}>
+                            <BookOpen className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{r.courseTitle}</span>
                           </span>
                         </td>
 
+                        {/* Status */}
+                        <td className="px-5 py-3.5">
+                          {r.status === "completed" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">
+                              <CheckCircle2 className="h-3 w-3" /> Completed
+                            </span>
+                          ) : r.status === "pending" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600">
+                              <Clock className="h-3 w-3" /> Pending
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600">
+                              <XCircle className="h-3 w-3" /> Failed
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Joined / Date */}
+                        <td className="hidden px-5 py-3.5 text-muted-foreground text-xs lg:table-cell">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{date}</span>
+                          </div>
+                        </td>
+
+                        {/* Amount */}
                         <td className="px-5 py-3.5 text-right font-display font-bold text-base text-foreground whitespace-nowrap">
                           <div>
                             <span>{currSymbol}{Number(r.finalAmount ?? r.amount).toLocaleString()}</span>
@@ -310,12 +341,13 @@ function PaymentsPage() {
                           </div>
                         </td>
 
+                        {/* Action */}
                         <td className="px-5 py-3.5 text-right">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setSelectedPayment(r)}
-                            className="h-8 text-xs font-semibold gap-1"
+                            className="h-8 text-xs font-semibold gap-1 cursor-pointer"
                           >
                             <Eye className="h-3.5 w-3.5" /> Inspect
                           </Button>

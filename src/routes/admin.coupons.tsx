@@ -10,12 +10,17 @@ import {
   CheckCircle2,
   Trash2,
   Edit2,
+  Edit3,
   Sparkles,
   Loader2,
   Copy,
   Check,
   X,
   ShieldAlert,
+  Calendar,
+  BookOpen,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
@@ -393,20 +398,19 @@ function AdminCouponsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border/80 bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3.5">Code</th>
-                  <th className="px-5 py-3.5">Discount</th>
-                  <th className="px-5 py-3.5">Course</th>
-                  <th className="px-5 py-3.5">Used / Limit</th>
-                  <th className="px-5 py-3.5">Per User</th>
-                  <th className="px-5 py-3.5">Expiry</th>
-                  <th className="px-5 py-3.5 text-center">Status</th>
+                  <th className="px-5 py-3.5 text-left">Coupon / Code</th>
+                  <th className="px-5 py-3.5 text-left">Discount</th>
+                  <th className="hidden px-5 py-3.5 text-left md:table-cell">Course</th>
+                  <th className="hidden px-5 py-3.5 text-left sm:table-cell">Usage & Limit</th>
+                  <th className="hidden px-5 py-3.5 text-left lg:table-cell">Expiry</th>
+                  <th className="px-5 py-3.5 text-left">Status</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/60">
+              <tbody className="divide-y divide-border">
                 {filteredCoupons.map((coupon) => {
                   const isExpired = coupon.expiresAt && new Date(coupon.expiresAt) < new Date();
                   const isLimitReached =
@@ -415,37 +419,47 @@ function AdminCouponsPage() {
                     coupon.usedCount >= coupon.usageLimit;
 
                   return (
-                    <tr key={coupon.id} className="transition-colors hover:bg-muted/30">
+                    <tr key={coupon.id} className="hover:bg-muted/20 transition-colors">
                       {/* Code */}
-                      <td className="px-5 py-4 font-mono font-bold">
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs text-primary">
-                            {coupon.code}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard(coupon.code)}
-                            title="Copy code"
-                            className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                          >
-                            {copiedCode === coupon.code ? (
-                              <Check className="h-3.5 w-3.5 text-emerald-500" />
-                            ) : (
-                              <Copy className="h-3.5 w-3.5" />
-                            )}
-                          </button>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground">
+                            <Tag className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-xs font-bold text-foreground block">
+                                {coupon.code}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => copyToClipboard(coupon.code)}
+                                title="Copy code"
+                                className="text-muted-foreground hover:text-foreground transition-colors p-0.5 cursor-pointer"
+                              >
+                                {copiedCode === coupon.code ? (
+                                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                                ) : (
+                                  <Copy className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                            </div>
+                            <span className="text-[11px] text-muted-foreground block">
+                              {coupon.discountType === "PERCENT" ? "Percentage Promo" : "Flat Discount"}
+                            </span>
+                          </div>
                         </div>
                       </td>
 
                       {/* Discount Value */}
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3.5">
                         {coupon.discountType === "FLAT" ? (
-                          <div className="font-semibold text-foreground">
+                          <div className="font-semibold text-foreground text-sm">
                             ₹{coupon.discountValue.toLocaleString()} off
                           </div>
                         ) : (
                           <div>
-                            <span className="font-semibold text-foreground">
+                            <span className="font-semibold text-foreground text-sm">
                               {coupon.discountValue}% off
                             </span>
                             {coupon.maxDiscount && (
@@ -458,104 +472,104 @@ function AdminCouponsPage() {
                       </td>
 
                       {/* Course */}
-                      <td className="px-5 py-4">
+                      <td className="hidden px-5 py-3.5 md:table-cell">
                         {coupon.course ? (
-                          <span className="line-clamp-1 max-w-[180px] font-medium text-foreground text-xs" title={coupon.course.title}>
-                            {coupon.course.title}
+                          <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary truncate max-w-[200px]" title={coupon.course.title}>
+                            <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{coupon.course.title}</span>
                           </span>
                         ) : (
-                          <span className="inline-flex rounded-md bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                            All Courses
+                          <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                            <BookOpen className="h-3.5 w-3.5 shrink-0" /> All Courses
                           </span>
                         )}
                       </td>
 
                       {/* Used / Limit */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">
-                            {coupon.usedCount}
-                          </span>
-                          <span className="text-muted-foreground">
-                            / {coupon.usageLimit !== null && coupon.usageLimit !== undefined ? coupon.usageLimit : "∞"}
-                          </span>
-                          {isLimitReached && (
-                            <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold text-destructive">
-                              Full
+                      <td className="hidden px-5 py-3.5 sm:table-cell">
+                        <div className="space-y-0.5 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-foreground">
+                              {coupon.usedCount}
                             </span>
-                          )}
+                            <span className="text-muted-foreground">
+                              / {coupon.usageLimit !== null && coupon.usageLimit !== undefined ? coupon.usageLimit : "∞"}
+                            </span>
+                            {isLimitReached && (
+                              <span className="rounded bg-rose-500/10 px-1.5 py-0.2 text-[10px] font-bold text-rose-600">
+                                Full
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-muted-foreground block">
+                            {coupon.perUserLimit || 1} {coupon.perUserLimit === 1 ? "use/user" : "uses/user"}
+                          </span>
                         </div>
                       </td>
 
-                      {/* Per User */}
-                      <td className="px-5 py-4 text-xs text-muted-foreground">
-                        {coupon.perUserLimit || 1} {coupon.perUserLimit === 1 ? "use/user" : "uses/user"}
-                      </td>
-
                       {/* Expiry */}
-                      <td className="px-5 py-4 text-xs">
+                      <td className="hidden px-5 py-3.5 text-xs lg:table-cell">
                         {coupon.expiresAt ? (
-                          <span className={isExpired ? "text-destructive font-semibold" : "text-muted-foreground"}>
-                            {new Date(coupon.expiresAt).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                            {isExpired && " (Expired)"}
-                          </span>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className={isExpired ? "text-rose-600 font-semibold" : ""}>
+                              {new Date(coupon.expiresAt).toLocaleDateString()}
+                              {isExpired && " (Expired)"}
+                            </span>
+                          </div>
                         ) : (
-                          <span className="text-muted-foreground">Never</span>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span>Never</span>
+                          </div>
                         )}
                       </td>
 
-                      {/* Status Toggle */}
-                      <td className="px-5 py-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleMutation.mutate(coupon.id)}
-                          disabled={toggleMutation.isPending}
-                          className="inline-flex items-center gap-2 text-xs font-semibold focus:outline-none"
-                        >
-                          <span
-                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                              coupon.isActive ? "bg-emerald-500" : "bg-muted-foreground/30"
-                            }`}
-                          >
-                            <span
-                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                                coupon.isActive ? "translate-x-4" : "translate-x-0"
-                              }`}
-                            />
+                      {/* Status */}
+                      <td className="px-5 py-3.5">
+                        {isExpired ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600">
+                            <Clock className="h-3 w-3" /> Expired
                           </span>
-                          <span
-                            className={
-                              coupon.isActive && !isExpired
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-muted-foreground"
-                            }
+                        ) : coupon.isActive ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleMutation.mutate(coupon.id)}
+                            disabled={toggleMutation.isPending}
+                            className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                            title="Click to toggle status"
                           >
-                            {coupon.isActive ? "Active" : "Off"}
-                          </span>
-                        </button>
+                            <CheckCircle2 className="h-3 w-3" /> Active
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => toggleMutation.mutate(coupon.id)}
+                            disabled={toggleMutation.isPending}
+                            className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer"
+                            title="Click to toggle status"
+                          >
+                            <XCircle className="h-3 w-3" /> Inactive
+                          </button>
+                        )}
                       </td>
 
                       {/* Actions */}
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
-                            variant="ghost"
                             size="sm"
+                            variant="outline"
                             onClick={() => handleOpenEdit(coupon)}
-                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                            title="Edit coupon"
+                            className="h-8 text-xs font-semibold gap-1.5 cursor-pointer"
                           >
-                            <Edit2 className="h-4 w-4" />
+                            <Edit3 className="h-3.5 w-3.5" /> Edit
                           </Button>
                           <Button
-                            variant="ghost"
                             size="sm"
+                            variant="ghost"
                             onClick={() => setDeletingCoupon(coupon)}
-                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                            className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer shrink-0"
                             title="Delete or deactivate coupon"
                           >
                             <Trash2 className="h-4 w-4" />
