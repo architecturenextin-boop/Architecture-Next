@@ -117,7 +117,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // ONLY handle http and https requests (ignore chrome-extension:, moz-extension:, etc.)
+  if (!request.url.startsWith("http://") && !request.url.startsWith("https://")) {
+    return;
+  }
+
   const url = new URL(request.url);
+
+  // In development, ignore Vite internal endpoints & HMR scripts
+  if (
+    url.pathname.startsWith("/@") ||
+    url.pathname.includes("/node_modules/") ||
+    url.pathname.startsWith("/src/")
+  ) {
+    return;
+  }
 
   // NEVER intercept admin API endpoints, uploads, or direct Cloudflare R2 uploads
   if (
@@ -153,8 +167,8 @@ self.addEventListener("fetch", (event) => {
           const networkResponse = await fetch(request);
           if (networkResponse && networkResponse.status === 200) {
             const cache = await caches.open(APP_SHELL_CACHE);
-            cache.put(request, networkResponse.clone());
-            cache.put("/index.html", networkResponse.clone());
+            cache.put(request, networkResponse.clone()).catch(() => {});
+            cache.put("/index.html", networkResponse.clone()).catch(() => {});
           }
           return networkResponse;
         } catch (err) {
@@ -198,7 +212,7 @@ self.addEventListener("fetch", (event) => {
           .then(async (networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               const cache = await caches.open(STATIC_ASSETS_CACHE);
-              cache.put(request, networkResponse.clone());
+              cache.put(request, networkResponse.clone()).catch(() => {});
             }
             return networkResponse;
           })
@@ -218,7 +232,7 @@ self.addEventListener("fetch", (event) => {
           const networkResponse = await fetch(request);
           if (networkResponse && networkResponse.status === 200) {
             const cache = await caches.open(API_CACHE);
-            cache.put(request, networkResponse.clone());
+            cache.put(request, networkResponse.clone()).catch(() => {});
           }
           return networkResponse;
         } catch (_) {
