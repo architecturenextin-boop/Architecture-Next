@@ -47,6 +47,7 @@ function StudentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  const [statusExplainerStudent, setStatusExplainerStudent] = useState<any | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     full_name: "",
@@ -493,15 +494,34 @@ function StudentsPage() {
                       </div>
                     </div>
 
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0 ${
-                        r.role === "admin"
-                          ? "bg-purple-500/15 text-purple-600 border border-purple-500/20"
-                          : "bg-emerald-500/15 text-emerald-600"
-                      }`}
-                    >
-                      {r.role || "student"}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {r.onboarded ? (
+                        <span
+                          onClick={() => toast.info(`${r.full_name || "Learner"} has fully completed profile onboarding.`)}
+                          className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <CheckCircle2 className="h-2.5 w-2.5" /> Onboarded
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setStatusExplainerStudent(r)}
+                          className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-semibold text-amber-600 inline-flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+                          title="Click to see why this is pending"
+                        >
+                          <AlertTriangle className="h-2.5 w-2.5" /> Pending
+                        </button>
+                      )}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                          r.role === "admin"
+                            ? "bg-purple-500/15 text-purple-600 border border-purple-500/20"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {r.role || "student"}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="space-y-1 text-xs text-muted-foreground border-y border-border/60 py-2.5">
@@ -650,13 +670,23 @@ function StudentsPage() {
                         {/* Onboarded Status */}
                         <td className="hidden px-5 py-3.5 sm:table-cell">
                           {r.onboarded ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">
+                            <button
+                              type="button"
+                              onClick={() => toast.info(`${r.full_name || "Learner"} has completed onboarding & verified account.`)}
+                              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                              title="Account verified & onboarded"
+                            >
                               <CheckCircle2 className="h-3 w-3" /> Onboarded
-                            </span>
+                            </button>
                           ) : (
-                            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600">
-                              Pending
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setStatusExplainerStudent(r)}
+                              className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 hover:bg-amber-500/25 transition-all cursor-pointer shadow-xs active:scale-95"
+                              title="Click to view why this student is pending"
+                            >
+                              <AlertTriangle className="h-3 w-3" /> Pending
+                            </button>
                           )}
                         </td>
 
@@ -782,6 +812,133 @@ function StudentsPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Why is this Pending? Diagnostic Explainer Modal */}
+      {statusExplainerStudent && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 animate-fade-in"
+          onClick={() => setStatusExplainerStudent(null)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-elevated"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-amber-500/15 text-amber-600">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-base font-bold text-foreground">
+                    Why is Status Pending?
+                  </h3>
+                  <p className="text-xs text-muted-foreground truncate max-w-[240px]">
+                    {statusExplainerStudent.full_name || statusExplainerStudent.email}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setStatusExplainerStudent(null)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors"
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Diagnostic Breakdown */}
+            <div className="mt-4 space-y-2.5">
+              <p className="text-xs text-muted-foreground">
+                Here is why this account is marked as <strong>Pending</strong>:
+              </p>
+
+              {/* 1. Onboarding Form */}
+              <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground flex items-center gap-1.5">
+                    <UserCheck className="h-3.5 w-3.5 text-primary" /> Profile Onboarding
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                    Pending
+                  </span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  User signed up via email/Google but did not finish the onboarding form (name, username, and learning goals).
+                </p>
+              </div>
+
+              {/* 2. Course Payment & Enrollment */}
+              <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground flex items-center gap-1.5">
+                    <BookOpen className="h-3.5 w-3.5 text-primary" /> Course & Payment
+                  </span>
+                  {(statusExplainerStudent.coursesCount ?? statusExplainerStudent.enrollments?.length ?? 0) === 0 ? (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded-full">
+                      Not Enrolled
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                      {statusExplainerStudent.coursesCount} Course(s)
+                    </span>
+                  )}
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  {(statusExplainerStudent.coursesCount ?? statusExplainerStudent.enrollments?.length ?? 0) === 0
+                    ? "Payment not completed or no course assigned yet. The student cannot view course lessons until enrolled."
+                    : "Student has enrolled in courses, but onboarding profile setup remains incomplete."}
+                </p>
+              </div>
+
+              {/* 3. Mobile Number */}
+              <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5 text-primary" /> Mobile Contact
+                  </span>
+                  {!statusExplainerStudent.phone ? (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                      Missing
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                      +91 {statusExplainerStudent.phone}
+                    </span>
+                  )}
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  {!statusExplainerStudent.phone
+                    ? "Mobile number not provided yet. A 10-digit phone number is required during onboarding."
+                    : "Mobile number is registered on file."}
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setStatusExplainerStudent(null)}
+                className="text-xs h-8 cursor-pointer"
+              >
+                Close
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSelectedStudent(statusExplainerStudent);
+                  setStatusExplainerStudent(null);
+                }}
+                className="text-xs h-8 bg-primary text-primary-foreground font-semibold cursor-pointer gap-1.5"
+              >
+                <Eye className="h-3.5 w-3.5" /> Open Student Details
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Student Details & Course Enrollment Modal */}

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { testimonialService } from "@/lib/services/testimonial.service";
 import type { AdminTestimonialItem, TestimonialStatus } from "@/lib/database.types";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import {
   MessageSquareQuote,
@@ -21,7 +21,9 @@ import {
   Calendar,
   Loader2,
   Eye,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,6 +37,8 @@ function AdminTestimonialsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | TestimonialStatus>("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedItem, setSelectedItem] = useState<AdminTestimonialItem | null>(null);
   
   // Rejection modal state
@@ -90,6 +94,17 @@ function AdminTestimonialsPage() {
       );
     });
   }, [testimonials, search]);
+
+  // Reset pagination on search or statusFilter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTestimonials.length / pageSize));
+  const paginatedTestimonials = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredTestimonials.slice(start, start + pageSize);
+  }, [filteredTestimonials, currentPage, pageSize]);
 
   // Mutations
   const approveMutation = useMutation({
@@ -300,7 +315,7 @@ function AdminTestimonialsPage() {
         <div className="space-y-4">
           {/* Mobile Cards (< 640px) */}
           <div className="space-y-3 sm:hidden">
-            {filteredTestimonials.map((item: any) => {
+            {paginatedTestimonials.map((item: any) => {
               const isPending = item.status === "PENDING";
               const isApproved = item.status === "APPROVED";
               const isRejected = item.status === "REJECTED";
@@ -332,9 +347,14 @@ function AdminTestimonialsPage() {
                       </span>
                     )}
                     {isPending && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                        Pending
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedItem(item)}
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400 cursor-pointer active:scale-95 transition-all"
+                        title="Awaiting moderation — Click to review"
+                      >
+                        <Clock className="h-3 w-3" /> Pending Review
+                      </button>
                     )}
                     {isRejected && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
@@ -455,7 +475,7 @@ function AdminTestimonialsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredTestimonials.map((item: any) => {
+                  {paginatedTestimonials.map((item: any) => {
                     const isPending = item.status === "PENDING";
                     const isApproved = item.status === "APPROVED";
                     const isRejected = item.status === "REJECTED";
@@ -532,9 +552,14 @@ function AdminTestimonialsPage() {
                             </span>
                           )}
                           {isPending && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600">
-                              <Clock className="h-3 w-3" /> Pending
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedItem(item)}
+                              className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 hover:bg-amber-500/25 transition-all cursor-pointer shadow-xs active:scale-95"
+                              title="Pending moderation — Click to review & approve"
+                            >
+                              <Clock className="h-3 w-3" /> Pending Review
+                            </button>
                           )}
                           {isRejected && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600">
@@ -625,6 +650,98 @@ function AdminTestimonialsPage() {
               </table>
             </div>
           </div>
+
+          {/* Pagination Controls */}
+          {filteredTestimonials.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span>
+                  Showing{" "}
+                  <strong className="font-semibold text-foreground">
+                    {(currentPage - 1) * pageSize + 1}
+                  </strong>{" "}
+                  to{" "}
+                  <strong className="font-semibold text-foreground">
+                    {Math.min(currentPage * pageSize, filteredTestimonials.length)}
+                  </strong>{" "}
+                  of{" "}
+                  <strong className="font-semibold text-foreground">
+                    {filteredTestimonials.length}
+                  </strong>{" "}
+                  reviews
+                </span>
+                <span className="hidden sm:inline text-muted-foreground/40">•</span>
+                <div className="hidden sm:flex items-center gap-1.5">
+                  <span>Rows:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="h-7 rounded-lg border border-border bg-card px-2 text-xs font-semibold text-foreground outline-none cursor-pointer"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="h-8 px-2.5 text-xs font-semibold gap-1 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Prev
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => {
+                      return (
+                        p === 1 ||
+                        p === totalPages ||
+                        Math.abs(p - currentPage) <= 1
+                      );
+                    })
+                    .map((p, idx, arr) => {
+                      const prev = arr[idx - 1];
+                      const showEllipsis = prev && p - prev > 1;
+                      return (
+                        <div key={p} className="flex items-center gap-1">
+                          {showEllipsis && <span className="px-1 text-muted-foreground">...</span>}
+                          <button
+                            onClick={() => setCurrentPage(p)}
+                            className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                              currentPage === p
+                                ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                                : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="h-8 px-2.5 text-xs font-semibold gap-1 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Next <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
