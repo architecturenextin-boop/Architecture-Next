@@ -638,3 +638,33 @@ iframe[id^="gsi_"] {
   margin: 0 auto !important;
   box-sizing: border-box !important;
 }
+
+/* Visible, touch & mouse draggable horizontal scrollbar for data tables on Windows & all devices */
+.table-scrollbar-x {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x pan-y !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(100, 116, 139, 0.45) rgba(0, 0, 0, 0.05) !important;
+}
+
+.table-scrollbar-x::-webkit-scrollbar {
+  height: 8px !important;
+  display: block !important;
+}
+
+.table-scrollbar-x::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-radius: 9999px !important;
+  margin: 0 8px !important;
+}
+
+.table-scrollbar-x::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.45) !important;
+  border-radius: 9999px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.7) !important;
+}
+
+.table-scrollbar-x::-webkit-scrollbar-thumb:hover {
+  background: rgba(41, 67, 152, 0.75) !important;
+}

@@ -22,6 +22,8 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Circle,
   Clock,
   PlayCircle,
@@ -42,6 +44,8 @@ export const Route = createFileRoute("/admin/students")({
 function StudentsPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "student" | "admin">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -329,6 +333,18 @@ function StudentsPage() {
     });
   }, [students, search, roleFilter]);
 
+  // Reset to page 1 whenever search query or role filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, roleFilter]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1;
+  const paginatedStudents = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredStudents.slice(start, start + pageSize);
+  }, [filteredStudents, currentPage, pageSize]);
+
   // Key stats
   const totalStudents = students.length;
   const enrolledStudents = students.filter((s: any) => s.coursesCount > 0).length;
@@ -455,7 +471,7 @@ function StudentsPage() {
         <>
           {/* Mobile Student Cards (< 640px) */}
           <div className="space-y-3.5 sm:hidden">
-            {filteredStudents.map((r: any) => {
+            {paginatedStudents.map((r: any) => {
               const coursesCount = r.coursesCount || 0;
               const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : "N/A";
               const initial = (r.full_name || r.email || "L")[0].toUpperCase();
@@ -542,37 +558,56 @@ function StudentsPage() {
 
           {/* Tablet & Desktop Table (>= 640px) */}
           <div className="hidden sm:block overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-            <div className="overflow-x-auto">
+            <div
+              className="table-scrollbar-x"
+              onWheel={(e) => {
+                const el = e.currentTarget;
+                if (el.scrollWidth > el.clientWidth) {
+                  if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && !e.shiftKey) {
+                    const atLeft = el.scrollLeft <= 0;
+                    const atRight = Math.ceil(el.scrollLeft + el.clientWidth) >= el.scrollWidth;
+                    if ((e.deltaY > 0 && !atRight) || (e.deltaY < 0 && !atLeft)) {
+                      el.scrollLeft += e.deltaY;
+                    }
+                  }
+                }
+              }}
+            >
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
                     <th className="px-5 py-3.5 text-left">Student / User</th>
                     <th className="hidden px-5 py-3.5 text-left md:table-cell">Contact</th>
                     <th className="px-5 py-3.5 text-left">Enrollments</th>
-                    <th className="hidden px-5 py-3.5 text-left lg:table-cell">Status</th>
-                    <th className="hidden px-5 py-3.5 text-left sm:table-cell">Joined</th>
-                    <th className="px-5 py-3.5 text-left">Role</th>
-                    <th className="px-5 py-3.5 text-right">Actions</th>
+                    <th className="hidden px-5 py-3.5 text-left sm:table-cell">Status</th>
+                    <th className="px-5 py-3.5 text-right">Details</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredStudents.map((r: any) => {
+                  {paginatedStudents.map((r: any) => {
                     const coursesCount = r.coursesCount || 0;
                     const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : "N/A";
                     const initial = (r.full_name || r.email || "L")[0].toUpperCase();
 
                     return (
                       <tr key={r.id} className="hover:bg-muted/20 transition-colors">
-                        {/* Student Name & ID */}
+                        {/* Student Name, ID & Role */}
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
                             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground">
                               {initial}
                             </div>
                             <div className="min-w-0">
-                              <span className="font-semibold text-foreground block truncate">
-                                {r.full_name || "Learner"}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-foreground block truncate">
+                                  {r.full_name || "Learner"}
+                                </span>
+                                {r.role === "admin" && (
+                                  <span className="rounded-full px-2 py-0.2 text-[9px] font-bold uppercase tracking-wider bg-purple-500/15 text-purple-600 border border-purple-500/20 shrink-0">
+                                    Admin
+                                  </span>
+                                )}
+                              </div>
                               <span className="text-[11px] text-muted-foreground font-mono block">
                                 ID: {r.id.substring(0, 8)}...
                               </span>
@@ -613,7 +648,7 @@ function StudentsPage() {
                         </td>
 
                         {/* Onboarded Status */}
-                        <td className="hidden px-5 py-3.5 lg:table-cell">
+                        <td className="hidden px-5 py-3.5 sm:table-cell">
                           {r.onboarded ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600">
                               <CheckCircle2 className="h-3 w-3" /> Onboarded
@@ -625,44 +660,27 @@ function StudentsPage() {
                           )}
                         </td>
 
-                        {/* Joined Date */}
-                        <td className="hidden px-5 py-3.5 text-muted-foreground text-xs sm:table-cell">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span>{date}</span>
-                          </div>
-                        </td>
-
-                        {/* Role */}
-                        <td className="px-5 py-3.5">
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
-                              r.role === "admin"
-                                ? "bg-purple-500/15 text-purple-600 border border-purple-500/20"
-                                : "bg-emerald-500/15 text-emerald-600"
-                            }`}
-                          >
-                            {r.role || "student"}
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-5 py-3.5 text-right">
-                          <div className="inline-flex items-center gap-1.5">
+                        {/* Details Button in the place of Joined */}
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center justify-end gap-2">
+                            <div className="hidden xl:flex items-center gap-1 text-muted-foreground text-xs mr-1" title={`Joined on ${date}`}>
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span>{date}</span>
+                            </div>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => setSelectedStudent(r)}
-                              className="h-8 text-xs font-semibold gap-1 cursor-pointer"
+                              className="h-8 text-xs font-semibold gap-1.5 cursor-pointer shadow-xs hover:border-primary/50 hover:bg-primary/5"
                             >
-                              <Eye className="h-3.5 w-3.5" /> Details
+                              <Eye className="h-3.5 w-3.5 text-primary" /> Details
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDeleteStudent(r)}
-                              className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
-                              title="Delete User"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer shrink-0"
+                              title="Delete user"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -675,6 +693,98 @@ function StudentsPage() {
               </table>
             </div>
           </div>
+
+          {/* Pagination Controls */}
+          {filteredStudents.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span>
+                  Showing{" "}
+                  <strong className="font-semibold text-foreground">
+                    {(currentPage - 1) * pageSize + 1}
+                  </strong>{" "}
+                  to{" "}
+                  <strong className="font-semibold text-foreground">
+                    {Math.min(currentPage * pageSize, filteredStudents.length)}
+                  </strong>{" "}
+                  of{" "}
+                  <strong className="font-semibold text-foreground">
+                    {filteredStudents.length}
+                  </strong>{" "}
+                  students
+                </span>
+                <span className="hidden sm:inline text-muted-foreground/40">•</span>
+                <div className="hidden sm:flex items-center gap-1.5">
+                  <span>Rows:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="h-7 rounded-lg border border-border bg-card px-2 text-xs font-semibold text-foreground outline-none cursor-pointer"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="h-8 px-2.5 text-xs font-semibold gap-1 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Prev
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => {
+                      return (
+                        p === 1 ||
+                        p === totalPages ||
+                        Math.abs(p - currentPage) <= 1
+                      );
+                    })
+                    .map((p, idx, arr) => {
+                      const prev = arr[idx - 1];
+                      const showEllipsis = prev && p - prev > 1;
+                      return (
+                        <div key={p} className="flex items-center gap-1">
+                          {showEllipsis && <span className="px-1 text-muted-foreground">...</span>}
+                          <button
+                            onClick={() => setCurrentPage(p)}
+                            className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                              currentPage === p
+                                ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                                : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="h-8 px-2.5 text-xs font-semibold gap-1 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Next <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

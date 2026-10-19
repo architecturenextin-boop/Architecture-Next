@@ -427,7 +427,21 @@ function AdminTestimonialsPage() {
 
           {/* Desktop & Tablet Minimal Table (>= 640px) */}
           <div className="hidden sm:block overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-            <div className="overflow-x-auto">
+            <div
+              className="table-scrollbar-x"
+              onWheel={(e) => {
+                const el = e.currentTarget;
+                if (el.scrollWidth > el.clientWidth) {
+                  if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && !e.shiftKey) {
+                    const atLeft = el.scrollLeft <= 0;
+                    const atRight = Math.ceil(el.scrollLeft + el.clientWidth) >= el.scrollWidth;
+                    if ((e.deltaY > 0 && !atRight) || (e.deltaY < 0 && !atLeft)) {
+                      el.scrollLeft += e.deltaY;
+                    }
+                  }
+                }
+              }}
+            >
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
