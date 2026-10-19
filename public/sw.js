@@ -130,14 +130,17 @@ self.addEventListener("fetch", (event) => {
   }
 
   // 1. VIDEO & HLS OFFLINE INTERCEPTION (GET only)
+  // ONLY intercept if device is offline OR if requesting an offline HLS virtual stream (/api/v1/media/hls/)
+  // Normal online video streams bypass the Service Worker completely so the browser's native HTTP/Range engine handles them directly.
+  const isOfflineHlsStream = url.pathname.includes("/media/hls/");
+  const isOffline = typeof self.navigator !== "undefined" && !self.navigator.onLine;
   const isVideoOrStream =
     url.pathname.endsWith(".m3u8") ||
     url.pathname.endsWith(".ts") ||
     url.pathname.endsWith(".mp4") ||
-    url.pathname.includes("/hls/") ||
     url.pathname.includes("/media/");
 
-  if (isVideoOrStream) {
+  if (isOfflineHlsStream || (isOffline && isVideoOrStream)) {
     event.respondWith(handleOfflineMedia(event, url));
     return;
   }
@@ -232,6 +235,56 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+// Helper: Serve ArrayBuffer with standard Range header support (HTTP 206 Partial Content)
+function makeRangeResponse(buffer, requestHeaders, contentType) {
+  const rangeHeader = requestHeaders ? requestHeaders.get("range") : null;
+  const totalLength = buffer.byteLength;
+
+  if (!rangeHeader) {
+    return new Response(buffer, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Accept-Ranges": "bytes",
+        "Content-Length": totalLength.toString(),
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-SkillSpring-Offline": "true",
+      },
+    });
+  }
+
+  const matches = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+  if (!matches) {
+    return new Response(null, {
+      status: 416,
+      headers: { "Content-Range": `bytes */${totalLength}` },
+    });
+  }
+
+  const start = parseInt(matches[1], 10);
+  const end = matches[2] ? parseInt(matches[2], 10) : totalLength - 1;
+
+  if (start >= totalLength || end >= totalLength || start > end) {
+    return new Response(null, {
+      status: 416,
+      headers: { "Content-Range": `bytes */${totalLength}` },
+    });
+  }
+
+  const chunk = buffer.slice(start, end + 1);
+  return new Response(chunk, {
+    status: 206,
+    headers: {
+      "Content-Type": contentType,
+      "Accept-Ranges": "bytes",
+      "Content-Range": `bytes ${start}-${end}/${totalLength}`,
+      "Content-Length": chunk.byteLength.toString(),
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "X-SkillSpring-Offline": "true",
+    },
+  });
+}
+
 // Video / HLS Stream decryptor and server
 async function handleOfflineMedia(event, url) {
   const pathParts = url.pathname.split("/").filter(Boolean);
@@ -268,16 +321,7 @@ async function handleOfflineMedia(event, url) {
             mp4Record.encryptedData
           );
 
-          return new Response(decryptedBuffer, {
-            status: 200,
-            headers: {
-              "Content-Type": "video/mp4",
-              "Accept-Ranges": "bytes",
-              "Content-Length": decryptedBuffer.byteLength.toString(),
-              "Cache-Control": "public, max-age=31536000, immutable",
-              "X-SkillSpring-Offline": "true",
-            },
-          });
+          return makeRangeResponse(decryptedBuffer, event.request?.headers, "video/mp4");
         }
       }
     }
@@ -317,16 +361,7 @@ async function handleOfflineMedia(event, url) {
             segmentRecord.encryptedData
           );
 
-          return new Response(decryptedBuffer, {
-            status: 200,
-            headers: {
-              "Content-Type": "video/mp2t",
-              "Accept-Ranges": "bytes",
-              "Content-Length": decryptedBuffer.byteLength.toString(),
-              "Cache-Control": "public, max-age=31536000, immutable",
-              "X-SkillSpring-Offline": "true",
-            },
-          });
+          return makeRangeResponse(decryptedBuffer, event.request?.headers, "video/mp2t");
         }
       }
     }

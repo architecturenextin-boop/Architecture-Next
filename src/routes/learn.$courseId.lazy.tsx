@@ -111,7 +111,6 @@ function LearnPage() {
   const hasAutoCompletedRef = useRef<boolean>(false);
   const lastSyncTimeRef = useRef<number>(0);
   const syncTimeoutRef = useRef<any>(null);
-  const tokenRefreshTimerRef = useRef<any>(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -271,17 +270,16 @@ function LearnPage() {
       }
 
       try {
-        // Check if there is an offline decrypted video in local IndexedDB storage
+        // Check if device is offline - if so, load offline decrypted video from IndexedDB
         const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
-        const offlineBlob = await downloadManager.getOfflineVideoUrl(activeId);
-        if (offlineBlob && active) {
-          setVideoUrl(offlineBlob);
-          setVideoLoading(false);
-          setPlayerReady(true);
-          return;
-        }
-
         if (isOffline) {
+          const offlineBlob = await downloadManager.getOfflineVideoUrl(activeId);
+          if (offlineBlob && active) {
+            setVideoUrl(offlineBlob);
+            setVideoLoading(false);
+            setPlayerReady(true);
+            return;
+          }
           if (active) {
             setVideoError("OFFLINE_NOT_DOWNLOADED");
             setPlayerReady(true);
@@ -315,11 +313,7 @@ function LearnPage() {
 
         const rawVideo = currentLesson.video_url || (currentLesson as any).video_path;
         if (rawVideo) {
-          let resolved = getMediaUrl(rawVideo);
-          const token = tokenStorage.get();
-          if (token && resolved.includes("/api/v1/media/") && !resolved.includes("token=")) {
-            resolved = `${resolved}${resolved.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
-          }
+          const resolved = getMediaUrl(rawVideo);
           if (active) {
             setVideoUrl(resolved);
             setVideoLoading(false);
@@ -517,17 +511,16 @@ function LearnPage() {
       if (hasRestoredPosition || initialSavedSeconds <= 0) return;
       try {
         const dur = videoElement?.duration || playerInstance?.duration || durationRef.current || 0;
-        if (dur > 0 && initialSavedSeconds < dur - 5) {
-          if (videoElement) {
-            videoElement.currentTime = initialSavedSeconds;
-          }
-          if (playerInstance) {
-            playerInstance.currentTime = initialSavedSeconds;
+        if (dur > 0) {
+          if (initialSavedSeconds < dur - 5) {
+            if (videoElement) {
+              videoElement.currentTime = initialSavedSeconds;
+            }
+            if (playerInstance) {
+              playerInstance.currentTime = initialSavedSeconds;
+            }
           }
           hasRestoredPosition = true;
-        } else if (dur === 0) {
-          // Duration not ready yet; defer
-          if (videoElement) videoElement.currentTime = initialSavedSeconds;
         }
       } catch (_) {}
     };
@@ -606,7 +599,6 @@ function LearnPage() {
       // Throttled timeupdate: save progress every 5s & auto-complete at >=90%
       instance.on("timeupdate", () => {
         try {
-          handleReady(videoEl);
           const current = instance.currentTime || videoEl?.currentTime || 0;
           const duration = instance.duration || videoEl?.duration || durationRef.current || 0;
           currentTimeRef.current = current;
@@ -691,12 +683,15 @@ function LearnPage() {
           enableWorker: true,
           autoStartLoad: true,
           startPosition: startPos,
-          startFragPrefetch: true,
-          lowLatencyMode: true,
-          backBufferLength: 60,
-          maxBufferLength: 20,
-          maxMaxBufferLength: 40,
-          maxBufferSize: 60 * 1000 * 1000,
+          lowLatencyMode: false, // Critical: disabled for VOD course streams to avoid buffer underruns
+          backBufferLength: 90,
+          maxBufferLength: 60, // Buffer 60s ahead
+          maxMaxBufferLength: 300, // Allow up to 300s ahead on stable connections
+          maxBufferSize: 128 * 1024 * 1024, // 128MB max buffer
+          maxBufferHole: 0.5, // Auto-skip small timestamp gaps without stalling
+          highBufferWatchdogPeriod: 2,
+          nudgeOffset: 0.1,
+          nudgeMaxRetry: 5,
         });
         hlsInstance = hls;
         hlsRef.current = hls;
@@ -706,28 +701,39 @@ function LearnPage() {
         hls.on(Hls.Events.MEDIA_ATTACHED, () => {
           if (isDebugHls) console.log("[HLS.js] Media attached, loading source:", videoUrl);
           hls.loadSource(videoUrl);
-          hls.startLoad(startPos);
+          hls.startLoad();
         });
 
         hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
           if (isDebugHls) console.log("[HLS.js] Manifest parsed. Levels:", data.levels.length);
-          const availableQualities = data.levels.map((l) => l.height).filter(Boolean);
+          const rawQualities = data.levels.map((l) => l.height).filter(Boolean);
+          const uniqueQualities = Array.from(new Set(rawQualities)).sort((a, b) => b - a);
+
           const customOptions: Plyr.Options = {
             ...playerOptions,
-            quality: availableQualities.length
+            quality: uniqueQualities.length
               ? {
-                  default: availableQualities[0],
-                  options: availableQualities,
+                  default: 0, // Auto Adaptive Bitrate
+                  options: [0, ...uniqueQualities],
                   forced: true,
                   onChange: (newQuality: number) => {
-                    data.levels.forEach((level, levelIndex) => {
-                      if (level.height === newQuality) {
-                        hls.currentLevel = levelIndex;
-                      }
-                    });
+                    if (newQuality === 0) {
+                      hls.currentLevel = -1; // Auto ABR adapts to network bandwidth
+                    } else {
+                      data.levels.forEach((level, levelIndex) => {
+                        if (level.height === newQuality) {
+                          hls.currentLevel = levelIndex;
+                        }
+                      });
+                    }
                   },
                 }
               : undefined,
+            i18n: {
+              qualityLabel: {
+                0: "Auto",
+              },
+            },
           };
 
           try {
@@ -741,7 +747,7 @@ function LearnPage() {
           restoreSavedPosition(videoEl);
         });
 
-        // HLS.js Comprehensive Error Recovery & Backoff
+        // HLS.js Error Recovery & Stall Auto-Nudge
         hls.on(Hls.Events.ERROR, async (_, errorData) => {
           if (isDebugHls) {
             console.warn(`[HLS.js Event] ${errorData.fatal ? 'FATAL ERROR' : 'Warning'}:`, {
@@ -753,8 +759,11 @@ function LearnPage() {
           }
 
           if (!errorData.fatal) {
-            if (errorData.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR && isDebugHls) {
-              console.warn("[HLS.js] Buffer stalled, awaiting fragment arrival...");
+            if (errorData.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
+              if (isDebugHls) console.warn("[HLS.js] Buffer stalled, waking loader...");
+              try {
+                hls.startLoad();
+              } catch (_) {}
             }
             return;
           }
@@ -762,46 +771,19 @@ function LearnPage() {
           switch (errorData.type) {
             case Hls.ErrorTypes.NETWORK_ERROR: {
               if (retryCountRef.current < 5) {
-                const backoffMs = Math.min(1000 * Math.pow(2, retryCountRef.current), 8000);
                 retryCountRef.current += 1;
                 setIsReconnecting(true);
 
                 if (isDebugHls) {
-                  console.warn(`[HLS.js] Fatal network error. Reconnecting (attempt ${retryCountRef.current}) in ${backoffMs}ms...`);
+                  console.warn(`[HLS.js] Fatal network error. Reconnecting (attempt ${retryCountRef.current})...`);
                 }
 
-                setTimeout(async () => {
-                  try {
-                    const preservedTime = videoEl.currentTime || currentTimeRef.current || 0;
-                    
-                    // Fetch fresh stream URL & token silently without logging user out
-                    const freshData = await courseService.getCourseLearningContent(courseIdRef.current);
-                    const currentLesson = freshData?.course?.modules
-                      ?.flatMap((m: any) => m.lessons || [])
-                      ?.find((l: any) => l.id === activeIdRef.current);
-
-                    let freshUrl = currentLesson?.video_url || currentLesson?.video_path || videoUrl;
-                    if (freshUrl) {
-                      freshUrl = getMediaUrl(freshUrl);
-                      const token = tokenStorage.get();
-                      if (token && freshUrl.includes("/api/v1/media/") && !freshUrl.includes("token=")) {
-                        freshUrl = `${freshUrl}${freshUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
-                      }
-                    }
-
-                    if (hls && freshUrl && active) {
-                      hls.loadSource(freshUrl);
-                      hls.startLoad(preservedTime);
-                      if (videoEl && preservedTime > 0) {
-                        videoEl.currentTime = preservedTime;
-                      }
-                    }
-                  } catch (e) {
-                    if (hls && active) hls.startLoad(currentTimeRef.current);
-                  } finally {
-                    if (active) setIsReconnecting(false);
+                setTimeout(() => {
+                  if (active && hls) {
+                    hls.startLoad();
+                    setIsReconnecting(false);
                   }
-                }, backoffMs);
+                }, 1000);
               } else {
                 hls.destroy();
                 if (active) {
@@ -850,9 +832,6 @@ function LearnPage() {
       videoEl.onloadeddata = () => handleReady(videoEl);
       videoEl.onplay = () => handleReady(videoEl);
       videoEl.onplaying = () => handleReady(videoEl);
-      videoEl.ontimeupdate = () => {
-        if (active) handleReady(videoEl);
-      };
 
       videoEl.onerror = (e) => {
         if (isDebugHls) {
@@ -886,29 +865,6 @@ function LearnPage() {
     window.addEventListener("pagehide", handlePageHide);
     window.addEventListener("beforeunload", handlePageHide);
 
-    // Silent periodic stream token refresh timer (every 1.5 hours)
-    tokenRefreshTimerRef.current = setInterval(async () => {
-      if (!active || !hlsInstance) return;
-      try {
-        const freshData = await courseService.getCourseLearningContent(courseIdRef.current);
-        const currentLesson = freshData?.course?.modules
-          ?.flatMap((m: any) => m.lessons || [])
-          ?.find((l: any) => l.id === activeIdRef.current);
-
-        let freshUrl = currentLesson?.video_url || currentLesson?.video_path;
-        if (freshUrl && isHlsStream) {
-          freshUrl = getMediaUrl(freshUrl);
-          const token = tokenStorage.get();
-          if (token && freshUrl.includes("/api/v1/media/") && !freshUrl.includes("token=")) {
-            freshUrl = `${freshUrl}${freshUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
-          }
-          const curTime = currentTimeRef.current || 0;
-          hlsInstance.loadSource(freshUrl);
-          hlsInstance.startLoad(curTime);
-        }
-      } catch (_) {}
-    }, 90 * 60 * 1000);
-
     const safetyTimer = setTimeout(() => {
       if (active) {
         setPlayerReady(true);
@@ -920,7 +876,6 @@ function LearnPage() {
     return () => {
       active = false;
       clearTimeout(safetyTimer);
-      clearInterval(tokenRefreshTimerRef.current);
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("pagehide", handlePageHide);
       window.removeEventListener("beforeunload", handlePageHide);
@@ -1149,7 +1104,7 @@ function LearnPage() {
             {/* Course Title and Progress Pill */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <h2 className="truncate text-xs sm:text-sm font-bold text-foreground leading-snug">
-                {course.title}
+                {course?.title}
               </h2>
               <span className="hidden sm:inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary shrink-0">
                 {pct}%
@@ -1241,14 +1196,7 @@ function LearnPage() {
                             {pdfError || "Please download the document to view it on your device."}
                           </p>
                           <a
-                            href={(() => {
-                              let docUrl = getMediaUrl(rawPdf);
-                              const token = tokenStorage.get();
-                              if (token && docUrl.includes("/api/v1/media/") && !docUrl.includes("token=")) {
-                                docUrl = `${docUrl}${docUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
-                              }
-                              return docUrl;
-                            })()}
+                            href={getMediaUrl(rawPdf)}
                             target="_blank"
                             rel="noopener noreferrer"
                             download
@@ -1349,14 +1297,7 @@ function LearnPage() {
                         {descriptionLabel}
                       </p>
                       <a
-                        href={(() => {
-                          let docUrl = getMediaUrl(activeLesson.pdf_url);
-                          const token = tokenStorage.get();
-                          if (token && docUrl.includes("/api/v1/media/") && !docUrl.includes("token=")) {
-                            docUrl = `${docUrl}${docUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
-                          }
-                          return docUrl;
-                        })()}
+                        href={getMediaUrl(activeLesson.pdf_url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         download
@@ -1641,7 +1582,9 @@ function LearnPage() {
                     if (activeOffline?.status === "completed") {
                       return (
                         <div className="inline-flex h-9 items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 shadow-2xs">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" title="Downloaded" />
+                          <span title="Downloaded" className="inline-flex items-center">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                          </span>
                           <button
                             type="button"
                             onClick={() => downloadManager.deleteDownloadedLesson(activeId)}

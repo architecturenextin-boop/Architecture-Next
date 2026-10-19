@@ -192,6 +192,9 @@ class DownloadManager {
 
   public async getOfflineVideoUrl(lessonId: string): Promise<string | null> {
     try {
+      const isDownloaded = await this.isLessonDownloaded(lessonId);
+      if (!isDownloaded) return null;
+
       const db = await openDB();
       const licenseTx = db.transaction("licenses", "readonly");
       const license = await new Promise<any>((res) => {

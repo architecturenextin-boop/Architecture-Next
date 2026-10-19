@@ -63,13 +63,29 @@ export function getMediaUrl(urlOrPath?: string | null): string {
     return url;
   };
 
-  // Authenticated media stream route
+  const envMediaUrl = import.meta.env.VITE_MEDIA_URL || "";
+  const isProd = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+  const r2Base = envMediaUrl ? envMediaUrl.replace(/\/$/, "") : (isProd ? "https://media.architecturenext.in" : "");
+
+  // Direct R2 CDN routing for video & document streaming (replaces legacy backend proxy)
+  if (r2Base) {
+    if (trimmed.includes("/api/v1/media/video/")) {
+      const filename = trimmed.split("?")[0].split("/").pop() || "";
+      return `${r2Base}/videos/${filename}`;
+    }
+    if (trimmed.includes("/api/v1/media/document/")) {
+      const filename = trimmed.split("?")[0].split("/").pop() || "";
+      return `${r2Base}/documents/${filename}`;
+    }
+  }
+
+  // Authenticated media stream route fallback
   if (trimmed.includes("/api/v1/media/")) {
     const mediaPath = trimmed.slice(trimmed.indexOf("/api/v1/media/"));
     return withAuthToken(`${serverBase}${mediaPath}`);
   }
 
-  // Private lesson videos -> route to authenticated media endpoint
+  // Private lesson videos -> route directly to Cloudflare R2 CDN if configured, else backend media endpoint
   if (
     trimmed.startsWith("/uploads/videos/") ||
     trimmed.startsWith("videos/") ||
@@ -80,10 +96,13 @@ export function getMediaUrl(urlOrPath?: string | null): string {
     trimmed.endsWith(".mkv")
   ) {
     const filename = trimmed.split("?")[0].split("/").pop() || "";
+    if (r2Base) {
+      return `${r2Base}/videos/${filename}`;
+    }
     return withAuthToken(`${apiBase}/media/video/${filename}`);
   }
 
-  // Private lesson documents -> route to authenticated media endpoint
+  // Private lesson documents -> route directly to Cloudflare R2 CDN if configured, else backend media endpoint
   if (
     trimmed.startsWith("/uploads/documents/") ||
     trimmed.startsWith("documents/") ||
@@ -96,6 +115,9 @@ export function getMediaUrl(urlOrPath?: string | null): string {
     trimmed.endsWith(".rar")
   ) {
     const filename = trimmed.split("?")[0].split("/").pop() || "";
+    if (r2Base) {
+      return `${r2Base}/documents/${filename}`;
+    }
     return withAuthToken(`${apiBase}/media/document/${filename}`);
   }
 
