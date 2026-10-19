@@ -44,7 +44,7 @@ export const Route = createFileRoute("/admin/students")({
 
 function StudentsPage() {
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "admin">("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | "enrolled" | "student" | "admin">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
@@ -324,7 +324,7 @@ function StudentsPage() {
     });
   };
 
-  // Filter students based on search and role
+  // Filter students based on search and role/enrollment
   const filteredStudents = useMemo(() => {
     return students.filter((s: any) => {
       const matchSearch =
@@ -334,7 +334,15 @@ function StudentsPage() {
         (s.phone || "").includes(search.trim()) ||
         (s.id || "").toLowerCase().includes(search.toLowerCase());
 
-      const matchRole = roleFilter === "all" || s.role === roleFilter;
+      const coursesCount = s.coursesCount ?? s.enrollments?.length ?? 0;
+      const matchRole =
+        roleFilter === "all"
+          ? true
+          : roleFilter === "enrolled"
+          ? coursesCount > 0
+          : roleFilter === "student"
+          ? s.role !== "admin"
+          : s.role === "admin";
 
       return matchSearch && matchRole;
     });
@@ -354,9 +362,15 @@ function StudentsPage() {
 
   // Key stats
   const totalStudents = students.length;
-  const enrolledStudents = students.filter((s: any) => s.coursesCount > 0).length;
-  const totalEnrollments = students.reduce((acc: number, s: any) => acc + s.coursesCount, 0);
+  const enrolledStudents = students.filter(
+    (s: any) => (s.coursesCount ?? s.enrollments?.length ?? 0) > 0
+  ).length;
+  const totalEnrollments = students.reduce(
+    (acc: number, s: any) => acc + (s.coursesCount ?? s.enrollments?.length ?? 0),
+    0
+  );
   const totalAdmins = students.filter((s: any) => s.role === "admin").length;
+  const totalRegularStudents = students.filter((s: any) => s.role !== "admin").length;
 
   return (
     <div className="space-y-6">
@@ -424,31 +438,42 @@ function StudentsPage() {
             onClick={() => setRoleFilter("all")}
             className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
               roleFilter === "all"
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-primary-foreground shadow-xs"
                 : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
-            All Users ({students.length})
+            All Users ({totalStudents})
+          </button>
+          <button
+            onClick={() => setRoleFilter("enrolled")}
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+              roleFilter === "enrolled"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            }`}
+            title="Course purchased & enrolled learners"
+          >
+            Enrolled Learners ({enrolledStudents})
           </button>
           <button
             onClick={() => setRoleFilter("student")}
             className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
               roleFilter === "student"
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-primary-foreground shadow-xs"
                 : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
-            Students ({students.filter((s: any) => s.role !== "admin").length})
+            Students ({totalRegularStudents})
           </button>
           <button
             onClick={() => setRoleFilter("admin")}
             className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
               roleFilter === "admin"
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-primary-foreground shadow-xs"
                 : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
-            Admins ({students.filter((s: any) => s.role === "admin").length})
+            Admins ({totalAdmins})
           </button>
         </div>
 
