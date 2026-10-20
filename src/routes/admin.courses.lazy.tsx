@@ -446,6 +446,8 @@ function LessonVideoManager({
   const [uploadStage, setUploadStage] = useState("");
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const subtitleInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploadingSubtitle, setIsUploadingSubtitle] = useState(false);
 
   const handleSaveUrl = (url: string) => {
     setUrlInput(url);
@@ -515,6 +517,44 @@ function LessonVideoManager({
     } catch (err: any) {
       setUploadError(err.message || `Failed to upload ${tab === "video" ? "video" : "PDF"}.`);
       setIsUploading(false);
+    }
+  };
+
+  const handleSubtitleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingSubtitle(true);
+    try {
+      const presigned = await adminService.getPresignedUploadUrl({
+        filename: file.name,
+        contentType: file.type || "text/vtt",
+        folder: "subtitles",
+      });
+      if (presigned && presigned.uploadUrl) {
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", presigned.uploadUrl);
+          const lower = presigned.uploadUrl.toLowerCase();
+          if (!lower.includes("x-amz-signedheaders") || lower.includes("content-type")) {
+            xhr.setRequestHeader("Content-Type", file.type || "text/vtt");
+          }
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) resolve();
+            else reject(new Error(`Subtitle upload failed: ${xhr.status}`));
+          };
+          xhr.onerror = () => reject(new Error("Subtitle upload failed"));
+          xhr.send(file);
+        });
+        onChange({
+          subtitle_url: presigned.videoUrl || presigned.videoPath || null,
+          subtitle_path: presigned.videoPath || presigned.key || null,
+        } as any);
+      }
+    } catch (err: any) {
+      setUploadError(err?.message || "Failed to upload subtitle.");
+    } finally {
+      setIsUploadingSubtitle(false);
+      if (subtitleInputRef.current) subtitleInputRef.current.value = "";
     }
   };
 
@@ -663,17 +703,34 @@ function LessonVideoManager({
 
       <div className="space-y-1.5">
         <label className="text-[11px] font-semibold text-muted-foreground">
-          Subtitle URL (SRT/VTT)
+          Subtitle (SRT/VTT)
         </label>
-        <input
-          type="text"
-          value={(lesson as any).subtitle_url || ""}
-          onChange={(e) =>
-            onChange({ subtitle_url: e.target.value.trim() || null } as any)
-          }
-          placeholder="https://.../captions.vtt"
-          className="w-full rounded-md border border-border bg-card px-2.5 py-1.5 text-xs outline-none focus:border-primary"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={(lesson as any).subtitle_url || ""}
+            onChange={(e) =>
+              onChange({ subtitle_url: e.target.value.trim() || null } as any)
+            }
+            placeholder="Subtitle URL or upload file"
+            className="flex-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs outline-none focus:border-primary"
+          />
+          <input
+            ref={subtitleInputRef}
+            type="file"
+            accept=".srt,.vtt,.srt"
+            className="hidden"
+            onChange={handleSubtitleUpload}
+          />
+          <button
+            type="button"
+            onClick={() => subtitleInputRef.current?.click()}
+            disabled={isUploadingSubtitle}
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50"
+          >
+            {isUploadingSubtitle ? "Uploading..." : "Upload"}
+          </button>
+        </div>
       </div>
 
       {tab === "pdf" && (
