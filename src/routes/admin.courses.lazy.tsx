@@ -661,6 +661,21 @@ function LessonVideoManager({
         </div>
       )}
 
+      <div className="space-y-1.5">
+        <label className="text-[11px] font-semibold text-muted-foreground">
+          Subtitle URL (SRT/VTT)
+        </label>
+        <input
+          type="text"
+          value={(lesson as any).subtitle_url || ""}
+          onChange={(e) =>
+            onChange({ subtitle_url: e.target.value.trim() || null } as any)
+          }
+          placeholder="https://.../captions.vtt"
+          className="w-full rounded-md border border-border bg-card px-2.5 py-1.5 text-xs outline-none focus:border-primary"
+        />
+      </div>
+
       {tab === "pdf" && (
         /* TAB 3: LOCAL FILE/DOCUMENT UPLOAD */
         <div className="space-y-3">
@@ -1580,10 +1595,10 @@ function CourseForm({ initial, isPending, onSubmit }: { initial?: any; isPending
                           lesson={l}
                           onChange={(updates) => handleUpdateLesson(m.id, l.id, updates)}
                         />
-                      </div>
-                    ))}
-                  </div>
-                )}
+                       </div>
+                      ))}
+                    </div>
+                  )}
 
                 {/* Add Lesson Input */}
                 <AddLessonForm onAdd={(titleText) => handleAddLesson(m.id, titleText)} />

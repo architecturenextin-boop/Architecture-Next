@@ -681,6 +681,19 @@ function LearnPage() {
       // Direct HTML5 video streaming (MP4)
       videoEl.src = videoUrl;
 
+      // Attach subtitle track if available
+      Array.from(videoEl.querySelectorAll("track")).forEach((t) => t.remove());
+      const subtitleRaw = (activeLesson as any)?.subtitle_url || (activeLesson as any)?.subtitle_path;
+      if (subtitleRaw) {
+        const track = document.createElement("track");
+        track.kind = "subtitles";
+        track.label = "English";
+        track.srclang = "en";
+        track.src = getMediaUrl(subtitleRaw);
+        track.default = true;
+        videoEl.appendChild(track);
+      }
+
       try {
         playerInstance = new Plyr(videoEl, playerOptions);
         playerRef.current = playerInstance;
