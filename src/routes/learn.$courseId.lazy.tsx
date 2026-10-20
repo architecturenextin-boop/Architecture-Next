@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive, Clock, ArrowDownToLine, RotateCw } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive, Clock, ArrowDownToLine, RotateCw, Languages } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -20,6 +20,50 @@ import { useModalScrollLock } from "@/hooks/use-modal-scroll-lock";
 export const Route = createLazyFileRoute("/learn/$courseId")({
   component: LearnPage,
 });
+
+export interface SubtitleCue {
+  start: number;
+  end: number;
+  text: string;
+}
+
+export function parseVttToCues(vttText: string): SubtitleCue[] {
+  const cues: SubtitleCue[] = [];
+  const lines = vttText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+
+  function parseTimestamp(ts: string): number {
+    const parts = ts.trim().split(":");
+    if (parts.length === 3) {
+      const [h, m, rest] = parts;
+      const [s, ms] = rest.split(".");
+      return Number(h) * 3600 + Number(m) * 60 + Number(s) + (Number(ms || 0) / 1000);
+    } else if (parts.length === 2) {
+      const [m, rest] = parts;
+      const [s, ms] = rest.split(".");
+      return Number(m) * 60 + Number(s) + (Number(ms || 0) / 1000);
+    }
+    return 0;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.includes("-->")) {
+      const [startStr, endStr] = line.split("-->").map((s) => s.trim().split(" ")[0]);
+      const start = parseTimestamp(startStr.replace(",", "."));
+      const end = parseTimestamp(endStr.replace(",", "."));
+      const textLines: string[] = [];
+      i++;
+      while (i < lines.length && lines[i].trim().length > 0) {
+        textLines.push(lines[i].trim().replace(/<[^>]+>/g, ""));
+        i++;
+      }
+      if (textLines.length > 0 && !isNaN(start) && !isNaN(end) && end > start) {
+        cues.push({ start, end, text: textLines.join(" ") });
+      }
+    }
+  }
+  return cues;
+}
 
 function getYouTubeVideoId(url: string) {
   let videoId = "";
@@ -51,7 +95,7 @@ function getVimeoEmbedUrl(url: string): string {
   const hashMatch = url.match(/[?&]h=([a-zA-Z0-9]+)/) || url.match(/vimeo\.com\/\d+\/([a-zA-Z0-9]+)/);
   const hashParam = hashMatch ? `&h=${hashMatch[1]}` : "";
 
-  return `https://player.vimeo.com/video/${vimeoId}?autoplay=1&playsinline=1&title=0&byline=0&portrait=0&color=00b2ff&transparent=0&dnt=1${hashParam}`;
+  return `https://player.vimeo.com/video/${vimeoId}?autoplay=1&playsinline=1&title=0&byline=0&portrait=0&color=00b2ff&transparent=0&dnt=1&api=1${hashParam}`;
 }
 
 function getYouTubeEmbedUrl(url: string): string {
@@ -280,6 +324,54 @@ function LearnPage() {
   const [pdfError, setPdfError] = useState<string | null>(null);
 
   const prevLessonIdRef = useRef<string>("");
+
+  // Subtitle (SRT/VTT) cue and live caption state
+  const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([]);
+  const [activeSubtitleText, setActiveSubtitleText] = useState<string>("");
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState<boolean>(true);
+  const cuesRef = useRef<SubtitleCue[]>([]);
+  cuesRef.current = subtitleCues;
+  const subtitlesEnabledRef = useRef<boolean>(true);
+  subtitlesEnabledRef.current = subtitlesEnabled;
+
+  // Auto-fetch & parse subtitle cues whenever active lesson changes
+  useEffect(() => {
+    let isMounted = true;
+    const subRaw = (activeLesson as any)?.subtitle_url || (activeLesson as any)?.subtitle_path;
+    if (!subRaw) {
+      setSubtitleCues([]);
+      cuesRef.current = [];
+      setActiveSubtitleText("");
+      return;
+    }
+
+    const loadSubtitles = async () => {
+      try {
+        const resolved = getMediaUrl(subRaw);
+        const token = tokenStorage.get();
+        const res = await fetch(resolved, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const raw = await res.text();
+          if (raw && isMounted) {
+            const vtt = convertSrtToVtt(raw);
+            const parsed = parseVttToCues(vtt);
+            setSubtitleCues(parsed);
+            cuesRef.current = parsed;
+          }
+        }
+      } catch (err) {
+        if (isDebugHls) console.warn("Failed to load subtitle cues:", err);
+      }
+    };
+
+    loadSubtitles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeLesson?.id, (activeLesson as any)?.subtitle_url, (activeLesson as any)?.subtitle_path]);
 
   // Fetch video URL or PDF blob whenever activeId changes
    useEffect(() => {
@@ -531,6 +623,22 @@ function LearnPage() {
     let hlsInstance: Hls | null = null;
     let playerInstance: Plyr | null = null;
     let hasRestoredPosition = false;
+    let activeSubtitleBlob: string | null = null;
+    let onVimeoMessage: ((event: MessageEvent) => void) | null = null;
+
+    const updateLiveCaption = (sec: number) => {
+      if (!subtitlesEnabledRef.current) {
+        setActiveSubtitleText("");
+        return;
+      }
+      const currentCues = cuesRef.current;
+      if (!currentCues || currentCues.length === 0) {
+        setActiveSubtitleText("");
+        return;
+      }
+      const matched = currentCues.find((c) => sec >= c.start && sec <= c.end);
+      setActiveSubtitleText(matched ? matched.text : "");
+    };
 
     // 1. Resume Position Calculation
     const storageKey = `anext_${activeId}`;
@@ -571,7 +679,6 @@ function LearnPage() {
     const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
     const isVimeo = videoUrl.includes("vimeo.com");
     const isHlsStream = videoUrl.includes(".m3u8") || videoUrl.includes("/manifest/") || videoUrl.includes("/hls/");
-
 
     const playerOptions: Plyr.Options = {
       controls: [
@@ -650,6 +757,7 @@ function LearnPage() {
           const current = instance.currentTime || videoEl?.currentTime || 0;
           const duration = instance.duration || videoEl?.duration || durationRef.current || 0;
           currentTimeRef.current = current;
+          updateLiveCaption(current);
 
           if (duration > 0 && (!durationRef.current || durationRef.current === 0)) {
             durationRef.current = duration;
@@ -685,6 +793,7 @@ function LearnPage() {
         try {
           const cur = instance.currentTime || videoEl?.currentTime || currentTimeRef.current || 0;
           currentTimeRef.current = cur;
+          updateLiveCaption(cur);
           saveProgressReliably(cur);
         } catch (_) {}
       });
@@ -719,11 +828,51 @@ function LearnPage() {
 
         iframe.src = isVimeo ? getVimeoEmbedUrl(videoUrl) : getYouTubeEmbedUrl(videoUrl);
 
+        onVimeoMessage = (event: MessageEvent) => {
+          try {
+            const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+            if (data && (data.event === "timeupdate" || data.method === "timeupdate") && data.data) {
+              const sec = Number(data.data.seconds || 0);
+              const dur = Number(data.data.duration || 0);
+              currentTimeRef.current = sec;
+              updateLiveCaption(sec);
+
+              if (dur > 0 && (!durationRef.current || durationRef.current === 0)) {
+                durationRef.current = Math.floor(dur);
+                setLiveDuration(formatVideoDuration(dur));
+              }
+
+              if (dur > 5 && !hasAutoCompletedRef.current && !completedRef.current.includes(activeIdRef.current)) {
+                if (sec >= dur - 3 || (dur > 0 && sec / dur >= 0.90)) {
+                  hasAutoCompletedRef.current = true;
+                  saveProgressReliably(sec, true);
+                  queryClient.invalidateQueries({ queryKey: ["learn-course", courseIdRef.current] });
+                }
+              }
+
+              if (Math.abs(sec - lastSyncTimeRef.current) >= 5) {
+                lastSyncTimeRef.current = sec;
+                saveProgressReliably(sec);
+              }
+            } else if (data && data.event === "ready") {
+              iframe.contentWindow?.postMessage(JSON.stringify({ method: "addEventListener", value: "timeupdate" }), "*");
+              iframe.contentWindow?.postMessage(JSON.stringify({ method: "addEventListener", value: "play" }), "*");
+              iframe.contentWindow?.postMessage(JSON.stringify({ method: "addEventListener", value: "pause" }), "*");
+              iframe.contentWindow?.postMessage(JSON.stringify({ method: "addEventListener", value: "ended" }), "*");
+            }
+          } catch (_) {}
+        };
+
+        window.addEventListener("message", onVimeoMessage);
+
         iframe.onload = () => {
           if (active) {
             setPlayerReady(true);
             setVideoLoading(false);
           }
+          setTimeout(() => {
+            iframe.contentWindow?.postMessage(JSON.stringify({ method: "addEventListener", value: "timeupdate" }), "*");
+          }, 400);
         };
 
         container.appendChild(iframe);
@@ -741,9 +890,11 @@ function LearnPage() {
        videoEl.controls = true;
        videoEl.preload = "metadata";
        videoEl.crossOrigin = "anonymous";
+       videoEl.ontimeupdate = () => {
+         updateLiveCaption(videoEl.currentTime);
+       };
        container.appendChild(videoEl);
 
-       let activeSubtitleBlob: string | null = null;
        const subtitleRaw = (activeLesson as any)?.subtitle_url || (activeLesson as any)?.subtitle_path;
 
        const setupSubtitle = async (targetVideo: HTMLVideoElement) => {
@@ -978,6 +1129,9 @@ function LearnPage() {
     return () => {
       active = false;
       clearTimeout(safetyTimer);
+      if (onVimeoMessage) {
+        window.removeEventListener("message", onVimeoMessage);
+      }
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("pagehide", handlePageHide);
       window.removeEventListener("beforeunload", handlePageHide);
@@ -1561,6 +1715,15 @@ function LearnPage() {
                   }`}
                   style={rotation ? { transform: `rotate(${rotation}deg)`, transformOrigin: "center center" } : undefined}
                 />
+
+                {/* Real-time WebVTT / SRT Floating Subtitle Overlay */}
+                {subtitlesEnabled && activeSubtitleText && (
+                  <div className="pointer-events-none absolute bottom-12 left-0 right-0 z-30 flex justify-center px-4 transition-all duration-150">
+                    <span className="max-w-[85%] rounded-lg bg-black/85 px-4 py-1.5 text-center text-sm sm:text-base font-semibold text-white shadow-2xl backdrop-blur-md border border-white/10 select-none tracking-wide leading-relaxed">
+                      {activeSubtitleText}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1747,6 +1910,24 @@ function LearnPage() {
                     className="flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-background/90 text-foreground hover:text-primary hover:border-primary/40 hover:bg-muted shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
                   >
                     <RotateCw className="h-4 w-4" />
+                  </button>
+                )}
+
+                {/* Subtitle / CC Toggle Button */}
+                {!isPdfLesson && Boolean((activeLesson as any)?.subtitle_url || (activeLesson as any)?.subtitle_path || subtitleCues.length > 0) && (
+                  <button
+                    type="button"
+                    onClick={() => setSubtitlesEnabled((prev) => !prev)}
+                    title={subtitlesEnabled ? "Subtitles Active (Click to disable)" : "Subtitles Disabled (Click to enable)"}
+                    aria-label="Toggle Subtitles"
+                    className={`flex h-9 items-center gap-1.5 px-3 rounded-full border text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                      subtitlesEnabled
+                        ? "bg-primary text-primary-foreground border-primary/40 shadow-sm ring-1 ring-primary/30"
+                        : "border-border/80 bg-background/90 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <Languages className="h-3.5 w-3.5" />
+                    <span>CC {subtitlesEnabled ? "ON" : "OFF"}</span>
                   </button>
                 )}
 

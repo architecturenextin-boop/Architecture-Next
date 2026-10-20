@@ -136,6 +136,8 @@ function AdminCourses() {
           video_path: l.video_path || "",
           pdf_url: l.pdf_url || "",
           pdf_path: l.pdf_path || "",
+          subtitle_url: l.subtitle_url || null,
+          subtitle_path: l.subtitle_path || null,
           is_free: !!l.is_free,
           sort_order: lIdx
         }))
