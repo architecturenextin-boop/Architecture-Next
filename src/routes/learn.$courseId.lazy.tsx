@@ -10,6 +10,7 @@ import { tokenStorage } from "@/lib/api-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CourseWithContent } from "@/lib/database.types";
 import { getMediaUrl } from "@/lib/utils";
+import Hls from "hls.js";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 import { getApiConfig } from "@/lib/api-client";
@@ -101,6 +102,7 @@ function LearnPage() {
   // High performance mutable refs to prevent re-render tearing
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<Plyr | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const currentTimeRef = useRef<number>(0);
   const durationRef = useRef<number>(0);
   const activeIdRef = useRef<string>("");
@@ -488,6 +490,7 @@ function LearnPage() {
     currentTimeRef.current = 0;
 
     let active = true;
+    let hlsInstance: Hls | null = null;
     let playerInstance: Plyr | null = null;
     let hasRestoredPosition = false;
 
@@ -528,6 +531,7 @@ function LearnPage() {
     };
 
     const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
+    const isHlsStream = videoUrl.includes(".m3u8") || videoUrl.includes("/manifest/") || videoUrl.includes("/hls/");
 
 
     const playerOptions: Plyr.Options = {
@@ -678,28 +682,152 @@ function LearnPage() {
        videoEl.preload = "metadata";
       container.appendChild(videoEl);
 
-      // Direct HTML5 video streaming (MP4)
-      videoEl.src = videoUrl;
+      // Check if HLS.js streaming is supported
+      if (isHlsStream && Hls.isSupported()) {
+        const startPos = initialSavedSeconds > 0 ? initialSavedSeconds : -1;
+        const hls = new Hls({
+          enableWorker: true,
+          autoStartLoad: true,
+          startPosition: startPos,
+          lowLatencyMode: false,
+          backBufferLength: 90,
+          maxBufferLength: 60,
+          maxMaxBufferLength: 300,
+          maxBufferSize: 128 * 1024 * 1024,
+          maxBufferHole: 0.5,
+          highBufferWatchdogPeriod: 2,
+          nudgeOffset: 0.1,
+          nudgeMaxRetry: 5,
+        });
+        hlsInstance = hls;
+        hlsRef.current = hls;
 
-      // Attach subtitle track if available
-      Array.from(videoEl.querySelectorAll("track")).forEach((t) => t.remove());
-      const subtitleRaw = (activeLesson as any)?.subtitle_url || (activeLesson as any)?.subtitle_path;
-      if (subtitleRaw) {
-        const track = document.createElement("track");
-        track.kind = "subtitles";
-        track.label = "English";
-        track.srclang = "en";
-        track.src = getMediaUrl(subtitleRaw);
-        track.default = true;
-        videoEl.appendChild(track);
-      }
+        hls.attachMedia(videoEl);
 
-      try {
-        playerInstance = new Plyr(videoEl, playerOptions);
-        playerRef.current = playerInstance;
-        attachPlayerEvents(playerInstance, videoEl);
-      } catch (e) {
-        if (isDebugHls) console.warn("Plyr HTML5 init warning:", e);
+        // Attach subtitle track if available
+        Array.from(videoEl.querySelectorAll("track")).forEach((t) => t.remove());
+        const subtitleRawHls = (activeLesson as any)?.subtitle_url || (activeLesson as any)?.subtitle_path;
+        if (subtitleRawHls) {
+          const track = document.createElement("track");
+          track.kind = "subtitles";
+          track.label = "English";
+          track.srclang = "en";
+          track.src = getMediaUrl(subtitleRawHls);
+          track.default = true;
+          videoEl.appendChild(track);
+        }
+
+        hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+          hls.loadSource(videoUrl);
+          hls.startLoad();
+        });
+
+        hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+          const rawQualities = data.levels.map((l) => l.height).filter(Boolean);
+          const uniqueQualities = Array.from(new Set(rawQualities)).sort((a, b) => b - a);
+
+          const customOptions: Plyr.Options = {
+            ...playerOptions,
+            quality: uniqueQualities.length
+              ? {
+                  default: 0,
+                  options: [0, ...uniqueQualities],
+                  forced: true,
+                  onChange: (newQuality: number) => {
+                    if (newQuality === 0) {
+                      hls.currentLevel = -1;
+                    } else {
+                      data.levels.forEach((level, levelIndex) => {
+                        if (level.height === newQuality) {
+                          hls.currentLevel = levelIndex;
+                        }
+                      });
+                    }
+                  },
+                }
+              : undefined,
+            i18n: {
+              qualityLabel: { 0: "Auto" },
+            },
+          };
+
+          try {
+            playerInstance = new Plyr(videoEl, customOptions);
+            playerRef.current = playerInstance;
+            attachPlayerEvents(playerInstance, videoEl);
+          } catch (e) {
+            if (isDebugHls) console.warn("Plyr HLS init warning:", e);
+          }
+
+          restoreSavedPosition(videoEl);
+        });
+
+        hls.on(Hls.Events.ERROR, async (_, errorData) => {
+          if (!errorData.fatal) {
+            if (errorData.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
+              try { hls.startLoad(); } catch (_) {}
+            }
+            return;
+          }
+
+          switch (errorData.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR: {
+              if (retryCountRef.current < 5) {
+                retryCountRef.current += 1;
+                setIsReconnecting(true);
+                setTimeout(() => {
+                  if (active && hls) {
+                    hls.startLoad();
+                    setIsReconnecting(false);
+                  }
+                }, 1000);
+              } else {
+                hls.destroy();
+                if (active) {
+                  setVideoError("Video stream disconnected. Please check your internet connection and reload.");
+                  setPlayerReady(true);
+                }
+              }
+              break;
+            }
+            case Hls.ErrorTypes.MEDIA_ERROR: {
+              hls.recoverMediaError();
+              break;
+            }
+            default: {
+              hls.destroy();
+              if (active) {
+                setVideoError("Playback encountered an unrecoverable error. Please reload the lesson.");
+                setPlayerReady(true);
+              }
+              break;
+            }
+          }
+        });
+      } else {
+        // Direct HTML5 video streaming (MP4)
+        videoEl.src = videoUrl;
+
+        // Attach subtitle track if available
+        Array.from(videoEl.querySelectorAll("track")).forEach((t) => t.remove());
+        const subtitleRaw = (activeLesson as any)?.subtitle_url || (activeLesson as any)?.subtitle_path;
+        if (subtitleRaw) {
+          const track = document.createElement("track");
+          track.kind = "subtitles";
+          track.label = "English";
+          track.srclang = "en";
+          track.src = getMediaUrl(subtitleRaw);
+          track.default = true;
+          videoEl.appendChild(track);
+        }
+
+        try {
+          playerInstance = new Plyr(videoEl, playerOptions);
+          playerRef.current = playerInstance;
+          attachPlayerEvents(playerInstance, videoEl);
+        } catch (e) {
+          if (isDebugHls) console.warn("Plyr HTML5 init warning:", e);
+        }
       }
 
       videoEl.onloadedmetadata = () => {
@@ -771,6 +899,14 @@ function LearnPage() {
           playerInstance.destroy();
         }
       } catch (_) {}
+
+      if (hlsInstance) {
+        try {
+          hlsInstance.destroy();
+        } catch (_) {}
+        hlsInstance = null;
+        hlsRef.current = null;
+      }
 
       playerRef.current = null;
       setPlayerReady(false);
