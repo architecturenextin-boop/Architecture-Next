@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive, Clock, ArrowDownToLine } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive, Clock, ArrowDownToLine, RotateCw } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -10,7 +10,6 @@ import { tokenStorage } from "@/lib/api-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CourseWithContent } from "@/lib/database.types";
 import { getMediaUrl } from "@/lib/utils";
-import Hls from "hls.js";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 import { getApiConfig } from "@/lib/api-client";
@@ -102,7 +101,6 @@ function LearnPage() {
   // High performance mutable refs to prevent re-render tearing
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<Plyr | null>(null);
-  const hlsRef = useRef<Hls | null>(null);
   const currentTimeRef = useRef<number>(0);
   const durationRef = useRef<number>(0);
   const activeIdRef = useRef<string>("");
@@ -133,6 +131,7 @@ function LearnPage() {
       return courseService.getCourseLearningContent(courseId);
     },
     enabled: !!courseId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const course = learningData?.course;
@@ -238,6 +237,7 @@ function LearnPage() {
   const [videoLoading, setVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [playerReady, setPlayerReady] = useState(false);
+  const [rotation, setRotation] = useState(0);
 
   // PDF blob state for secure rendering without cross-origin CSP frame blocking
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
@@ -247,11 +247,11 @@ function LearnPage() {
   const prevLessonIdRef = useRef<string>("");
 
   // Fetch video URL or PDF blob whenever activeId changes
-  useEffect(() => {
-    if (!activeId) return;
-    let active = true;
+   useEffect(() => {
+     if (!activeId) return;
+     let active = true;
 
-    async function fetchUrl() {
+     async function fetchUrl() {
       const isNewLesson = prevLessonIdRef.current !== activeId;
       prevLessonIdRef.current = activeId;
 
@@ -316,11 +316,11 @@ function LearnPage() {
 
         const rawVideo = currentLesson.video_url || (currentLesson as any).video_path;
         if (rawVideo) {
-          const resolved = getMediaUrl(rawVideo);
-          if (active) {
-            setVideoUrl(resolved);
-            setVideoLoading(false);
-          }
+           const resolved = getMediaUrl(rawVideo);
+           if (active) {
+             setVideoUrl(resolved);
+             setVideoLoading(false);
+           }
           return;
         }
 
@@ -476,9 +476,9 @@ function LearnPage() {
   });
 
   // Imperative player mounting inside unmanaged container (Dependencies strictly isolated to [activeId, videoUrl])
-  useEffect(() => {
-    const container = playerContainerRef.current;
-    if (!container || !videoUrl || !activeId) return;
+   useEffect(() => {
+     const container = playerContainerRef.current;
+     if (!container || !videoUrl || !activeId) return;
 
     container.innerHTML = "";
     setPlayerReady(false);
@@ -488,7 +488,6 @@ function LearnPage() {
     currentTimeRef.current = 0;
 
     let active = true;
-    let hlsInstance: Hls | null = null;
     let playerInstance: Plyr | null = null;
     let hasRestoredPosition = false;
 
@@ -529,7 +528,7 @@ function LearnPage() {
     };
 
     const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
-    const isHlsStream = videoUrl.includes(".m3u8") || videoUrl.includes("/manifest/") || videoUrl.includes("/hls/");
+
 
     const playerOptions: Plyr.Options = {
       controls: [
@@ -674,155 +673,20 @@ function LearnPage() {
       // HTML5 Video element
       const videoEl = document.createElement("video");
       videoEl.className = "plyr w-full h-full";
-      videoEl.playsInline = true;
-      videoEl.controls = true;
-      videoEl.preload = "auto";
+       videoEl.playsInline = true;
+       videoEl.controls = true;
+       videoEl.preload = "metadata";
       container.appendChild(videoEl);
 
-      // Check if HLS.js streaming is supported
-      if (isHlsStream && Hls.isSupported()) {
-        const startPos = initialSavedSeconds > 0 ? initialSavedSeconds : -1;
-        const hls = new Hls({
-          enableWorker: true,
-          autoStartLoad: true,
-          startPosition: startPos,
-          lowLatencyMode: false, // Critical: disabled for VOD course streams to avoid buffer underruns
-          backBufferLength: 90,
-          maxBufferLength: 60, // Buffer 60s ahead
-          maxMaxBufferLength: 300, // Allow up to 300s ahead on stable connections
-          maxBufferSize: 128 * 1024 * 1024, // 128MB max buffer
-          maxBufferHole: 0.5, // Auto-skip small timestamp gaps without stalling
-          highBufferWatchdogPeriod: 2,
-          nudgeOffset: 0.1,
-          nudgeMaxRetry: 5,
-        });
-        hlsInstance = hls;
-        hlsRef.current = hls;
+      // Direct HTML5 video streaming (MP4)
+      videoEl.src = videoUrl;
 
-        hls.attachMedia(videoEl);
-
-        hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-          if (isDebugHls) console.log("[HLS.js] Media attached, loading source:", videoUrl);
-          hls.loadSource(videoUrl);
-          hls.startLoad();
-        });
-
-        hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-          if (isDebugHls) console.log("[HLS.js] Manifest parsed. Levels:", data.levels.length);
-          const rawQualities = data.levels.map((l) => l.height).filter(Boolean);
-          const uniqueQualities = Array.from(new Set(rawQualities)).sort((a, b) => b - a);
-
-          const customOptions: Plyr.Options = {
-            ...playerOptions,
-            quality: uniqueQualities.length
-              ? {
-                  default: 0, // Auto Adaptive Bitrate
-                  options: [0, ...uniqueQualities],
-                  forced: true,
-                  onChange: (newQuality: number) => {
-                    if (newQuality === 0) {
-                      hls.currentLevel = -1; // Auto ABR adapts to network bandwidth
-                    } else {
-                      data.levels.forEach((level, levelIndex) => {
-                        if (level.height === newQuality) {
-                          hls.currentLevel = levelIndex;
-                        }
-                      });
-                    }
-                  },
-                }
-              : undefined,
-            i18n: {
-              qualityLabel: {
-                0: "Auto",
-              },
-            },
-          };
-
-          try {
-            playerInstance = new Plyr(videoEl, customOptions);
-            playerRef.current = playerInstance;
-            attachPlayerEvents(playerInstance, videoEl);
-          } catch (e) {
-            if (isDebugHls) console.warn("Plyr HLS init warning:", e);
-          }
-
-          restoreSavedPosition(videoEl);
-        });
-
-        // HLS.js Error Recovery & Stall Auto-Nudge
-        hls.on(Hls.Events.ERROR, async (_, errorData) => {
-          if (isDebugHls) {
-            console.warn(`[HLS.js Event] ${errorData.fatal ? 'FATAL ERROR' : 'Warning'}:`, {
-              type: errorData.type,
-              details: errorData.details,
-              fatal: errorData.fatal,
-              response: errorData.response,
-            });
-          }
-
-          if (!errorData.fatal) {
-            if (errorData.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
-              if (isDebugHls) console.warn("[HLS.js] Buffer stalled, waking loader...");
-              try {
-                hls.startLoad();
-              } catch (_) {}
-            }
-            return;
-          }
-
-          switch (errorData.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR: {
-              if (retryCountRef.current < 5) {
-                retryCountRef.current += 1;
-                setIsReconnecting(true);
-
-                if (isDebugHls) {
-                  console.warn(`[HLS.js] Fatal network error. Reconnecting (attempt ${retryCountRef.current})...`);
-                }
-
-                setTimeout(() => {
-                  if (active && hls) {
-                    hls.startLoad();
-                    setIsReconnecting(false);
-                  }
-                }, 1000);
-              } else {
-                hls.destroy();
-                if (active) {
-                  setVideoError("Video stream disconnected. Please check your internet connection and reload.");
-                  setPlayerReady(true);
-                }
-              }
-              break;
-            }
-            case Hls.ErrorTypes.MEDIA_ERROR: {
-              if (isDebugHls) console.warn("[HLS.js] Fatal media error encountered. Calling recoverMediaError()...");
-              hls.recoverMediaError();
-              break;
-            }
-            default: {
-              if (isDebugHls) console.error("[HLS.js] Fatal unrecoverable error:", errorData);
-              hls.destroy();
-              if (active) {
-                setVideoError("Playback encountered an unrecoverable error. Please reload the lesson.");
-                setPlayerReady(true);
-              }
-              break;
-            }
-          }
-        });
-      } else {
-        // Direct HTML5 or Native Safari HLS
-        videoEl.src = videoUrl;
-
-        try {
-          playerInstance = new Plyr(videoEl, playerOptions);
-          playerRef.current = playerInstance;
-          attachPlayerEvents(playerInstance, videoEl);
-        } catch (e) {
-          if (isDebugHls) console.warn("Plyr HTML5 init warning:", e);
-        }
+      try {
+        playerInstance = new Plyr(videoEl, playerOptions);
+        playerRef.current = playerInstance;
+        attachPlayerEvents(playerInstance, videoEl);
+      } catch (e) {
+        if (isDebugHls) console.warn("Plyr HTML5 init warning:", e);
       }
 
       videoEl.onloadedmetadata = () => {
@@ -894,14 +758,6 @@ function LearnPage() {
           playerInstance.destroy();
         }
       } catch (_) {}
-
-      if (hlsInstance) {
-        try {
-          hlsInstance.destroy();
-        } catch (_) {}
-        hlsInstance = null;
-        hlsRef.current = null;
-      }
 
       playerRef.current = null;
       setPlayerReady(false);
@@ -1455,6 +1311,7 @@ function LearnPage() {
                       ? "opacity-100"
                       : "opacity-0 pointer-events-none"
                   }`}
+                  style={rotation ? { transform: `rotate(${rotation}deg)`, transformOrigin: "center center" } : undefined}
                 />
               </div>
             )}
@@ -1623,6 +1480,26 @@ function LearnPage() {
                       </button>
                     );
                   })()
+                )}
+
+                {/* Rotate Screen Button */}
+                {!isPdfLesson && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setRotation((r) => (r + 90) % 360);
+                      if (screen.orientation && "lock" in (screen.orientation as any)) {
+                        try {
+                          await (screen.orientation as any).lock("landscape");
+                        } catch (_) {}
+                      }
+                    }}
+                    title="Rotate screen"
+                    aria-label="Rotate screen"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-background/90 text-foreground hover:text-primary hover:border-primary/40 hover:bg-muted shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer"
+                  >
+                    <RotateCw className="h-4 w-4" />
+                  </button>
                 )}
 
                 {/* Full Screen Symbol Button */}

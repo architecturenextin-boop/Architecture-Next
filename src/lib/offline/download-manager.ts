@@ -390,25 +390,30 @@ class DownloadManager {
         const response = await fetch(masterUrl, { signal: abortController.signal });
         if (!response.ok) throw new Error(`HTTP Error ${response.status} fetching video file.`);
 
-        const contentLength = +(response.headers.get("Content-Length") || 0);
-        const reader = response.body?.getReader();
-        let receivedBytes = 0;
-        const chunks: Uint8Array[] = [];
+         const contentLength = +(response.headers.get("Content-Length") || 0);
+         const reader = response.body?.getReader();
+         let receivedBytes = 0;
+         const chunks: Uint8Array[] = [];
+         let lastProgressUpdate = 0;
 
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
-            receivedBytes += value.length;
+         if (reader) {
+           while (true) {
+             const { done, value } = await reader.read();
+             if (done) break;
+             chunks.push(value);
+             receivedBytes += value.length;
 
-            if (contentLength > 0) {
-              lessonRecord.progressPercent = Math.min(95, Math.round((receivedBytes / contentLength) * 100));
-              lessonRecord.sizeBytes = receivedBytes;
-              await saveRecord(lessonRecord);
-            }
-          }
-        } else {
+             if (contentLength > 0) {
+               const pct = Math.min(95, Math.round((receivedBytes / contentLength) * 100));
+               if (pct - lastProgressUpdate >= 5 || receivedBytes >= contentLength) {
+                 lessonRecord.progressPercent = pct;
+                 lessonRecord.sizeBytes = receivedBytes;
+                 await saveRecord(lessonRecord);
+                 lastProgressUpdate = pct;
+               }
+             }
+           }
+         } else {
           const directBuffer = await response.arrayBuffer();
           chunks.push(new Uint8Array(directBuffer));
           receivedBytes = directBuffer.byteLength;

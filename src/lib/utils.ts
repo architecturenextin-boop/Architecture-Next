@@ -35,6 +35,10 @@ export function getMediaUrl(urlOrPath?: string | null): string {
 
   const apiBase = envApiUrl || `${serverBase}/api/v1`;
 
+  const envMediaUrl = import.meta.env.VITE_MEDIA_URL || "";
+  const isProd = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+  const r2Base = envMediaUrl ? envMediaUrl.replace(/\/$/, "") : (isProd ? "https://media.architecturenext.in" : "");
+
   // External or absolute URLs (YouTube, Cloudflare R2, Vimeo, Cloudinary, S3, etc.)
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     if (
@@ -45,6 +49,14 @@ export function getMediaUrl(urlOrPath?: string | null): string {
     ) {
       return trimmed.replace(/^http:\/\/localhost:5000/, serverBase || window.location.origin);
     }
+
+    // Normalize any Cloudflare R2 dev bucket URL to the configured CDN/custom domain
+    const r2DevMatch = trimmed.match(/^https?:\/\/[^/]*\.r2\.dev(\/.*)?$/);
+    if (r2DevMatch && r2Base) {
+      const pathPart = r2DevMatch[1] || "";
+      return `${r2Base}${pathPart}`;
+    }
+
     return trimmed;
   }
 
@@ -62,10 +74,6 @@ export function getMediaUrl(urlOrPath?: string | null): string {
     } catch (_) {}
     return url;
   };
-
-  const envMediaUrl = import.meta.env.VITE_MEDIA_URL || "";
-  const isProd = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
-  const r2Base = envMediaUrl ? envMediaUrl.replace(/\/$/, "") : (isProd ? "https://media.architecturenext.in" : "");
 
   // Direct R2 CDN routing for video & document streaming (replaces legacy backend proxy)
   if (r2Base) {
