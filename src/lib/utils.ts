@@ -75,15 +75,22 @@ export function getMediaUrl(urlOrPath?: string | null): string {
     return url;
   };
 
-  // Direct R2 CDN routing for video & document streaming (replaces legacy backend proxy)
+  // Direct R2 CDN routing for video, document, and subtitle streaming
   if (r2Base) {
     if (trimmed.includes("/api/v1/media/video/")) {
       const filename = trimmed.split("?")[0].split("/").pop() || "";
+      if (filename.startsWith("subt-") || filename.endsWith(".vtt") || filename.endsWith(".srt")) {
+        return `${r2Base}/subtitles/${filename}`;
+      }
       return `${r2Base}/videos/${filename}`;
     }
     if (trimmed.includes("/api/v1/media/document/")) {
       const filename = trimmed.split("?")[0].split("/").pop() || "";
       return `${r2Base}/documents/${filename}`;
+    }
+    if (trimmed.includes("/api/v1/media/subtitles/")) {
+      const filename = trimmed.split("?")[0].split("/").pop() || "";
+      return `${r2Base}/subtitles/${filename}`;
     }
   }
 
@@ -91,6 +98,21 @@ export function getMediaUrl(urlOrPath?: string | null): string {
   if (trimmed.includes("/api/v1/media/")) {
     const mediaPath = trimmed.slice(trimmed.indexOf("/api/v1/media/"));
     return withAuthToken(`${serverBase}${mediaPath}`);
+  }
+
+  // Private lesson subtitles -> route directly to Cloudflare R2 CDN if configured, else backend media endpoint
+  if (
+    trimmed.startsWith("/uploads/subtitles/") ||
+    trimmed.startsWith("subtitles/") ||
+    trimmed.startsWith("subt-") ||
+    trimmed.endsWith(".vtt") ||
+    trimmed.endsWith(".srt")
+  ) {
+    const filename = trimmed.split("?")[0].split("/").pop() || "";
+    if (r2Base) {
+      return `${r2Base}/subtitles/${filename}`;
+    }
+    return withAuthToken(`${apiBase}/media/video/${filename}`);
   }
 
   // Private lesson videos -> route directly to Cloudflare R2 CDN if configured, else backend media endpoint

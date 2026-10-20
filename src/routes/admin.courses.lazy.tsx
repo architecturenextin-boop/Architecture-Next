@@ -2,7 +2,7 @@ import { createLazyFileRoute } from "@tanstack/react-router";
 import { 
   Edit3, Plus, Trash2, Upload, Video, Loader2, ArrowUp, ArrowDown, Image, Info,
   Pause, Play, RefreshCw, XCircle, CheckCircle2, PlayCircle, Eye, EyeOff, AlertCircle, FileVideo,
-  UploadCloud, Link2, FileText, X, Award
+  UploadCloud, Link2, FileText, X, Award, Languages
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -542,33 +542,48 @@ function LessonVideoManager({
     if (!file) return;
     setIsUploadingSubtitle(true);
     try {
+      // 1. Read file text & convert SRT to standard WebVTT format
+      const rawText = await file.text();
+      let vttText = rawText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+      if (!vttText.startsWith("WEBVTT")) {
+        const converted = vttText
+          .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2")
+          .replace(/(\d{2}:\d{2}),(\d{3})/g, "00:$1.$2");
+        vttText = `WEBVTT\n\n${converted}`;
+      }
+
+      const vttBlob = new Blob([vttText], { type: "text/vtt" });
+      const cleanBaseName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_") || "subtitles";
+      const vttFileName = `${cleanBaseName}.vtt`;
+
       const presigned = await adminService.getPresignedUploadUrl({
-        filename: file.name,
-        contentType: file.type || "text/vtt",
+        filename: vttFileName,
+        contentType: "text/vtt",
         folder: "subtitles",
       });
       if (presigned && presigned.uploadUrl) {
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open("PUT", presigned.uploadUrl);
-          const lower = presigned.uploadUrl.toLowerCase();
-          if (!lower.includes("x-amz-signedheaders") || lower.includes("content-type")) {
-            xhr.setRequestHeader("Content-Type", file.type || "text/vtt");
-          }
+          xhr.setRequestHeader("Content-Type", "text/vtt");
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) resolve();
             else reject(new Error(`Subtitle upload failed: ${xhr.status}`));
           };
           xhr.onerror = () => reject(new Error("Subtitle upload failed"));
-          xhr.send(file);
+          xhr.send(vttBlob);
         });
+
+        const uploadedUrl = presigned.publicUrl || presigned.mediaUrl || presigned.videoUrl;
         onChange({
-          subtitle_url: presigned.videoUrl || presigned.videoPath || null,
-          subtitle_path: presigned.videoPath || presigned.key || null,
+          subtitle_url: uploadedUrl,
+          subtitle_path: presigned.key || uploadedUrl,
         } as any);
+        toast.success("Subtitle converted to WebVTT and attached successfully!");
       }
     } catch (err: any) {
       setUploadError(err?.message || "Failed to upload subtitle.");
+      toast.error(err?.message || "Failed to upload subtitle.");
     } finally {
       setIsUploadingSubtitle(false);
       if (subtitleInputRef.current) subtitleInputRef.current.value = "";
@@ -721,23 +736,31 @@ function LessonVideoManager({
       )}
 
       <div className="space-y-1.5">
-        <label className="text-[11px] font-semibold text-muted-foreground">
-          Subtitle (SRT/VTT)
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+            <Languages className="h-3.5 w-3.5 text-primary" /> Subtitle (SRT/VTT)
+          </label>
+          {(lesson.subtitle_url || (lesson as any).subtitle_path) && (
+            <span className="font-mono bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Subtitle Active
+            </span>
+          )}
+        </div>
+
         <div className="flex gap-2">
           <input
             type="text"
             value={(lesson as any).subtitle_url || ""}
             onChange={(e) =>
-              onChange({ subtitle_url: e.target.value.trim() || null } as any)
+              onChange({ subtitle_url: e.target.value.trim() || null, subtitle_path: e.target.value.trim() || null } as any)
             }
-            placeholder="Subtitle URL or upload file"
+            placeholder="Subtitle URL (.vtt/.srt) or upload file"
             className="flex-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs outline-none focus:border-primary"
           />
           <input
             ref={subtitleInputRef}
             type="file"
-            accept=".srt,.vtt,.srt"
+            accept=".srt,.vtt,.txt"
             className="hidden"
             onChange={handleSubtitleUpload}
           />
@@ -745,11 +768,36 @@ function LessonVideoManager({
             type="button"
             onClick={() => subtitleInputRef.current?.click()}
             disabled={isUploadingSubtitle}
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted disabled:opacity-50 flex items-center gap-1 shrink-0"
           >
-            {isUploadingSubtitle ? "Uploading..." : "Upload"}
+            {isUploadingSubtitle ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                <span>Uploading...</span>
+              </>
+            ) : (
+              <>
+                <UploadCloud className="h-3 w-3" />
+                <span>Upload</span>
+              </>
+            )}
           </button>
+          {(lesson.subtitle_url || (lesson as any).subtitle_path) && (
+            <button
+              type="button"
+              onClick={() => onChange({ subtitle_url: null, subtitle_path: null } as any)}
+              className="rounded-md border border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20 px-2 py-1.5 text-xs font-semibold shrink-0"
+              title="Remove subtitle"
+            >
+              ✕
+            </button>
+          )}
         </div>
+        {(lesson.subtitle_url || (lesson as any).subtitle_path) && (
+          <div className="text-[10px] text-muted-foreground truncate font-mono">
+            Attached: {((lesson as any).subtitle_url || (lesson as any).subtitle_path || "").split("?")[0].split("/").pop()}
+          </div>
+        )}
       </div>
 
       {tab === "pdf" && (

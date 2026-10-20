@@ -59,6 +59,17 @@ function getYouTubeEmbedUrl(url: string): string {
   return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0&modestbranding=1` : url;
 }
 
+function convertSrtToVtt(srtText: string): string {
+  let vtt = srtText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  if (vtt.startsWith("WEBVTT")) {
+    return vtt;
+  }
+  const converted = vtt
+    .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2")
+    .replace(/(\d{2}:\d{2}),(\d{3})/g, "00:$1.$2");
+  return `WEBVTT\n\n${converted}`;
+}
+
 function formatLessonTitle(title?: string): string {
   if (!title) return "";
   if (title.includes("_")) {
@@ -569,13 +580,16 @@ function LearnPage() {
         "progress",
         "current-time",
         "mute",
+        "volume",
+        "captions",
         "settings",
         "fullscreen"
       ],
       seekTime: 10,
       invertTime: false,
       tooltips: { controls: true, seek: true },
-      settings: ["speed", "quality"],
+      settings: ["captions", "quality", "speed"],
+      captions: { active: true, language: "auto", update: true },
       speed: { selected: 1, options: [0.75, 1, 1.25, 1.5, 2] },
       keyboard: { global: true, focused: true },
       youtube: {
@@ -722,11 +736,68 @@ function LearnPage() {
       } else {
        // HTML5 Video element
        const videoEl = document.createElement("video");
-      videoEl.className = "plyr w-full h-full";
+       videoEl.className = "plyr w-full h-full";
        videoEl.playsInline = true;
        videoEl.controls = true;
        videoEl.preload = "metadata";
-      container.appendChild(videoEl);
+       videoEl.crossOrigin = "anonymous";
+       container.appendChild(videoEl);
+
+       let activeSubtitleBlob: string | null = null;
+       const subtitleRaw = (activeLesson as any)?.subtitle_url || (activeLesson as any)?.subtitle_path;
+
+       const setupSubtitle = async (targetVideo: HTMLVideoElement) => {
+         if (!subtitleRaw) return;
+         try {
+           const resolved = getMediaUrl(subtitleRaw);
+           const token = tokenStorage.get();
+
+           let vttText = "";
+           try {
+             const res = await fetch(resolved, {
+               headers: token ? { Authorization: `Bearer ${token}` } : {},
+             });
+             if (res.ok) {
+               const raw = await res.text();
+               if (raw && raw.trim().length > 0) {
+                 vttText = convertSrtToVtt(raw);
+               }
+             }
+           } catch (_) {}
+
+           if (!active) return;
+
+           let trackSrc = resolved;
+           if (vttText) {
+             activeSubtitleBlob = URL.createObjectURL(new Blob([vttText], { type: "text/vtt" }));
+             trackSrc = activeSubtitleBlob;
+           }
+
+           Array.from(targetVideo.querySelectorAll("track")).forEach((t) => t.remove());
+           const track = document.createElement("track");
+           track.kind = "captions";
+           track.label = "English";
+           track.srclang = "en";
+           track.src = trackSrc;
+           track.default = true;
+           targetVideo.appendChild(track);
+
+           setTimeout(() => {
+             try {
+               if (targetVideo.textTracks && targetVideo.textTracks.length > 0) {
+                 for (let i = 0; i < targetVideo.textTracks.length; i++) {
+                   targetVideo.textTracks[i].mode = "showing";
+                 }
+               }
+               if (playerInstance) {
+                 playerInstance.toggleCaptions(true);
+               }
+             } catch (_) {}
+           }, 250);
+         } catch (err) {
+           if (isDebugHls) console.warn("Failed to load subtitle track:", err);
+         }
+       };
 
       // Check if HLS.js streaming is supported
       if (isHlsStream && Hls.isSupported()) {
@@ -749,19 +820,7 @@ function LearnPage() {
         hlsRef.current = hls;
 
         hls.attachMedia(videoEl);
-
-        // Attach subtitle track if available
-        Array.from(videoEl.querySelectorAll("track")).forEach((t) => t.remove());
-        const subtitleRawHls = (activeLesson as any)?.subtitle_url || (activeLesson as any)?.subtitle_path;
-        if (subtitleRawHls) {
-          const track = document.createElement("track");
-          track.kind = "subtitles";
-          track.label = "English";
-          track.srclang = "en";
-          track.src = getMediaUrl(subtitleRawHls);
-          track.default = true;
-          videoEl.appendChild(track);
-        }
+        setupSubtitle(videoEl);
 
         hls.on(Hls.Events.MEDIA_ATTACHED, () => {
           hls.loadSource(videoUrl);
@@ -774,6 +833,7 @@ function LearnPage() {
 
           const customOptions: Plyr.Options = {
             ...playerOptions,
+            captions: { active: true, language: "auto", update: true },
             quality: uniqueQualities.length
               ? {
                   default: 0,
@@ -853,19 +913,7 @@ function LearnPage() {
       } else {
         // Direct HTML5 video streaming (MP4)
         videoEl.src = videoUrl;
-
-        // Attach subtitle track if available
-        Array.from(videoEl.querySelectorAll("track")).forEach((t) => t.remove());
-        const subtitleRaw = (activeLesson as any)?.subtitle_url || (activeLesson as any)?.subtitle_path;
-        if (subtitleRaw) {
-          const track = document.createElement("track");
-          track.kind = "subtitles";
-          track.label = "English";
-          track.srclang = "en";
-          track.src = getMediaUrl(subtitleRaw);
-          track.default = true;
-          videoEl.appendChild(track);
-        }
+        setupSubtitle(videoEl);
 
         try {
           playerInstance = new Plyr(videoEl, playerOptions);
@@ -956,6 +1004,9 @@ function LearnPage() {
 
       playerRef.current = null;
       setPlayerReady(false);
+      if (activeSubtitleBlob && activeSubtitleBlob.startsWith("blob:")) {
+        try { URL.revokeObjectURL(activeSubtitleBlob); } catch (_) {}
+      }
       if (container) {
         container.innerHTML = "";
       }
