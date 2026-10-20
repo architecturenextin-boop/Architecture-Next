@@ -240,6 +240,11 @@ function LearnPage() {
   const [videoError, setVideoError] = useState<string | null>(null);
   const [playerReady, setPlayerReady] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const [sourceIndex, setSourceIndex] = useState(0);
+
+  useEffect(() => {
+    setSourceIndex(0);
+  }, [activeId]);
 
   // PDF blob state for secure rendering without cross-origin CSP frame blocking
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
@@ -316,7 +321,12 @@ function LearnPage() {
           return;
         }
 
-        const rawVideo = currentLesson.video_url || (currentLesson as any).video_path;
+         const rawVideo =
+           (sourceIndex > 0
+             ? (currentLesson as any).video_path || currentLesson.video_url
+             : currentLesson.video_url || (currentLesson as any).video_path) ||
+           currentLesson.video_url ||
+           (currentLesson as any).video_path;
         if (rawVideo) {
            const resolved = getMediaUrl(rawVideo);
            if (active) {
@@ -390,7 +400,7 @@ function LearnPage() {
     return () => {
       active = false;
     };
-  }, [activeId, isEnrolled]);
+  }, [activeId, isEnrolled, sourceIndex]);
 
   // Keep mutable refs in sync with latest component state
   useEffect(() => {
@@ -1649,6 +1659,27 @@ function LearnPage() {
                   >
                     <RotateCw className="h-4 w-4" />
                   </button>
+                )}
+
+                {/* Source Switcher */}
+                {activeLesson?.video_url && (activeLesson as any)?.video_path &&
+                 getMediaUrl(activeLesson.video_url) !== getMediaUrl((activeLesson as any).video_path) && (
+                  <div className="inline-flex rounded-full border border-border/80 bg-background/90 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setSourceIndex(0)}
+                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-full transition ${sourceIndex === 0 ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                    >
+                      File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSourceIndex(1)}
+                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-full transition ${sourceIndex === 1 ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                    >
+                      Link
+                    </button>
+                  </div>
                 )}
 
                 {/* Full Screen Symbol Button */}
