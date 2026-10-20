@@ -116,9 +116,10 @@ function Landing() {
 function Hero() {
   const { user } = useAuth();
   const { hasAnyEnrollments } = useEnrolledCourses();
-  const { data: enrollmentCount = 0 } = useQuery({
+  const { data: enrollmentCount = 19 } = useQuery({
     queryKey: ["public-enrollment-count"],
     queryFn: () => courseService.getEnrollmentCount(),
+    initialData: 19,
     staleTime: 60 * 1000,
   });
 
@@ -128,10 +129,10 @@ function Hero() {
       <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-purple/15 blur-[120px]" />
       <div className="relative mx-auto grid max-w-7xl gap-14 px-5 pt-16 pb-24 md:grid-cols-2 md:items-center md:px-8 md:pt-24 md:pb-32">
         <div className="space-y-7 animate-fade-up">
-           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-2xs">
              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              {enrollmentCount > 0 ? `${enrollmentCount}+ enrolled` : "New cohort enrolling now"}
-            </span>
+             <span>{enrollmentCount > 0 ? `${enrollmentCount}+` : "19+"} enrolled</span>
+           </span>
           <h1 className="type-display text-foreground">
             Accelerate Your Architecture Career with{" "}
             <span className="text-gradient-brand">Real Experience</span>
