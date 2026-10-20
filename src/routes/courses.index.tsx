@@ -35,10 +35,17 @@ function CoursesCatalogPage() {
   });
 
   const allCourses = useMemo(() => {
-    return (Array.isArray(allCoursesRaw) ? allCoursesRaw : []).filter((c: any) => {
+    const filtered = (Array.isArray(allCoursesRaw) ? allCoursesRaw : []).filter((c: any) => {
       if (c.status === "draft" || c.status === "archived") return false;
       if (typeof c.published === "boolean" && !c.published) return false;
       return true;
+    });
+    // Courses with lessons first; zero-lesson (prebook) courses at the bottom
+    return [...filtered].sort((a: any, b: any) => {
+      const aHas = (a.total_lessons || 0) > 0 ? 0 : 1;
+      const bHas = (b.total_lessons || 0) > 0 ? 0 : 1;
+      if (aHas !== bHas) return aHas - bHas;
+      return 0;
     });
   }, [allCoursesRaw]);
 

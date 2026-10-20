@@ -23,6 +23,7 @@ export function CourseCard({ course, badge }: CourseCardProps) {
     : 0;
 
   const courseTargetId = course.slug || course.id;
+  const hasLessons = (course.total_lessons || 0) > 0;
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-border/80 bg-card/90 shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-elevated cursor-pointer">
@@ -109,10 +110,10 @@ export function CourseCard({ course, badge }: CourseCardProps) {
             <Clock className="h-3.5 w-3.5 text-primary" />
             <span>{course.total_duration}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <BookOpen className="h-3.5 w-3.5 text-primary" />
-            <span>{course.total_lessons} Lessons</span>
-          </div>
+           <div className="flex items-center gap-1.5">
+             <BookOpen className="h-3.5 w-3.5 text-primary" />
+             <span>{hasLessons ? `${course.total_lessons} Lessons` : "Lessons coming soon"}</span>
+           </div>
         </div>
 
         {/* Pricing & CTA Row */}
@@ -123,9 +124,9 @@ export function CourseCard({ course, badge }: CourseCardProps) {
                 <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
                   Enrolled Course
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  Ready to stream
-                </span>
+                 <span className="text-xs text-muted-foreground">
+                   {hasLessons ? "Ready to stream" : "Lessons coming soon"}
+                 </span>
               </div>
             ) : (
               <>
@@ -155,15 +156,15 @@ export function CourseCard({ course, badge }: CourseCardProps) {
                   to="/learn/$courseId"
                   params={{ courseId: courseTargetId }}
                 >
-                  <PlayCircle className="mr-1.5 h-3.5 w-3.5" /> Continue
+                   <PlayCircle className="mr-1.5 h-3.5 w-3.5" /> {hasLessons ? "Continue" : "Prebooked"}
                 </Link>
               </Button>
             ) : (
-              <div
-                className="relative z-0 inline-flex items-center gap-1 rounded-xl bg-gradient-primary px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all group-hover:brightness-110 group-hover:shadow-elevated pointer-events-none"
-              >
-                Enroll <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </div>
+               <div
+                 className="relative z-0 inline-flex items-center gap-1 rounded-xl bg-gradient-primary px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all group-hover:brightness-110 group-hover:shadow-elevated pointer-events-none"
+               >
+                 {hasLessons ? "Enroll" : "Prebook Now"} <ArrowRight className="ml-1 h-3.5 w-3.5" />
+               </div>
             )}
           </div>
         </div>
