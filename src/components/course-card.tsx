@@ -22,8 +22,18 @@ export function CourseCard({ course, badge }: CourseCardProps) {
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : 0;
 
+  const courseTargetId = course.slug || course.id;
+
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-border/80 bg-card/90 shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-elevated">
+    <div className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-border/80 bg-card/90 shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-elevated cursor-pointer">
+      {/* Full-card clickable area to navigate to course inner page */}
+      <Link
+        to="/courses/$courseId"
+        params={{ courseId: courseTargetId }}
+        className="absolute inset-0 z-10 rounded-[1.5rem]"
+        aria-label={`View details for ${course.title}`}
+      />
+
       {/* Cover Image Container */}
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
         <img
@@ -33,7 +43,7 @@ export function CourseCard({ course, badge }: CourseCardProps) {
         />
 
         {/* Top-left Language / Course Tag Badge */}
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 pointer-events-none">
           {isEnrolled ? (
             <span className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white shadow-md backdrop-blur-md">
               <CheckCircle2 className="h-3 w-3" /> Enrolled
@@ -48,7 +58,7 @@ export function CourseCard({ course, badge }: CourseCardProps) {
         </div>
 
         {/* Floating Price Offer Badge or Progress Indicator */}
-        <div className="absolute bottom-3 right-3 rounded-lg bg-background/90 border border-primary/40 px-3 py-1.5 shadow-lg backdrop-blur-md">
+        <div className="absolute bottom-3 right-3 rounded-lg bg-background/90 border border-primary/40 px-3 py-1.5 shadow-lg backdrop-blur-md pointer-events-none">
           {isEnrolled ? (
             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
               <PlayCircle className="h-3.5 w-3.5" />
@@ -139,28 +149,21 @@ export function CourseCard({ course, badge }: CourseCardProps) {
               <Button
                 asChild
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 font-semibold text-white shadow-soft transition-all hover:scale-[1.02] hover:shadow-elevated cursor-pointer"
+                className="relative z-20 bg-emerald-600 hover:bg-emerald-700 font-semibold text-white shadow-soft transition-all hover:scale-[1.02] hover:shadow-elevated cursor-pointer"
               >
                 <Link
                   to="/learn/$courseId"
-                  params={{ courseId: course.slug || course.id }}
+                  params={{ courseId: courseTargetId }}
                 >
                   <PlayCircle className="mr-1.5 h-3.5 w-3.5" /> Continue
                 </Link>
               </Button>
             ) : (
-              <Button
-                asChild
-                size="sm"
-                className="bg-gradient-primary font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 hover:shadow-elevated"
+              <div
+                className="relative z-0 inline-flex items-center gap-1 rounded-xl bg-gradient-primary px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all group-hover:brightness-110 group-hover:shadow-elevated pointer-events-none"
               >
-                <Link
-                  to="/courses/$courseId"
-                  params={{ courseId: course.slug || course.id }}
-                >
-                  Enroll <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                </Link>
-              </Button>
+                Enroll <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </div>
             )}
           </div>
         </div>
