@@ -38,7 +38,7 @@ function getYouTubeVideoId(url: string) {
 }
 
 function getVimeoVideoId(url: string) {
-  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+(?:\/[a-zA-Z0-9]+)?)/);
   return match ? match[1] : "";
 }
 
