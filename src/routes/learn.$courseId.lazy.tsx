@@ -37,14 +37,26 @@ function getYouTubeVideoId(url: string) {
   return videoId;
 }
 
-function getVimeoVideoId(url: string) {
-  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+(?:\/[a-zA-Z0-9]+)?)/);
+function getVimeoVideoId(url: string): string {
+  if (!url) return "";
+  const match = url.match(/(?:vimeo\.com\/(?:video\/|channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|manage\/videos\/)?|player\.vimeo\.com\/video\/)(\d+)/);
   return match ? match[1] : "";
 }
 
-function getYouTubeEmbedUrl(url: string) {
+function getVimeoEmbedUrl(url: string): string {
+  if (!url) return "";
+  const vimeoId = getVimeoVideoId(url);
+  if (!vimeoId) return url;
+
+  const hashMatch = url.match(/[?&]h=([a-zA-Z0-9]+)/) || url.match(/vimeo\.com\/\d+\/([a-zA-Z0-9]+)/);
+  const hashParam = hashMatch ? `&h=${hashMatch[1]}` : "";
+
+  return `https://player.vimeo.com/video/${vimeoId}?autoplay=1&playsinline=1&title=0&byline=0&portrait=0&color=00b2ff${hashParam}`;
+}
+
+function getYouTubeEmbedUrl(url: string): string {
   const videoId = getYouTubeVideoId(url);
-  return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+  return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0&modestbranding=1` : url;
 }
 
 function formatLessonTitle(title?: string): string {
@@ -674,23 +686,38 @@ function LearnPage() {
       });
     }
 
-     if (isYouTube || isVimeo) {
-       const provider = isYouTube ? "youtube" : "vimeo";
-       const embedId = isYouTube ? getYouTubeVideoId(videoUrl) : getVimeoVideoId(videoUrl);
-       const embedDiv = document.createElement("div");
-       embedDiv.className = "w-full h-full";
-       embedDiv.setAttribute("data-plyr-provider", provider);
-       embedDiv.setAttribute("data-plyr-embed-id", embedId);
-       container.appendChild(embedDiv);
+      if (isYouTube || isVimeo) {
+        // Direct responsive iframe embedding for Vimeo and YouTube:
+        // Eliminates Plyr handshake failures, black screen / audio-only bugs,
+        // and guarantees native HD playback, controls, and aspect ratio.
+        const iframe = document.createElement("iframe");
+        iframe.className = "w-full h-full border-0 absolute inset-0";
+        iframe.style.width = "100%";
+        iframe.style.height = "100%";
+        iframe.style.border = "none";
+        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+        iframe.allowFullscreen = true;
+        iframe.setAttribute("allowfullscreen", "true");
+        iframe.setAttribute("webkitallowfullscreen", "true");
+        iframe.setAttribute("mozallowfullscreen", "true");
 
-       try {
-         playerInstance = new Plyr(embedDiv, playerOptions);
-         playerRef.current = playerInstance;
-         attachPlayerEvents(playerInstance);
-       } catch (e) {
-         if (isDebugHls) console.warn("Plyr embed init warning:", e);
-       }
-     } else {
+        iframe.src = isVimeo ? getVimeoEmbedUrl(videoUrl) : getYouTubeEmbedUrl(videoUrl);
+
+        iframe.onload = () => {
+          if (active) {
+            setPlayerReady(true);
+            setVideoLoading(false);
+          }
+        };
+
+        container.appendChild(iframe);
+
+        // Immediate readiness to ensure player is visible immediately with zero black-screen delay
+        if (active) {
+          setPlayerReady(true);
+          setVideoLoading(false);
+        }
+      } else {
        // HTML5 Video element
        const videoEl = document.createElement("video");
       videoEl.className = "plyr w-full h-full";
@@ -1472,7 +1499,7 @@ function LearnPage() {
                 {/* Video Player Container */}
                 <div
                   ref={playerContainerRef}
-                  className={`w-full h-full flex items-center justify-center transition-opacity duration-300 ${
+                  className={`w-full h-full flex items-center justify-center transition-opacity duration-300 relative overflow-hidden ${
                     playerReady && !videoError && videoUrl
                       ? "opacity-100"
                       : "opacity-0 pointer-events-none"
