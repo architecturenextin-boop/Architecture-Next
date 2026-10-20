@@ -21,6 +21,15 @@ export const courseService = {
     return apiClient<Course[]>("/courses");
   },
 
+  getEnrollmentCount: async (): Promise<number> => {
+    try {
+      const res = await apiClient<{ count: number }>("/courses/stats/enrollment-count");
+      return res?.count ?? 0;
+    } catch {
+      return 0;
+    }
+  },
+
   getCourse: async (slugOrId: string): Promise<CourseWithContent> => {
     return apiClient<CourseWithContent>(`/courses/${slugOrId}`);
   },

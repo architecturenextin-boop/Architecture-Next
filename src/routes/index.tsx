@@ -116,6 +116,13 @@ function Landing() {
 function Hero() {
   const { user } = useAuth();
   const { hasAnyEnrollments } = useEnrolledCourses();
+  const { data: enrollmentCount = 0 } = useQuery({
+    queryKey: ["public-enrollment-count"],
+    queryFn: () => courseService.getEnrollmentCount(),
+    staleTime: 60 * 1000,
+  });
+  const formattedEnrollmentCount =
+    enrollmentCount >= 10 ? `${enrollmentCount}+` : String(enrollmentCount);
 
   return (
     <section className="relative overflow-hidden bg-gradient-hero border-b border-border">
@@ -124,8 +131,8 @@ function Hero() {
       <div className="relative mx-auto grid max-w-7xl gap-14 px-5 pt-16 pb-24 md:grid-cols-2 md:items-center md:px-8 md:pt-24 md:pb-32">
         <div className="space-y-7 animate-fade-up">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-primary shadow-soft backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-gradient-primary" />
-            New cohort enrolling now
+             <span className="h-1.5 w-1.5 rounded-full bg-gradient-primary" />
+             {formattedEnrollmentCount} enrolled in new cohort
           </span>
           <h1 className="type-display text-foreground">
             Accelerate Your Architecture Career with{" "}

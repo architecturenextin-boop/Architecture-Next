@@ -173,6 +173,7 @@ function CourseDetailPage() {
     (total, module) => total + (module.lessons_safe?.length || 0),
     0,
   );
+  const isPrebookCourse = totalLessons === 0;
 
   const handleShare = async () => {
     try {
@@ -375,7 +376,7 @@ function CourseDetailPage() {
                     }
                     className="mt-6 h-12 w-full bg-gradient-primary text-base font-bold text-primary-foreground shadow-glow transition-all hover:-translate-y-0.5 hover:brightness-110"
                   >
-                    Login to Enroll
+                     {isPrebookCourse ? "Login to Prebook" : "Login to Enroll"}
                   </Button>
                 ) : enrollmentLoading ? (
                   <Button
@@ -405,7 +406,7 @@ function CourseDetailPage() {
                     }}
                     className="mt-6 h-12 w-full bg-gradient-primary text-base font-bold text-primary-foreground shadow-glow transition-all hover:-translate-y-0.5 hover:brightness-110"
                   >
-                    {progress && progress.length > 0 ? "Continue Learning" : "Start Learning"}
+                    {isPrebookCourse ? "Prebook Complete" : (progress && progress.length > 0 ? "Continue Learning" : "Start Learning")}
                   </Button>
                 ) : (
                   <Button
@@ -440,7 +441,7 @@ function CourseDetailPage() {
                   <CourseFact
                     icon={<Layers3 className="h-4 w-4" />}
                     label="Course lessons"
-                    value={`${totalLessons} lessons`}
+                    value={`${totalLessons > 0 ? totalLessons : "Coming soon"}${totalLessons > 0 ? " lessons" : ""}`}
                   />
                   <CourseFact
                     icon={<Globe className="h-4 w-4" />}
@@ -905,7 +906,7 @@ function CourseDetailPage() {
                 }}
                 className="h-11 bg-gradient-primary px-6 font-bold text-primary-foreground shadow-glow hover:brightness-110"
               >
-                {progress && progress.length > 0 ? "Continue Learning" : "Start Learning"}
+                {isPrebookCourse ? "Prebook Complete" : (progress && progress.length > 0 ? "Continue Learning" : "Start Learning")}
               </Button>
             </>
           ) : (
@@ -924,7 +925,7 @@ function CourseDetailPage() {
                 onClick={handleAddToCart}
                 className="h-11 bg-gradient-primary px-6 font-bold text-primary-foreground hover:brightness-110"
               >
-                {!user ? "Login to Enroll" : "Buy Course"}
+                {!user ? (isPrebookCourse ? "Login to Prebook" : "Login to Enroll") : (isPrebookCourse ? "Prebook Now" : "Buy Course")}
               </Button>
             </>
           )}

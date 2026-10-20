@@ -851,12 +851,12 @@ function LearnPage() {
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-soft">
               <BookOpen className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
-              Lessons Coming Soon
-            </h1>
-            <p className="mt-3 text-sm sm:text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
-              The curriculum for <span className="font-semibold text-foreground">{course?.title || "this course"}</span> is currently being prepared. Lessons and downloadable materials will be available here once published.
-            </p>
+              <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+                Prebook Complete
+              </h1>
+              <p className="mt-3 text-sm sm:text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
+                Your prebook is confirmed. Lessons for <span className="font-semibold text-foreground">{course?.title || "this course"}</span> will be available here once published.
+              </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button
                 className="bg-gradient-primary text-primary-foreground font-semibold px-6 shadow-glow"

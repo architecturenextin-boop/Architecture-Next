@@ -10,11 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DownloadsRouteImport } from './routes/downloads'
+import { Route as MaintenanceRouteImport } from './routes/maintenance'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -37,6 +39,11 @@ import { Route as LearnCourseIdRouteImport } from './routes/learn.$courseId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -64,6 +71,11 @@ const DownloadsRoute = DownloadsRouteImport.update({
   path: '/downloads',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/downloads.lazy').then((d) => d.Route))
+const MaintenanceRoute = MaintenanceRouteImport.update({
+  id: '/maintenance',
+  path: '/maintenance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -159,11 +171,13 @@ const LearnCourseIdRoute = LearnCourseIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/downloads': typeof DownloadsRoute
+  '/maintenance': typeof MaintenanceRoute
   '/onboarding': typeof OnboardingRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/signup': typeof SignupRoute
@@ -185,9 +199,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/downloads': typeof DownloadsRoute
+  '/maintenance': typeof MaintenanceRoute
   '/onboarding': typeof OnboardingRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/signup': typeof SignupRoute
@@ -210,11 +226,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/downloads': typeof DownloadsRoute
+  '/maintenance': typeof MaintenanceRoute
   '/onboarding': typeof OnboardingRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/signup': typeof SignupRoute
@@ -238,11 +256,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$'
     | '/admin'
     | '/auth'
     | '/checkout'
     | '/dashboard'
     | '/downloads'
+    | '/maintenance'
     | '/onboarding'
     | '/payment-success'
     | '/signup'
@@ -264,9 +284,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$'
     | '/auth'
     | '/checkout'
     | '/downloads'
+    | '/maintenance'
     | '/onboarding'
     | '/payment-success'
     | '/signup'
@@ -288,11 +310,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/$'
     | '/admin'
     | '/auth'
     | '/checkout'
     | '/dashboard'
     | '/downloads'
+    | '/maintenance'
     | '/onboarding'
     | '/payment-success'
     | '/signup'
@@ -315,11 +339,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SplatRoute: typeof SplatRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   CheckoutRoute: typeof CheckoutRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   DownloadsRoute: typeof DownloadsRoute
+  MaintenanceRoute: typeof MaintenanceRoute
   OnboardingRoute: typeof OnboardingRoute
   PaymentSuccessRoute: typeof PaymentSuccessRoute
   SignupRoute: typeof SignupRoute
@@ -336,6 +362,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -371,6 +404,13 @@ declare module '@tanstack/react-router' {
       path: '/downloads'
       fullPath: '/downloads'
       preLoaderRoute: typeof DownloadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/maintenance': {
+      id: '/maintenance'
+      path: '/maintenance'
+      fullPath: '/maintenance'
+      preLoaderRoute: typeof MaintenanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -544,11 +584,13 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SplatRoute: SplatRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   CheckoutRoute: CheckoutRoute,
   DashboardRoute: DashboardRouteWithChildren,
   DownloadsRoute: DownloadsRoute,
+  MaintenanceRoute: MaintenanceRoute,
   OnboardingRoute: OnboardingRoute,
   PaymentSuccessRoute: PaymentSuccessRoute,
   SignupRoute: SignupRoute,
