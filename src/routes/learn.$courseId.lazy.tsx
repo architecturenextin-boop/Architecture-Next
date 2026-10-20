@@ -37,6 +37,11 @@ function getYouTubeVideoId(url: string) {
   return videoId;
 }
 
+function getVimeoVideoId(url: string) {
+  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  return match ? match[1] : "";
+}
+
 function getYouTubeEmbedUrl(url: string) {
   const videoId = getYouTubeVideoId(url);
   return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
@@ -541,6 +546,7 @@ function LearnPage() {
     };
 
     const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
+    const isVimeo = videoUrl.includes("vimeo.com");
     const isHlsStream = videoUrl.includes(".m3u8") || videoUrl.includes("/manifest/") || videoUrl.includes("/hls/");
 
 
@@ -668,24 +674,25 @@ function LearnPage() {
       });
     }
 
-    if (isYouTube) {
-      const videoId = getYouTubeVideoId(videoUrl);
-      const embedDiv = document.createElement("div");
-      embedDiv.className = "w-full h-full";
-      embedDiv.setAttribute("data-plyr-provider", "youtube");
-      embedDiv.setAttribute("data-plyr-embed-id", videoId);
-      container.appendChild(embedDiv);
+     if (isYouTube || isVimeo) {
+       const provider = isYouTube ? "youtube" : "vimeo";
+       const embedId = isYouTube ? getYouTubeVideoId(videoUrl) : getVimeoVideoId(videoUrl);
+       const embedDiv = document.createElement("div");
+       embedDiv.className = "w-full h-full";
+       embedDiv.setAttribute("data-plyr-provider", provider);
+       embedDiv.setAttribute("data-plyr-embed-id", embedId);
+       container.appendChild(embedDiv);
 
-      try {
-        playerInstance = new Plyr(embedDiv, playerOptions);
-        playerRef.current = playerInstance;
-        attachPlayerEvents(playerInstance);
-      } catch (e) {
-        if (isDebugHls) console.warn("Plyr YouTube init warning:", e);
-      }
-    } else {
-      // HTML5 Video element
-      const videoEl = document.createElement("video");
+       try {
+         playerInstance = new Plyr(embedDiv, playerOptions);
+         playerRef.current = playerInstance;
+         attachPlayerEvents(playerInstance);
+       } catch (e) {
+         if (isDebugHls) console.warn("Plyr embed init warning:", e);
+       }
+     } else {
+       // HTML5 Video element
+       const videoEl = document.createElement("video");
       videoEl.className = "plyr w-full h-full";
        videoEl.playsInline = true;
        videoEl.controls = true;
