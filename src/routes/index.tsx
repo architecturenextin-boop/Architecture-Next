@@ -121,8 +121,6 @@ function Hero() {
     queryFn: () => courseService.getEnrollmentCount(),
     staleTime: 60 * 1000,
   });
-  const formattedEnrollmentCount =
-    enrollmentCount >= 10 ? `${enrollmentCount}+` : String(enrollmentCount);
 
   return (
     <section className="relative overflow-hidden bg-gradient-hero border-b border-border">
@@ -130,10 +128,13 @@ function Hero() {
       <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-purple/15 blur-[120px]" />
       <div className="relative mx-auto grid max-w-7xl gap-14 px-5 pt-16 pb-24 md:grid-cols-2 md:items-center md:px-8 md:pt-24 md:pb-32">
         <div className="space-y-7 animate-fade-up">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-primary shadow-soft backdrop-blur">
-             <span className="h-1.5 w-1.5 rounded-full bg-gradient-primary" />
-             {formattedEnrollmentCount} enrolled in new cohort
-          </span>
+           <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-gradient-to-r from-primary/10 to-brand-blue/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-primary shadow-soft backdrop-blur">
+             <span className="relative flex h-2 w-2">
+               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+             </span>
+              {enrollmentCount > 0 ? `${enrollmentCount}+ enrolled in new cohort` : "New cohort enrolling now"}
+            </span>
           <h1 className="type-display text-foreground">
             Accelerate Your Architecture Career with{" "}
             <span className="text-gradient-brand">Real Experience</span>
