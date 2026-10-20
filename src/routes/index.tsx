@@ -4,6 +4,7 @@ import {
   Award,
   Check,
   ChevronDown,
+  ChevronRight,
   Compass,
   Layers,
   Leaf,
@@ -129,10 +130,24 @@ function Hero() {
       <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-purple/15 blur-[120px]" />
       <div className="relative mx-auto grid max-w-7xl gap-14 px-5 pt-16 pb-24 md:grid-cols-2 md:items-center md:px-8 md:pt-24 md:pb-32">
         <div className="space-y-7 animate-fade-up">
-           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-2xs">
-             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-             <span>{enrollmentCount > 0 ? `${enrollmentCount}+` : "19+"} enrolled</span>
-           </span>
+           <Link
+             to="/courses"
+             className="group inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/90 hover:bg-card hover:border-primary/50 px-2.5 py-1 text-xs font-medium text-foreground shadow-2xs backdrop-blur-md transition-all duration-300 hover:shadow-xs active:scale-[0.99] cursor-pointer"
+           >
+             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary border border-primary/20">
+               <span className="relative flex h-1.5 w-1.5">
+                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+               </span>
+               New Cohort
+             </span>
+             <span className="text-muted-foreground">
+               <strong className="font-semibold text-foreground">{enrollmentCount > 0 ? `${enrollmentCount}+` : "19+"}</strong>
+               <span className="hidden sm:inline"> architects &amp; students enrolled</span>
+               <span className="sm:hidden"> enrolled</span>
+             </span>
+             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary" />
+           </Link>
           <h1 className="type-display text-foreground">
             Accelerate Your Architecture Career with{" "}
             <span className="text-gradient-brand">Real Experience</span>
