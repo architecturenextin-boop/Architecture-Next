@@ -51,7 +51,7 @@ function getVimeoEmbedUrl(url: string): string {
   const hashMatch = url.match(/[?&]h=([a-zA-Z0-9]+)/) || url.match(/vimeo\.com\/\d+\/([a-zA-Z0-9]+)/);
   const hashParam = hashMatch ? `&h=${hashMatch[1]}` : "";
 
-  return `https://player.vimeo.com/video/${vimeoId}?autoplay=1&playsinline=1&title=0&byline=0&portrait=0&color=00b2ff${hashParam}`;
+  return `https://player.vimeo.com/video/${vimeoId}?autoplay=1&playsinline=1&title=0&byline=0&portrait=0&color=00b2ff&transparent=0&dnt=1${hashParam}`;
 }
 
 function getYouTubeEmbedUrl(url: string): string {
@@ -694,8 +694,10 @@ function LearnPage() {
         iframe.className = "w-full h-full border-0 absolute inset-0";
         iframe.style.width = "100%";
         iframe.style.height = "100%";
+        iframe.style.minHeight = "100%";
+        iframe.style.display = "block";
         iframe.style.border = "none";
-        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen";
         iframe.allowFullscreen = true;
         iframe.setAttribute("allowfullscreen", "true");
         iframe.setAttribute("webkitallowfullscreen", "true");
@@ -1218,7 +1220,9 @@ function LearnPage() {
         <div className="space-y-4 sm:space-y-5 min-w-0">
           {/* Video / PDF Container: Tall Reel Background with Centered Landscape Video */}
           <div className={`overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-gradient-to-b from-[#0e0e18] via-[#05050a] to-[#0e0e18] shadow-elevated transition-all duration-300 flex items-center justify-center ${
-            isPdfLesson ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]" : "relative w-full min-h-[360px] sm:min-h-[440px] md:min-h-[480px] lg:min-h-[520px] max-h-[75vh]"
+            isPdfLesson
+              ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]"
+              : "relative w-full aspect-video min-h-[260px] sm:min-h-[360px] md:min-h-[440px] max-h-[80vh] bg-black"
           }`}>
             {isPdfLesson ? (
               (activeLesson?.pdf_url || (activeLesson as any)?.pdf_path) ? (
@@ -1367,7 +1371,7 @@ function LearnPage() {
                 </div>
               )
             ) : (
-              <div className="relative w-full h-full flex items-center justify-center">
+              <div className="relative w-full h-full aspect-video flex items-center justify-center self-stretch">
                 {/* Premium Smooth Loading State */}
                 {(videoLoading || !playerReady) && !videoError && videoUrl && (
                   <div className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center bg-gradient-to-br from-[#0B0B12] via-[#14141F] to-[#1A1A2A] text-white transition-opacity duration-300">
@@ -1499,7 +1503,7 @@ function LearnPage() {
                 {/* Video Player Container */}
                 <div
                   ref={playerContainerRef}
-                  className={`w-full h-full flex items-center justify-center transition-opacity duration-300 relative overflow-hidden ${
+                  className={`w-full h-full aspect-video flex items-center justify-center transition-opacity duration-300 relative overflow-hidden bg-black ${
                     playerReady && !videoError && videoUrl
                       ? "opacity-100"
                       : "opacity-0 pointer-events-none"
@@ -1578,7 +1582,7 @@ function LearnPage() {
               {/* Apple-Style Symbol Action Pills (Uniform h-9 height) */}
               <div className="flex items-center gap-2">
                 {/* Offline Download Button for Video Lesson */}
-                {!isPdfLesson && isEnrolled && videoUrl && !videoUrl.includes("youtube.com") && (
+                {!isPdfLesson && isEnrolled && videoUrl && !videoUrl.includes("youtube.com") && !videoUrl.includes("vimeo.com") && (
                   (() => {
                     const activeOffline = offlineLessons.find((o) => o.id === activeId);
                     if (activeOffline?.status === "downloading") {
@@ -1704,14 +1708,14 @@ function LearnPage() {
                       onClick={() => setSourceIndex(0)}
                       className={`px-2.5 py-1 text-[11px] font-semibold rounded-full transition ${sourceIndex === 0 ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
                     >
-                      File
+                      Default
                     </button>
                     <button
                       type="button"
                       onClick={() => setSourceIndex(1)}
                       className={`px-2.5 py-1 text-[11px] font-semibold rounded-full transition ${sourceIndex === 1 ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
                     >
-                      Link
+                      Alternative
                     </button>
                   </div>
                 )}

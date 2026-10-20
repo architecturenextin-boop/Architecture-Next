@@ -55,6 +55,23 @@ function getYouTubeVideoId(url?: string | null): string {
   return match && match[2].length === 11 ? match[2] : url;
 }
 
+function getVimeoVideoId(url?: string | null): string {
+  if (!url) return "";
+  const match = url.match(/(?:vimeo\.com\/(?:video\/|channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|manage\/videos\/)?|player\.vimeo\.com\/video\/)(\d+)/);
+  return match ? match[1] : "";
+}
+
+function getVimeoEmbedUrl(url?: string | null): string {
+  if (!url) return "";
+  const vimeoId = getVimeoVideoId(url);
+  if (!vimeoId) return url;
+
+  const hashMatch = url.match(/[?&]h=([a-zA-Z0-9]+)/) || url.match(/vimeo\.com\/\d+\/([a-zA-Z0-9]+)/);
+  const hashParam = hashMatch ? `&h=${hashMatch[1]}` : "";
+
+  return `https://player.vimeo.com/video/${vimeoId}?autoplay=0&playsinline=1&title=0&byline=0&portrait=0&color=00b2ff&transparent=0&dnt=1${hashParam}`;
+}
+
 function CourseDetailPage() {
   const { courseId } = Route.useParams();
   const navigate = useNavigate();
@@ -117,7 +134,9 @@ function CourseDetailPage() {
 
   const isYouTube = course?.preview_video_url?.includes("youtube.com") || course?.preview_video_url?.includes("youtu.be");
   const youTubeId = isYouTube ? getYouTubeVideoId(course?.preview_video_url) : "";
-  const isDirectVideo = !!course?.preview_video_url && !isYouTube;
+  const isVimeo = !!course?.preview_video_url && course.preview_video_url.includes("vimeo.com");
+  const vimeoEmbedUrl = isVimeo ? getVimeoEmbedUrl(course?.preview_video_url) : "";
+  const isDirectVideo = !!course?.preview_video_url && !isYouTube && !isVimeo;
 
   const lastUpdatedFormatted = useMemo(() => {
     if (!course?.updated_at) return "Recently updated";
@@ -311,7 +330,15 @@ function CourseDetailPage() {
                       src={`https://www.youtube-nocookie.com/embed/${youTubeId}?rel=0&modestbranding=1&playsinline=1`}
                       title={course.title}
                       className="h-full w-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                      allowFullScreen
+                    />
+                  ) : isVimeo ? (
+                    <iframe
+                      src={vimeoEmbedUrl}
+                      title={course.title}
+                      className="h-full w-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                       allowFullScreen
                     />
                   ) : isDirectVideo ? (

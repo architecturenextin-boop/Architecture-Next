@@ -414,6 +414,23 @@ function getYouTubeVideoId(url: string): string {
   return match && match[2].length === 11 ? match[2] : url;
 }
 
+function getVimeoVideoId(url: string): string {
+  if (!url) return "";
+  const match = url.match(/(?:vimeo\.com\/(?:video\/|channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|manage\/videos\/)?|player\.vimeo\.com\/video\/)(\d+)/);
+  return match ? match[1] : "";
+}
+
+function getVimeoEmbedUrl(url: string): string {
+  if (!url) return "";
+  const vimeoId = getVimeoVideoId(url);
+  if (!vimeoId) return url;
+
+  const hashMatch = url.match(/[?&]h=([a-zA-Z0-9]+)/) || url.match(/vimeo\.com\/\d+\/([a-zA-Z0-9]+)/);
+  const hashParam = hashMatch ? `&h=${hashMatch[1]}` : "";
+
+  return `https://player.vimeo.com/video/${vimeoId}?autoplay=0&playsinline=1&title=0&byline=0&portrait=0&color=00b2ff&transparent=0&dnt=1${hashParam}`;
+}
+
 // Subcomponent to handle lesson video uploads and streaming URLs with instant preview and auto duration detection
 function LessonVideoManager({
   lesson,
@@ -574,6 +591,8 @@ function LessonVideoManager({
 
   const isYouTube = urlInput.includes("youtube.com") || urlInput.includes("youtu.be");
   const youTubeId = isYouTube ? getYouTubeVideoId(urlInput) : "";
+  const isVimeo = urlInput.includes("vimeo.com");
+  const vimeoEmbedUrl = isVimeo ? getVimeoEmbedUrl(urlInput) : "";
   const isVideoAttached = lesson.video_path || (lesson.video_url && !lesson.pdf_url);
   const isPdfAttached = lesson.pdf_path || (lesson.pdf_url && !lesson.video_url);
 
@@ -843,7 +862,15 @@ function LessonVideoManager({
                   <iframe
                     src={`https://www.youtube-nocookie.com/embed/${youTubeId}?autoplay=0&rel=0`}
                     title="YouTube video player"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                    allowFullScreen
+                    className="w-full h-full border-0"
+                  />
+                ) : isVimeo ? (
+                  <iframe
+                    src={vimeoEmbedUrl}
+                    title="Vimeo video player"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                     allowFullScreen
                     className="w-full h-full border-0"
                   />
