@@ -120,12 +120,14 @@ function Landing() {
 function Hero() {
   const { user } = useAuth();
   const { hasAnyEnrollments } = useEnrolledCourses();
-  const { data: enrollmentCount = 19 } = useQuery({
+  const { data: rawEnrollmentCount = 100 } = useQuery({
     queryKey: ["public-enrollment-count"],
     queryFn: () => courseService.getEnrollmentCount(),
-    initialData: 19,
+    initialData: 100,
     staleTime: 60 * 1000,
   });
+
+  const enrollmentCount = rawEnrollmentCount >= 100 ? rawEnrollmentCount : 100 + (rawEnrollmentCount || 0);
 
   return (
     <section className="relative overflow-hidden bg-gradient-hero border-b border-border">
@@ -145,7 +147,7 @@ function Hero() {
                New Cohort
              </span>
              <span className="text-muted-foreground">
-               <strong className="font-semibold text-foreground">{enrollmentCount > 0 ? `${enrollmentCount}+` : "19+"}</strong>
+               <strong className="font-semibold text-foreground">{`${enrollmentCount}+`}</strong>
                <span className="hidden sm:inline"> architects &amp; students enrolled</span>
                <span className="sm:hidden"> enrolled</span>
              </span>

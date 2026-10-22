@@ -24,11 +24,13 @@ export const courseService = {
   getEnrollmentCount: async (): Promise<number> => {
     try {
       const res = await apiClient<any>("/courses/stats/enrollment-count");
-      if (typeof res === "number") return res;
-      if (typeof res?.count === "number") return res.count;
-      return 19;
+      const num = typeof res === "number" ? res : (typeof res?.count === "number" ? res.count : null);
+      if (num !== null) {
+        return num >= 100 ? num : 100 + num;
+      }
+      return 100;
     } catch {
-      return 19;
+      return 100;
     }
   },
 
