@@ -4,6 +4,7 @@ import {
   Award,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Compass,
   Layers,
@@ -15,7 +16,9 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/footer";
 import { SiteHeader } from "@/components/site-header";
@@ -158,19 +161,21 @@ function Hero() {
             project execution through flexible online and classroom training designed for future
             architects and designers.
           </p>
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2 w-full max-w-md sm:max-w-none">
             <Button
               asChild
               size="lg"
-              className="h-12 bg-gradient-primary px-7 font-semibold text-primary-foreground shadow-glow transition-all hover:scale-[1.02] hover:brightness-110"
+              className="h-12 w-full sm:w-auto justify-center rounded-xl bg-gradient-primary px-7 font-semibold text-primary-foreground shadow-glow transition-all duration-300 hover:scale-[1.02] hover:brightness-110 active:scale-[0.99]"
             >
               {user && hasAnyEnrollments ? (
-                <Link to="/dashboard/courses">
-                  Enrolled <ArrowRight className="ml-1.5 h-4 w-4" />
+                <Link to="/dashboard/courses" className="flex items-center justify-center gap-2">
+                  <span>Go to Enrolled Courses</span>
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
               ) : (
-                <Link to="/courses">
-                  Enroll Now <ArrowRight className="ml-1.5 h-4 w-4" />
+                <Link to="/courses" className="flex items-center justify-center gap-2">
+                  <span>Enroll Now</span>
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
               )}
             </Button>
@@ -178,20 +183,26 @@ function Hero() {
               asChild
               variant="outline"
               size="lg"
-              className="h-12 border-foreground/15 bg-surface/70 px-6 font-semibold backdrop-blur transition-all hover:bg-surface"
+              className="h-12 w-full sm:w-auto justify-center rounded-xl border border-border/80 bg-card/60 px-6 font-semibold text-foreground/90 backdrop-blur-md shadow-2xs transition-all duration-300 hover:bg-card hover:border-primary/40 hover:text-foreground active:scale-[0.99]"
             >
-              <Link to="/courses/$courseId" params={{ courseId: "architecture-plan-presentation-animation" }} hash="preview">
-                <PlayCircle className="mr-1.5 h-4 w-4" /> Watch Program Overview
+              <Link
+                to="/courses/$courseId"
+                params={{ courseId: "architecture-plan-presentation-animation" }}
+                hash="preview"
+                className="flex items-center justify-center gap-2"
+              >
+                <PlayCircle className="h-4 w-4 text-primary shrink-0" />
+                <span>Watch Program Overview</span>
               </Link>
             </Button>
           </div>
-          <dl className="grid max-w-xl grid-cols-4 gap-2 pt-6 sm:gap-4">
+          <dl className="grid max-w-xl grid-cols-2 gap-x-6 gap-y-3.5 pt-6 sm:grid-cols-4 sm:gap-4 sm:pt-8">
             {heroStats.map((s) => (
-              <div key={s.label} className="border-l-2 border-primary/20 pl-2.5 sm:pl-3">
+              <div key={s.label} className="border-l-2 border-primary/20 pl-3">
                 <dt className="text-base font-extrabold text-foreground sm:type-h3">
                   {s.value}
                 </dt>
-                <dd className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight sm:type-small sm:text-xs">
+                <dd className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight sm:type-small sm:text-xs">
                   {s.label}
                 </dd>
               </div>
@@ -303,71 +314,300 @@ function Features() {
 }
 
 function Instructor() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const [activeMentor, setActiveMentor] = useState(0);
+
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftStartRef = useRef(0);
+
+  useEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
+
+    const section = sectionRef.current;
+    const track = trackRef.current;
+    const progressBar = progressBarRef.current;
+    if (!section || !track) return;
+
+    // Mobile manual horizontal scroll listener for the bottom progress bar and active indicator
+    const handleMobileScroll = () => {
+      if (window.innerWidth < 768) {
+        if (progressBar) {
+          const maxScroll = track.scrollWidth - track.clientWidth;
+          if (maxScroll > 0) {
+            const progress = Math.min(1, Math.max(0, track.scrollLeft / maxScroll));
+            progressBar.style.transform = `scaleX(${progress})`;
+          }
+        }
+
+        // Determine active mentor card index for mobile indicators
+        const cards = track.querySelectorAll(".mentor-card");
+        const scrollLeft = track.scrollLeft;
+        let closestIdx = 0;
+        let minDiff = Infinity;
+        cards.forEach((card, idx) => {
+          const diff = Math.abs((card as HTMLElement).offsetLeft - track.offsetLeft - scrollLeft);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestIdx = idx;
+          }
+        });
+        setActiveMentor(closestIdx);
+      }
+    };
+
+    track.addEventListener("scroll", handleMobileScroll, { passive: true });
+
+    const updateScrollTrigger = () => ScrollTrigger.update();
+    if (typeof window !== "undefined" && (window as any).lenis) {
+      (window as any).lenis.on("scroll", updateScrollTrigger);
+    }
+
+    const mm = gsap.matchMedia();
+
+    // Desktop (>= 768px): Pinned GSAP ScrollTrigger horizontal scroll
+    mm.add("(min-width: 768px)", () => {
+      track.style.transform = "";
+      if (progressBar) progressBar.style.transform = "scaleX(0)";
+
+      const getScrollAmount = () => {
+        const cards = track.querySelectorAll(".mentor-card");
+        if (cards.length > 1) {
+          const first = cards[0] as HTMLElement;
+          const last = cards[cards.length - 1] as HTMLElement;
+          return last.offsetLeft - first.offsetLeft;
+        }
+        return Math.max(0, track.scrollWidth - window.innerWidth);
+      };
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          pin: true,
+          scrub: 1,
+          start: "top top",
+          end: "+=500",
+          invalidateOnRefresh: true,
+        },
+      });
+
+      tl.to(
+        track,
+        {
+          x: () => -getScrollAmount(),
+          ease: "none",
+        },
+        0
+      );
+
+      if (progressBar) {
+        tl.to(
+          progressBar,
+          {
+            scaleX: 1,
+            ease: "none",
+          },
+          0
+        );
+      }
+    });
+
+    // Mobile (< 768px): Clear GSAP pin/transform for native manual touch scroll
+    mm.add("(max-width: 767px)", () => {
+      track.style.transform = "none";
+      if (progressBar) progressBar.style.transform = "scaleX(0)";
+    });
+
+    const timer = setTimeout(() => {
+      ScrollTrigger.refresh();
+    }, 150);
+
+    return () => {
+      clearTimeout(timer);
+      track.removeEventListener("scroll", handleMobileScroll);
+      if (typeof window !== "undefined" && (window as any).lenis) {
+        (window as any).lenis.off("scroll", updateScrollTrigger);
+      }
+      mm.revert();
+    };
+  }, []);
+
+  const scrollToMentor = (index: number) => {
+    if (!trackRef.current) return;
+    const cards = trackRef.current.querySelectorAll(".mentor-card");
+    if (cards[index]) {
+      const card = cards[index] as HTMLElement;
+      const targetLeft =
+        card.offsetLeft - (trackRef.current.clientWidth - card.clientWidth) / 2;
+      trackRef.current.scrollTo({
+        left: Math.max(0, targetLeft),
+        behavior: "smooth",
+      });
+      setActiveMentor(index);
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (window.innerWidth >= 768 || !trackRef.current) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.pageX - trackRef.current.offsetLeft;
+    scrollLeftStartRef.current = trackRef.current.scrollLeft;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !trackRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - trackRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.4;
+    trackRef.current.scrollLeft = scrollLeftStartRef.current - walk;
+  };
+
+  const handleMouseUpOrLeave = () => {
+    isDraggingRef.current = false;
+  };
+
   return (
-    <section id="instructor" className="scroll-mt-24 border-y border-border bg-surface py-20 md:py-28">
-      <div className="mx-auto max-w-6xl px-5 md:px-8 space-y-20 md:space-y-28">
-        {mentors.map((m) => (
-          <div key={m.name} className="grid items-center gap-10 md:grid-cols-12">
-            {/* Left Mentor Image Card (5 Cols) */}
-            <div className="relative md:col-span-5">
-              <div className="relative overflow-hidden rounded-[2.25rem] border border-border/80 bg-card shadow-elevated transition-transform duration-500 hover:scale-[1.01]">
-                <img
-                  src={m.image}
-                  alt={m.name}
-                  width={800}
-                  height={1000}
-                  loading="lazy"
-                  className="aspect-[4/5] w-full object-cover"
-                />
-              </div>
-            </div>
+    <section
+      id="instructor"
+      ref={sectionRef}
+      className="relative flex w-full flex-col justify-center overflow-hidden border-y border-border bg-surface select-none py-12 sm:py-16 md:h-screen md:py-16"
+    >
+      {/* Mobile-Only Header Controls (Pagination & Prev/Next Arrows) */}
+      <div className="flex md:hidden items-center justify-between px-6 pb-4 pt-1 w-full max-w-md mx-auto">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+            Mentors
+          </span>
+          <span className="text-xs font-semibold text-muted-foreground">
+            ({activeMentor + 1}/{mentors.length})
+          </span>
+        </div>
 
-            {/* Right Details & Stats Content (7 Cols) */}
-            <div className="md:col-span-7 space-y-6">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
-                  Your Mentor
-                </span>
-                <h2 className="mt-2 type-h1 text-foreground tracking-tight">
-                  {m.name}
-                </h2>
-                <p className="mt-2 type-body font-semibold text-muted-foreground">
-                  {m.title}{m.experience ? ` · ${m.experience}` : ""}
-                </p>
+        {/* Interactive Indicator Dots */}
+        <div className="flex items-center gap-1.5">
+          {mentors.map((m, idx) => (
+            <button
+              key={m.name}
+              type="button"
+              onClick={() => scrollToMentor(idx)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                activeMentor === idx
+                  ? "w-6 bg-primary"
+                  : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/60"
+              }`}
+              aria-label={`Scroll to ${m.name}`}
+            />
+          ))}
+        </div>
+
+        {/* Prev / Next Quick Buttons */}
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={activeMentor === 0}
+            onClick={() => scrollToMentor(activeMentor - 1)}
+            className="grid h-8 w-8 place-items-center rounded-full border border-border bg-card text-foreground shadow-2xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+            aria-label="Previous mentor"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            disabled={activeMentor === mentors.length - 1}
+            onClick={() => scrollToMentor(activeMentor + 1)}
+            className="grid h-8 w-8 place-items-center rounded-full border border-border bg-card text-foreground shadow-2xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+            aria-label="Next mentor"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Horizontal Cards Slide / Swipe Track */}
+      <div className="flex-1 flex items-center w-full py-2 sm:py-4 overflow-hidden">
+        <div
+          ref={trackRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+          className="flex items-center gap-5 sm:gap-8 md:gap-16 pl-6 pr-10 sm:px-8 md:pl-[10vw] md:pr-[10vw] overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden will-change-transform touch-pan-x touch-pan-y cursor-grab active:cursor-grabbing"
+        >
+          {mentors.map((m) => (
+            <div
+              key={m.name}
+              className="mentor-card w-[82vw] sm:w-[84vw] md:w-[80vw] shrink-0 snap-center grid items-center gap-6 md:gap-10 md:grid-cols-12"
+            >
+              {/* Left Mentor Image Card (5 Cols) */}
+              <div className="relative md:col-span-5 flex justify-center">
+                <div className="relative aspect-[4/5] w-full max-w-[210px] sm:max-w-[250px] md:max-w-[350px] lg:max-w-[380px] overflow-hidden rounded-[2rem] md:rounded-[2.25rem] border border-border/80 bg-card shadow-elevated transition-transform duration-500 hover:scale-[1.01]">
+                  <img
+                    src={m.image}
+                    alt={m.name}
+                    width={800}
+                    height={1000}
+                    className="h-full w-full object-cover object-top"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-4 type-body leading-relaxed text-muted-foreground">
-                {m.bio.split("\n\n").map((paragraph, idx) => (
-                  <p key={idx}>{paragraph}</p>
-                ))}
-                {m.expertise && (
-                  <p className="pt-1">
-                    <strong className="font-bold text-foreground">Areas of Expertise: </strong>
-                    {m.expertise}
+              {/* Right Details & Stats Content (7 Cols) */}
+              <div className="md:col-span-7 space-y-4 md:space-y-6">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+                    Your Mentor
+                  </span>
+                  <h2 className="mt-1.5 md:mt-2 text-2xl sm:text-3xl md:type-h1 font-bold text-foreground tracking-tight">
+                    {m.name}
+                  </h2>
+                  <p className="mt-1 md:mt-2 text-sm sm:text-base md:type-body font-semibold text-muted-foreground leading-normal">
+                    {m.title}{m.experience ? ` · ${m.experience}` : ""}
                   </p>
+                </div>
+
+                <div className="space-y-3 md:space-y-4 text-sm sm:text-base md:type-body leading-relaxed text-muted-foreground">
+                  {m.bio.split("\n\n").map((paragraph, idx) => (
+                    <p key={idx}>{paragraph}</p>
+                  ))}
+                  {m.expertise && (
+                    <p className="pt-1">
+                      <strong className="font-bold text-foreground">Areas of Expertise: </strong>
+                      {m.expertise}
+                    </p>
+                  )}
+                </div>
+
+                {m.stats && m.stats.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2.5 sm:gap-3 md:gap-4 pt-1 sm:pt-2">
+                    {m.stats.map((s) => (
+                      <div
+                        key={s.label}
+                        className="rounded-xl md:rounded-2xl border border-border/80 bg-card/80 p-3 sm:p-3.5 md:p-4 text-center shadow-soft backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-elevated"
+                      >
+                        <div className="text-xl sm:text-2xl md:type-h2 font-black text-foreground">
+                          {s.value}
+                        </div>
+                        <div className="mt-0.5 md:mt-1 text-[10px] sm:text-xs md:type-small font-bold uppercase tracking-wider text-muted-foreground leading-tight">
+                          {s.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-
-              {m.stats && m.stats.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 pt-2 sm:gap-4">
-                  {m.stats.map((s) => (
-                    <div
-                      key={s.label}
-                      className="rounded-2xl border border-border/80 bg-card/80 p-4 text-center shadow-soft backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-elevated"
-                    >
-                      <div className="type-h2 font-black text-foreground">
-                        {s.value}
-                      </div>
-                      <div className="mt-1 type-small text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        {s.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      {/* Horizontal Progress Bar at the bottom of the section */}
+      <div className="absolute bottom-0 left-0 right-0 h-1.5 w-full bg-border/40 overflow-hidden">
+        <div
+          ref={progressBarRef}
+          className="h-full w-full bg-gradient-primary origin-left scale-x-0"
+        />
       </div>
     </section>
   );
@@ -378,6 +618,42 @@ function Testimonials() {
     queryKey: ["public-testimonials"],
     queryFn: () => testimonialService.getPublicTestimonials(),
   });
+
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = () => {
+    if (!trackRef.current) return;
+    const cards = trackRef.current.querySelectorAll(".testimonial-card");
+    const scrollLeft = trackRef.current.scrollLeft;
+    let closestIdx = 0;
+    let minDiff = Infinity;
+    cards.forEach((card, idx) => {
+      const diff = Math.abs(
+        (card as HTMLElement).offsetLeft - trackRef.current!.offsetLeft - scrollLeft
+      );
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
+    });
+    setActiveTestimonial(closestIdx);
+  };
+
+  const scrollToTestimonial = (idx: number) => {
+    if (!trackRef.current) return;
+    const cards = trackRef.current.querySelectorAll(".testimonial-card");
+    if (cards[idx]) {
+      const card = cards[idx] as HTMLElement;
+      const targetLeft =
+        card.offsetLeft - (trackRef.current.clientWidth - card.clientWidth) / 2;
+      trackRef.current.scrollTo({
+        left: Math.max(0, targetLeft),
+        behavior: "smooth",
+      });
+      setActiveTestimonial(idx);
+    }
+  };
 
   return (
     <section id="testimonials" className="scroll-mt-24 mx-auto max-w-7xl px-4 sm:px-6 md:px-8 py-16 sm:py-24 md:py-28">
@@ -450,55 +726,103 @@ function Testimonials() {
           </p>
         </div>
       ) : (
-        <div className="mt-10 sm:mt-12 grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {testimonials.map((t) => (
-            <figure
-              key={t.id}
-              className="group relative flex flex-col justify-between rounded-2xl sm:rounded-3xl border border-border/80 bg-card/90 p-5 sm:p-7 shadow-soft backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
-            >
-              <div className="space-y-3.5">
-                {/* Rating & Verified Badge */}
-                <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex text-amber-400">
-                      {Array.from({ length: t.rating || 5 }).map((_, i) => (
-                        <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                      ))}
+        <>
+          {/* Mobile Swipe Container & Desktop 3-Column Grid */}
+          <div
+            ref={trackRef}
+            onScroll={handleScroll}
+            className="mt-8 sm:mt-12 flex md:grid md:grid-cols-3 gap-4 sm:gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-4 md:px-0 -mx-4 md:mx-0 pb-2 md:pb-0 touch-pan-x touch-pan-y"
+          >
+            {testimonials.map((t) => (
+              <figure
+                key={t.id}
+                className="testimonial-card w-[85vw] sm:w-[75vw] md:w-auto shrink-0 snap-center md:shrink group relative flex flex-col justify-between rounded-2xl sm:rounded-3xl border border-border/80 bg-card/90 p-5 sm:p-7 shadow-soft backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
+              >
+                <div className="space-y-3.5">
+                  {/* Rating & Verified Badge */}
+                  <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex text-amber-400">
+                        {Array.from({ length: t.rating || 5 }).map((_, i) => (
+                          <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                        ))}
+                      </div>
+                      <span className="text-xs font-bold text-foreground">
+                        {(t.rating || 5).toFixed(1)}
+                      </span>
                     </div>
-                    <span className="text-[11px] font-bold text-foreground">
-                      {(t.rating || 5).toFixed(1)}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <Check className="h-2.5 w-2.5" /> Verified Learner
                     </span>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    <Check className="h-2.5 w-2.5" /> Verified Learner
-                  </span>
+
+                  {/* Testimonial Quote */}
+                  <blockquote className="text-sm sm:text-base leading-relaxed text-foreground/85">
+                    "{t.quote}"
+                  </blockquote>
                 </div>
 
-                {/* Testimonial Quote */}
-                <blockquote className="type-body leading-relaxed text-foreground/90 text-xs sm:text-sm italic">
-                  "{t.quote}"
-                </blockquote>
+                {/* Student Bio / Footer */}
+                <figcaption className="mt-5 flex items-center gap-3 border-t border-border/60 pt-4">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-xs font-bold text-primary-foreground shadow-xs overflow-hidden">
+                    {t.avatarUrl || (t as any).avatar ? (
+                      <img src={t.avatarUrl || (t as any).avatar} alt={t.name} className="h-full w-full object-cover" />
+                    ) : (
+                      (t.name || "A")[0]?.toUpperCase() || "A"
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs sm:text-sm font-bold text-foreground truncate">{t.name || "Architecture Student"}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {t.course ? t.course : t.role || "ArchitectureNext Alumni"}
+                    </div>
+                  </div>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+
+          {/* Mobile-Only Navigation Controls (Dots + Prev/Next) */}
+          {testimonials.length > 1 && (
+            <div className="flex md:hidden items-center justify-between px-2 pt-4 w-full max-w-xs mx-auto">
+              <button
+                type="button"
+                disabled={activeTestimonial === 0}
+                onClick={() => scrollToTestimonial(activeTestimonial - 1)}
+                className="grid h-7 w-7 place-items-center rounded-full border border-border bg-card text-foreground shadow-2xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+                aria-label="Previous testimonial"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                {testimonials.map((t, idx) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => scrollToTestimonial(idx)}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      activeTestimonial === idx
+                        ? "w-5 bg-primary"
+                        : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60"
+                    }`}
+                    aria-label={`Go to testimonial ${idx + 1}`}
+                  />
+                ))}
               </div>
 
-              {/* Student Bio / Footer */}
-              <figcaption className="mt-5 flex items-center gap-3 border-t border-border/60 pt-4">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-xs font-bold text-primary-foreground shadow-xs overflow-hidden">
-                  {t.avatarUrl || (t as any).avatar ? (
-                    <img src={t.avatarUrl || (t as any).avatar} alt={t.name} className="h-full w-full object-cover" />
-                  ) : (
-                    (t.name || "A")[0]?.toUpperCase() || "A"
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs sm:text-sm font-bold text-foreground truncate">{t.name || "Architecture Student"}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">
-                    {t.course ? t.course : t.role || "ArchitectureNext Alumni"}
-                  </div>
-                </div>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+              <button
+                type="button"
+                disabled={activeTestimonial === testimonials.length - 1}
+                onClick={() => scrollToTestimonial(activeTestimonial + 1)}
+                className="grid h-7 w-7 place-items-center rounded-full border border-border bg-card text-foreground shadow-2xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+                aria-label="Next testimonial"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Minimal Share Story Link */}
