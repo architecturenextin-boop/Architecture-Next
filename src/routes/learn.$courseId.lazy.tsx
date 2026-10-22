@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive, Clock, ArrowDownToLine, RotateCw, Languages } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, PlayCircle, Loader2, Lock, BookOpen, X, FileText, Download, Headphones, Palette, Archive, Layers, Image, Maximize2, Minimize2, Sparkles, Wifi, WifiOff, ShieldCheck, CheckCircle2, HardDrive, Clock, ArrowDownToLine, RotateCw, Languages, ExternalLink } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -458,48 +458,11 @@ function LearnPage() {
 
         const rawPdf = currentLesson.pdf_url || (currentLesson as any).pdf_path;
         if (rawPdf) {
-          const ext = rawPdf.split("?")[0].split(".").pop()?.toLowerCase() || "";
-          if (ext === "pdf") {
-            setPdfLoading(true);
-            try {
-              let resolvedPdf = getMediaUrl(rawPdf);
-              const isPresignedR2 = resolvedPdf.includes("X-Amz-") || resolvedPdf.includes("r2.cloudflarestorage.com");
-              const headers: Record<string, string> = {};
-              
-              if (!isPresignedR2) {
-                const token = tokenStorage.get();
-                if (token) headers["Authorization"] = `Bearer ${token}`;
-              }
-
-              const res = await fetch(resolvedPdf, { headers });
-              if (res.ok) {
-                const blob = await res.blob();
-                const blobUrl = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
-                if (active) {
-                  setPdfBlobUrl(blobUrl);
-                  setPlayerReady(true);
-                }
-              } else {
-                // If fetch fails or has CORS, fallback to direct presigned URL in iframe
-                if (active) {
-                  setPdfBlobUrl(resolvedPdf);
-                  setPlayerReady(true);
-                }
-              }
-            } catch (pErr: any) {
-              if (active) {
-                let resolvedPdf = getMediaUrl(rawPdf);
-                setPdfBlobUrl(resolvedPdf);
-                setPlayerReady(true);
-              }
-            } finally {
-              if (active) setPdfLoading(false);
-            }
-          } else {
-            if (active) {
-              setVideoUrl(null);
-              setPlayerReady(true);
-            }
+          if (active) {
+            setPdfBlobUrl(getMediaUrl(rawPdf));
+            setVideoUrl(null);
+            setPlayerReady(true);
+            setPdfLoading(false);
           }
           return;
         }
@@ -1426,7 +1389,7 @@ function LearnPage() {
           {/* Video / PDF Container: Tall Reel Background with Centered Landscape Video */}
           <div className={`overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-gradient-to-b from-[#0e0e18] via-[#05050a] to-[#0e0e18] shadow-elevated transition-all duration-300 flex items-center justify-center ${
             isPdfLesson
-              ? "w-full h-[450px] sm:h-[600px] md:h-[650px] max-h-[85vh]"
+              ? "w-full min-h-[360px] sm:min-h-[440px] md:min-h-[500px]"
               : "relative w-full aspect-video min-h-[260px] sm:min-h-[360px] md:min-h-[440px] max-h-[80vh] bg-black"
           }`}>
             {isPdfLesson ? (
@@ -1435,52 +1398,6 @@ function LearnPage() {
                   const rawPdf = activeLesson?.pdf_url || (activeLesson as any)?.pdf_path || "";
                   const filename = rawPdf.split("?")[0].split("/").pop() || "Resource File";
                   const ext = rawPdf.split("?")[0].split(".").pop()?.toLowerCase() || "";
-
-                  if (ext === "pdf") {
-                    if (pdfLoading) {
-                      return (
-                        <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-white p-6 text-center">
-                          <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-                          <p className="text-sm font-semibold">Loading PDF Document...</p>
-                        </div>
-                      );
-                    }
-
-                    if (pdfError || !pdfBlobUrl) {
-                      return (
-                        <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-white p-6 text-center">
-                          <FileText className="h-12 w-12 text-destructive mb-3" />
-                          <h3 className="text-sm sm:text-base font-bold text-foreground mb-1">
-                            {pdfError ? "Failed to stream PDF directly" : "PDF preview unavailable"}
-                          </h3>
-                          <p className="text-xs text-muted-foreground max-w-sm mb-4">
-                            {pdfError || "Please download the document to view it on your device."}
-                          </p>
-                          <a
-                            href={getMediaUrl(rawPdf)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download
-                            className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-4 py-2 text-xs font-bold"
-                          >
-                            <Download className="h-4 w-4" /> Download PDF Document
-                          </a>
-                        </div>
-                      );
-                    }
-
-                    const iframeSrc = pdfBlobUrl.startsWith("blob:") ? `${pdfBlobUrl}#toolbar=0&navpanes=0` : pdfBlobUrl;
-                    return (
-                      <div className="w-full h-full bg-slate-900 flex flex-col relative">
-                        <iframe
-                          src={iframeSrc}
-                          className="w-full h-full border-none rounded-xl"
-                          title="PDF Lesson Viewer"
-                          allowFullScreen
-                        />
-                      </div>
-                    );
-                  }
 
                   if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext)) {
                     return (
@@ -1511,7 +1428,7 @@ function LearnPage() {
                         </p>
                         <div className="w-full max-w-sm px-4">
                           <audio
-                            src={getMediaUrl(activeLesson.pdf_url)}
+                            src={getMediaUrl(rawPdf)}
                             controls
                             className="w-full"
                           />
@@ -1520,13 +1437,18 @@ function LearnPage() {
                     );
                   }
 
-                  // PSD, DWG, CAD, ZIP, and other file types
+                  // PDF, PSD, DWG, CAD, ZIP, and other file types
                   let fileIcon = <FileText className="h-10 w-10 text-primary" />;
                   let fileTypeLabel = "Lesson Material File";
                   let descriptionLabel = "Download this resource file to open it in your local design software and start working.";
                   let downloadBtnLabel = "Download Resource File";
 
-                  if (ext === "dwg") {
+                  if (ext === "pdf") {
+                    fileIcon = <FileText className="h-10 w-10 text-primary" />;
+                    fileTypeLabel = "Lesson Material File";
+                    descriptionLabel = "Download this resource file to open it in your local design software and start working.";
+                    downloadBtnLabel = "Download Resource File";
+                  } else if (ext === "dwg") {
                     fileIcon = <Layers className="h-10 w-10 text-emerald-500" />;
                     fileTypeLabel = "AutoCAD Drawing (DWG)";
                     descriptionLabel = "This AutoCAD drawing template file can be downloaded and opened directly in AutoCAD, Revit, or compatible CAD software.";
@@ -1543,6 +1465,8 @@ function LearnPage() {
                     downloadBtnLabel = "Download Resource Package";
                   }
 
+                  const downloadUrl = getMediaUrl(rawPdf);
+
                   return (
                     <div className="w-full h-full bg-gradient-to-br from-[#0B0B12] via-[#14141F] to-[#1A1A2A] flex flex-col items-center justify-center p-6 text-center text-white">
                       <div className="h-16 w-16 rounded-2xl bg-[#222235]/60 flex items-center justify-center mb-5 border border-white/5 shadow-soft">
@@ -1557,15 +1481,27 @@ function LearnPage() {
                       <p className="text-xs text-muted-foreground/80 max-w-sm mb-6 leading-relaxed">
                         {descriptionLabel}
                       </p>
-                      <a
-                        href={getMediaUrl(activeLesson.pdf_url)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download
-                        className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-5 py-2.5 text-xs font-bold shadow-soft hover:opacity-95 transition"
-                      >
-                        <Download className="h-4 w-4" /> {downloadBtnLabel}
-                      </a>
+                      <div className="flex flex-wrap items-center justify-center gap-3">
+                        <a
+                          href={downloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-5 py-2.5 text-xs font-bold shadow-soft hover:opacity-95 transition active:scale-95 cursor-pointer"
+                        >
+                          <Download className="h-4 w-4" /> {downloadBtnLabel}
+                        </a>
+                        {ext === "pdf" && (
+                          <a
+                            href={downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white px-4 py-2.5 text-xs font-semibold shadow-soft transition active:scale-95 cursor-pointer"
+                          >
+                            <ExternalLink className="h-4 w-4 text-primary" /> Open in Browser
+                          </a>
+                        )}
+                      </div>
                     </div>
                   );
                 })()
@@ -1969,17 +1905,18 @@ function LearnPage() {
                   </button>
                 )}
 
-                {isPdfLesson && activeLesson?.pdf_url && (
+                {(activeLesson?.pdf_url || (activeLesson as any)?.pdf_path) && (
                   <a
-                    href={getMediaUrl(activeLesson.pdf_url)}
+                    href={getMediaUrl(activeLesson?.pdf_url || (activeLesson as any)?.pdf_path)}
                     target="_blank"
                     rel="noopener noreferrer"
                     download
-                    title="Download Attached Document"
-                    aria-label="Download Document"
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 shadow-2xs transition active:scale-95"
+                    title="Download Attached Lesson Material"
+                    aria-label="Download Lesson Material"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20 shadow-2xs transition active:scale-95 cursor-pointer"
                   >
-                    <FileText className="h-4 w-4" />
+                    <Download className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Material File</span>
                   </a>
                 )}
               </div>
