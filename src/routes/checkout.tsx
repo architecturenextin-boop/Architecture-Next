@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { ArrowLeft, CreditCard, Lock, Shield, Tag, AlertCircle, HelpCircle, CheckCircle2, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiteHeader } from "@/components/site-header";
@@ -18,15 +18,19 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
     course: typeof search.course === "string" ? search.course : undefined,
+    coupon: typeof search.coupon === "string" ? search.coupon : undefined,
   }),
   head: () => ({ meta: [{ title: "Checkout — ArchitectureNext" }] }),
   beforeLoad: async ({ search }) => {
     const token = tokenStorage.get();
     if (!token) {
-      const courseParam = search?.course ? `?course=${encodeURIComponent(search.course)}` : "";
+      const params = new URLSearchParams();
+      if (search?.course) params.set("course", search.course);
+      if (search?.coupon) params.set("coupon", search.coupon);
+      const query = params.toString();
       throw redirect({
         to: "/auth",
-        search: { redirect: `/checkout${courseParam}` },
+        search: { redirect: `/checkout${query ? `?${query}` : ""}` },
       });
     }
   },
@@ -85,13 +89,13 @@ function CheckoutPage() {
   const [paymentError, setPaymentError] = useState("");
 
   // Handle Coupon Application via Server
-  const handleApplyCoupon = async (e?: React.FormEvent) => {
+  const handleApplyCoupon = async (e?: React.FormEvent, codeOverride?: string) => {
     if (e) e.preventDefault();
     setCouponError("");
     setCouponSuccess("");
     if (!course) return;
 
-    const cleaned = couponInput.trim().toUpperCase();
+    const cleaned = (codeOverride ?? couponInput).trim().toUpperCase();
     if (!cleaned) {
       setCouponError("Please enter a coupon code");
       return;
@@ -128,6 +132,20 @@ function CheckoutPage() {
     setCouponError("");
     setCouponSuccess("");
   };
+
+  // Coupon handed over from the course offer notification: open the coupon box and
+  // apply the code once the course is known. The server stays the source of truth.
+  const autoCouponCode = (search.coupon || "").trim().toUpperCase();
+  const autoCouponRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!autoCouponCode || !course || appliedCoupon) return;
+    if (autoCouponRef.current === autoCouponCode) return;
+    autoCouponRef.current = autoCouponCode;
+    setShowCouponToggle(true);
+    setCouponInput(autoCouponCode);
+    void handleApplyCoupon(undefined, autoCouponCode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCouponCode, course, appliedCoupon]);
 
   // Loading and error states for course fetch
   if (isLoading) {

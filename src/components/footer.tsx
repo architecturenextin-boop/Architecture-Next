@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { brand } from "@/lib/brand";
-import { Mail, Phone, MapPin, Sparkles, ShieldCheck, ArrowUpRight } from "lucide-react";
+import { Mail, Phone, MapPin, ArrowUpRight } from "lucide-react";
 
 export function Footer({ className = "" }: { className?: string }) {
   return (
@@ -27,11 +27,11 @@ export function Footer({ className = "" }: { className?: string }) {
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-zinc-400">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white">
-              <Sparkles className="h-3 w-3 text-primary" /> Industry Mentorship
+            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white">
+              Industry Mentorship
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white">
-              <ShieldCheck className="h-3 w-3 text-emerald-400" /> Verified Certification
+            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white">
+              Verified Certification
             </span>
           </div>
         </div>

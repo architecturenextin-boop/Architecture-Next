@@ -14,6 +14,7 @@ import {
   User,
   LogOut,
   LogIn,
+  MessageSquareQuote,
   Sparkles,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
@@ -129,6 +130,7 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     { to: "/courses", label: "Courses", icon: BookOpen, isAnchor: false },
     { href: "/#features", label: "Program", icon: Layers, isAnchor: true },
     { href: "/#instructor", label: "Mentor", icon: Award, isAnchor: true },
+    { href: "/#testimonials", label: "Testimonials", icon: MessageSquareQuote, isAnchor: true },
     { href: "/#faq", label: "FAQ", icon: HelpCircle, isAnchor: true },
   ];
 
@@ -152,7 +154,7 @@ export function SiteHeader({ action }: SiteHeaderProps) {
           <BrandLogo size="md" />
         </div>
 
-        {/* Center: 5 Nav Links (Desktop >= 768px) */}
+        {/* Center: 6 Nav Links (Desktop >= 768px) */}
         <nav
           aria-label="Desktop Navigation"
           className="hidden items-center justify-center gap-3 md:flex lg:gap-6 xl:gap-8"
@@ -185,6 +187,12 @@ export function SiteHeader({ action }: SiteHeaderProps) {
             className="inline-flex min-h-[44px] items-center px-2 py-2 text-xs lg:text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Mentor
+          </a>
+          <a
+            href="/#testimonials"
+            className="inline-flex min-h-[44px] items-center px-2 py-2 text-xs lg:text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Testimonials
           </a>
           <a
             href="/#faq"

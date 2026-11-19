@@ -38,13 +38,67 @@ export const Route = createFileRoute("/admin/coupons")({
   component: AdminCouponsPage,
 });
 
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  trend,
+  color,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string | number;
+  trend?: string;
+  color?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs transition hover:shadow-soft">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        <Icon className={`h-5 w-5 ${color || "text-primary"}`} />
+      </div>
+      <p className="mt-3 font-display text-3xl sm:text-4xl font-bold text-foreground">{value}</p>
+      {trend && <p className="mt-1.5 text-xs text-muted-foreground">{trend}</p>}
+    </div>
+  );
+}
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors capitalize ${
+        active
+          ? "bg-primary text-primary-foreground shadow-xs"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
 const couponFormSchema = z
   .object({
     code: z
       .string()
       .min(4, "Coupon code must be at least 4 characters")
       .max(20, "Coupon code must be at most 20 characters")
-      .regex(/^[A-Za-z0-9_-]+$/, "Code must be alphanumeric (letters, numbers, hyphens, underscores)"),
+      .regex(
+        /^[A-Za-z0-9_-]+$/,
+        "Code must be alphanumeric (letters, numbers, hyphens, underscores)",
+      ),
     discountType: z.enum(["FLAT", "PERCENT"]),
     discountValue: z.coerce.number().min(1, "Discount value must be greater than 0"),
     maxDiscount: z.coerce.number().nullable().optional(),
@@ -72,9 +126,29 @@ function AdminCouponsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "FLAT" | "PERCENT">("ALL");
-  const [filterStatus, setFilterStatus] = useState<"ALL" | "ACTIVE" | "INACTIVE" | "EXPIRED">("ALL");
+  const [filterStatus, setFilterStatus] = useState<"ALL" | "ACTIVE" | "INACTIVE" | "EXPIRED">(
+    "ALL",
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(
+    () => {
+      try {
+        const val = localStorage.getItem("coupon-notifications-enabled");
+        return val !== "false"; // default true
+      } catch {
+        return true;
+      }
+    }
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("coupon-notifications-enabled", String(notificationsEnabled));
+    } catch {
+      /* storage blocked */
+    }
+  }, [notificationsEnabled]);
 
   // Modal dialog states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -225,7 +299,8 @@ function AdminCouponsPage() {
     const payload = {
       ...data,
       code: data.code.trim().toUpperCase(),
-      courseId: data.courseId && data.courseId !== "ALL" && data.courseId !== "" ? data.courseId : null,
+      courseId:
+        data.courseId && data.courseId !== "ALL" && data.courseId !== "" ? data.courseId : null,
       expiresAt: data.expiresAt ? new Date(data.expiresAt).toISOString() : null,
       maxDiscount: data.discountType === "PERCENT" ? data.maxDiscount : null,
     };
@@ -283,115 +358,117 @@ function AdminCouponsPage() {
   // Metric aggregates
   const totalCoupons = coupons.length;
   const activeCoupons = coupons.filter(
-    (c) => c.isActive && (!c.expiresAt || new Date(c.expiresAt) >= new Date())
+    (c) => c.isActive && (!c.expiresAt || new Date(c.expiresAt) >= new Date()),
   ).length;
   const totalRedemptions = coupons.reduce((sum, c) => sum + (c.usedCount || 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 lg:gap-6">
+        <div className="space-y-1.5">
+          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Coupons & Discounts
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground max-w-xl">
             Create coupon codes, manage flat & percentage discounts, usage limits, and course rules.
           </p>
         </div>
         <Button
           onClick={handleOpenCreate}
-          className="bg-gradient-primary text-primary-foreground font-bold shadow-soft hover:brightness-110 shrink-0"
+          className="bg-gradient-primary text-primary-foreground font-bold shadow-soft hover:brightness-110 shrink-0 h-11 px-6"
         >
-          <Plus className="mr-1.5 h-4 w-4" /> Create Coupon
+          <Plus className="mr-2 h-4.5 w-4.5" /> Create Coupon
         </Button>
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Coupons
-            </span>
-            <Tag className="h-4 w-4 text-primary" />
-          </div>
-          <p className="mt-2 font-display text-2xl font-bold text-foreground">{totalCoupons}</p>
-          <p className="mt-1 text-xs text-muted-foreground">All time created coupons</p>
-        </div>
-
-        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Active Coupons
-            </span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          </div>
-          <p className="mt-2 font-display text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-            {activeCoupons}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">Currently valid and redeemable</p>
-        </div>
-
-        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Redemptions
-            </span>
-            <Sparkles className="h-4 w-4 text-amber-500" />
-          </div>
-          <p className="mt-2 font-display text-2xl font-bold text-foreground">{totalRedemptions}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Successful checkouts with coupon</p>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MetricCard
+          icon={Tag}
+          label="Total Coupons"
+          value={totalCoupons}
+          trend="All time created coupons"
+        />
+        <MetricCard
+          icon={CheckCircle2}
+          label="Active Coupons"
+          value={activeCoupons}
+          trend="Currently valid and redeemable"
+          color="text-emerald-500"
+        />
+        <MetricCard
+          icon={Sparkles}
+          label="Total Redemptions"
+          value={totalRedemptions}
+          trend="Successful checkouts with coupon"
+          color="text-amber-500"
+        />
       </div>
 
       {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 lg:gap-4">
+        <div className="relative flex-1 max-w-md lg:max-w-lg">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search code or course..."
-            className="pl-9.5 h-10 rounded-xl bg-card text-sm"
+            className="pl-10 h-11 rounded-xl bg-card text-sm"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:gap-3">
           {/* Status Filter */}
           <div className="flex rounded-xl border border-border bg-card p-1 text-xs font-medium">
             {(["ALL", "ACTIVE", "INACTIVE", "EXPIRED"] as const).map((st) => (
-              <button
+              <FilterChip
                 key={st}
-                type="button"
+                label={st.toLowerCase()}
+                active={filterStatus === st}
                 onClick={() => setFilterStatus(st)}
-                className={`rounded-lg px-2.5 py-1 transition-colors capitalize ${
-                  filterStatus === st
-                    ? "bg-primary text-primary-foreground font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {st.toLowerCase()}
-              </button>
+              />
             ))}
           </div>
 
           {/* Type Filter */}
           <div className="flex rounded-xl border border-border bg-card p-1 text-xs font-medium">
             {(["ALL", "FLAT", "PERCENT"] as const).map((t) => (
-              <button
+              <FilterChip
                 key={t}
-                type="button"
+                label={t === "ALL" ? "All Types" : t}
+                active={filterType === t}
                 onClick={() => setFilterType(t)}
-                className={`rounded-lg px-2.5 py-1 transition-colors ${
-                  filterType === t
-                    ? "bg-primary text-primary-foreground font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {t === "ALL" ? "All Types" : t}
-              </button>
+              />
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Coupon Notification Toggle */}
+      <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+          <div>
+            <h3 className="font-semibold text-foreground">Coupon Notification on Course Pages</h3>
+            <p className="text-xs text-muted-foreground">
+              When enabled, students see a coupon popup notification on course detail pages.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              {notificationsEnabled ? "Enabled" : "Disabled"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setNotificationsEnabled((prev) => !prev)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${notificationsEnabled ? "bg-primary border-primary" : "bg-input border-input"}`}
+              aria-pressed={notificationsEnabled}
+              aria-label="Toggle coupon notification"
+            >
+              <span
+                className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform ${notificationsEnabled ? "translate-x-6" : "translate-x-1"}`}
+              />
+            </button>
           </div>
         </div>
       </div>
@@ -412,7 +489,11 @@ function AdminCouponsPage() {
                 : "Create your first discount coupon to boost course enrollments."}
             </p>
             {!search && filterStatus === "ALL" && filterType === "ALL" && (
-              <Button onClick={handleOpenCreate} size="sm" className="mt-4 bg-primary text-primary-foreground">
+              <Button
+                onClick={handleOpenCreate}
+                size="sm"
+                className="mt-4 bg-primary text-primary-foreground"
+              >
                 <Plus className="mr-1 h-3.5 w-3.5" /> Create Coupon
               </Button>
             )}
@@ -420,298 +501,305 @@ function AdminCouponsPage() {
         ) : (
           <>
             <div
-            className="table-scrollbar-x"
-            onWheel={(e) => {
-              const el = e.currentTarget;
-              if (el.scrollWidth > el.clientWidth) {
-                if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && !e.shiftKey) {
-                  const atLeft = el.scrollLeft <= 0;
-                  const atRight = Math.ceil(el.scrollLeft + el.clientWidth) >= el.scrollWidth;
-                  if ((e.deltaY > 0 && !atRight) || (e.deltaY < 0 && !atLeft)) {
-                    el.scrollLeft += e.deltaY;
+              className="table-scrollbar-x"
+              onWheel={(e) => {
+                const el = e.currentTarget;
+                if (el.scrollWidth > el.clientWidth) {
+                  if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && !e.shiftKey) {
+                    const atLeft = el.scrollLeft <= 0;
+                    const atRight = Math.ceil(el.scrollLeft + el.clientWidth) >= el.scrollWidth;
+                    if ((e.deltaY > 0 && !atRight) || (e.deltaY < 0 && !atLeft)) {
+                      el.scrollLeft += e.deltaY;
+                    }
                   }
                 }
-              }
-            }}
-          >
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-5 py-3.5 text-left">Coupon / Code</th>
-                  <th className="px-5 py-3.5 text-left">Discount</th>
-                  <th className="hidden px-5 py-3.5 text-left md:table-cell">Course</th>
-                  <th className="hidden px-5 py-3.5 text-left sm:table-cell">Usage & Limit</th>
-                  <th className="hidden px-5 py-3.5 text-left lg:table-cell">Expiry</th>
-                  <th className="px-5 py-3.5 text-left">Status</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {paginatedCoupons.map((coupon) => {
-                  const isExpired = coupon.expiresAt && new Date(coupon.expiresAt) < new Date();
-                  const isLimitReached =
-                    coupon.usageLimit !== null &&
-                    coupon.usageLimit !== undefined &&
-                    coupon.usedCount >= coupon.usageLimit;
+              }}
+            >
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="px-5 py-3.5 text-left">Coupon / Code</th>
+                    <th className="px-5 py-3.5 text-left">Discount</th>
+                    <th className="hidden px-5 py-3.5 text-left md:table-cell">Course</th>
+                    <th className="hidden px-5 py-3.5 text-left sm:table-cell">Usage & Limit</th>
+                    <th className="hidden px-5 py-3.5 text-left lg:table-cell">Expiry</th>
+                    <th className="px-5 py-3.5 text-left">Status</th>
+                    <th className="px-5 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {paginatedCoupons.map((coupon) => {
+                    const isExpired = coupon.expiresAt && new Date(coupon.expiresAt) < new Date();
+                    const isLimitReached =
+                      coupon.usageLimit !== null &&
+                      coupon.usageLimit !== undefined &&
+                      coupon.usedCount >= coupon.usageLimit;
 
-                  return (
-                    <tr key={coupon.id} className="hover:bg-muted/20 transition-colors">
-                      {/* Code */}
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground">
-                            <Tag className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-xs font-bold text-foreground block">
-                                {coupon.code}
+                    return (
+                      <tr key={coupon.id} className="hover:bg-muted/20 transition-colors">
+                        {/* Code */}
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground">
+                              <Tag className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-xs font-bold text-foreground block">
+                                  {coupon.code}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(coupon.code)}
+                                  title="Copy code"
+                                  className="text-muted-foreground hover:text-foreground transition-colors p-0.5 cursor-pointer"
+                                >
+                                  {copiedCode === coupon.code ? (
+                                    <Check className="h-3.5 w-3.5 text-emerald-500" />
+                                  ) : (
+                                    <Copy className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                              <span className="text-[11px] text-muted-foreground block">
+                                {coupon.discountType === "PERCENT"
+                                  ? "Percentage Promo"
+                                  : "Flat Discount"}
                               </span>
-                              <button
-                                type="button"
-                                onClick={() => copyToClipboard(coupon.code)}
-                                title="Copy code"
-                                className="text-muted-foreground hover:text-foreground transition-colors p-0.5 cursor-pointer"
-                              >
-                                {copiedCode === coupon.code ? (
-                                  <Check className="h-3.5 w-3.5 text-emerald-500" />
-                                ) : (
-                                  <Copy className="h-3.5 w-3.5" />
-                                )}
-                              </button>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Discount Value */}
+                        <td className="px-5 py-3.5">
+                          {coupon.discountType === "FLAT" ? (
+                            <div className="font-semibold text-foreground text-sm">
+                              ₹{coupon.discountValue.toLocaleString()} off
+                            </div>
+                          ) : (
+                            <div>
+                              <span className="font-semibold text-foreground text-sm">
+                                {coupon.discountValue}% off
+                              </span>
+                              {coupon.maxDiscount && (
+                                <span className="block text-[11px] text-muted-foreground">
+                                  capped at ₹{coupon.maxDiscount.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Course */}
+                        <td className="hidden px-5 py-3.5 md:table-cell">
+                          {coupon.course ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary truncate max-w-[200px]"
+                              title={coupon.course.title}
+                            >
+                              <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">{coupon.course.title}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                              <BookOpen className="h-3.5 w-3.5 shrink-0" /> All Courses
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Used / Limit */}
+                        <td className="hidden px-5 py-3.5 sm:table-cell">
+                          <div className="space-y-0.5 text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-foreground">
+                                {coupon.usedCount}
+                              </span>
+                              <span className="text-muted-foreground">
+                                /{" "}
+                                {coupon.usageLimit !== null && coupon.usageLimit !== undefined
+                                  ? coupon.usageLimit
+                                  : "∞"}
+                              </span>
+                              {isLimitReached && (
+                                <span className="rounded bg-rose-500/10 px-1.5 py-0.2 text-[10px] font-bold text-rose-600">
+                                  Full
+                                </span>
+                              )}
                             </div>
                             <span className="text-[11px] text-muted-foreground block">
-                              {coupon.discountType === "PERCENT" ? "Percentage Promo" : "Flat Discount"}
+                              {coupon.perUserLimit || 1}{" "}
+                              {coupon.perUserLimit === 1 ? "use/user" : "uses/user"}
                             </span>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Discount Value */}
-                      <td className="px-5 py-3.5">
-                        {coupon.discountType === "FLAT" ? (
-                          <div className="font-semibold text-foreground text-sm">
-                            ₹{coupon.discountValue.toLocaleString()} off
-                          </div>
-                        ) : (
-                          <div>
-                            <span className="font-semibold text-foreground text-sm">
-                              {coupon.discountValue}% off
-                            </span>
-                            {coupon.maxDiscount && (
-                              <span className="block text-[11px] text-muted-foreground">
-                                capped at ₹{coupon.maxDiscount.toLocaleString()}
+                        {/* Expiry */}
+                        <td className="hidden px-5 py-3.5 text-xs lg:table-cell">
+                          {coupon.expiresAt ? (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className={isExpired ? "text-rose-600 font-semibold" : ""}>
+                                {new Date(coupon.expiresAt).toLocaleDateString()}
+                                {isExpired && " (Expired)"}
                               </span>
-                            )}
-                          </div>
-                        )}
-                      </td>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span>Never</span>
+                            </div>
+                          )}
+                        </td>
 
-                      {/* Course */}
-                      <td className="hidden px-5 py-3.5 md:table-cell">
-                        {coupon.course ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary truncate max-w-[200px]" title={coupon.course.title}>
-                            <BookOpen className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{coupon.course.title}</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-                            <BookOpen className="h-3.5 w-3.5 shrink-0" /> All Courses
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Used / Limit */}
-                      <td className="hidden px-5 py-3.5 sm:table-cell">
-                        <div className="space-y-0.5 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-foreground">
-                              {coupon.usedCount}
+                        {/* Status */}
+                        <td className="px-5 py-3.5">
+                          {isExpired ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600">
+                              <Clock className="h-3 w-3" /> Expired
                             </span>
-                            <span className="text-muted-foreground">
-                              / {coupon.usageLimit !== null && coupon.usageLimit !== undefined ? coupon.usageLimit : "∞"}
-                            </span>
-                            {isLimitReached && (
-                              <span className="rounded bg-rose-500/10 px-1.5 py-0.2 text-[10px] font-bold text-rose-600">
-                                Full
-                              </span>
-                            )}
+                          ) : coupon.isActive ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleMutation.mutate(coupon.id)}
+                              disabled={toggleMutation.isPending}
+                              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                              title="Click to toggle status"
+                            >
+                              <CheckCircle2 className="h-3 w-3" /> Active
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => toggleMutation.mutate(coupon.id)}
+                              disabled={toggleMutation.isPending}
+                              className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer"
+                              title="Click to toggle status"
+                            >
+                              <XCircle className="h-3 w-3" /> Inactive
+                            </button>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenEdit(coupon)}
+                              className="h-8 text-xs font-semibold gap-1.5 cursor-pointer"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" /> Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setDeletingCoupon(coupon)}
+                              className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer shrink-0"
+                              title="Delete or deactivate coupon"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
-                          <span className="text-[11px] text-muted-foreground block">
-                            {coupon.perUserLimit || 1} {coupon.perUserLimit === 1 ? "use/user" : "uses/user"}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Expiry */}
-                      <td className="hidden px-5 py-3.5 text-xs lg:table-cell">
-                        {coupon.expiresAt ? (
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            <span className={isExpired ? "text-rose-600 font-semibold" : ""}>
-                              {new Date(coupon.expiresAt).toLocaleDateString()}
-                              {isExpired && " (Expired)"}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            <span>Never</span>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-5 py-3.5">
-                        {isExpired ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600">
-                            <Clock className="h-3 w-3" /> Expired
-                          </span>
-                        ) : coupon.isActive ? (
-                          <button
-                            type="button"
-                            onClick={() => toggleMutation.mutate(coupon.id)}
-                            disabled={toggleMutation.isPending}
-                            className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-                            title="Click to toggle status"
-                          >
-                            <CheckCircle2 className="h-3 w-3" /> Active
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => toggleMutation.mutate(coupon.id)}
-                            disabled={toggleMutation.isPending}
-                            className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer"
-                            title="Click to toggle status"
-                          >
-                            <XCircle className="h-3 w-3" /> Inactive
-                          </button>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenEdit(coupon)}
-                            className="h-8 text-xs font-semibold gap-1.5 cursor-pointer"
-                          >
-                            <Edit3 className="h-3.5 w-3.5" /> Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setDeletingCoupon(coupon)}
-                            className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer shrink-0"
-                            title="Delete or deactivate coupon"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Controls */}
-          {filteredCoupons.length > 0 && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span>
-                  Showing{" "}
-                  <strong className="font-semibold text-foreground">
-                    {(currentPage - 1) * pageSize + 1}
-                  </strong>{" "}
-                  to{" "}
-                  <strong className="font-semibold text-foreground">
-                    {Math.min(currentPage * pageSize, filteredCoupons.length)}
-                  </strong>{" "}
-                  of{" "}
-                  <strong className="font-semibold text-foreground">
-                    {filteredCoupons.length}
-                  </strong>{" "}
-                  coupons
-                </span>
-                <span className="hidden sm:inline text-muted-foreground/40">•</span>
-                <div className="hidden sm:flex items-center gap-1.5">
-                  <span>Rows:</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="h-7 rounded-lg border border-border bg-card px-2 text-xs font-semibold text-foreground outline-none cursor-pointer"
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 self-end sm:self-auto">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="h-8 px-2.5 text-xs font-semibold gap-1 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="h-4 w-4" /> Prev
-                </Button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((p) => {
-                      return (
-                        p === 1 ||
-                        p === totalPages ||
-                        Math.abs(p - currentPage) <= 1
-                      );
-                    })
-                    .map((p, idx, arr) => {
-                      const prev = arr[idx - 1];
-                      const showEllipsis = prev && p - prev > 1;
-                      return (
-                        <div key={p} className="flex items-center gap-1">
-                          {showEllipsis && <span className="px-1 text-muted-foreground">...</span>}
-                          <button
-                            onClick={() => setCurrentPage(p)}
-                            className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                              currentPage === p
-                                ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                                : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            {p}
-                          </button>
-                        </div>
-                      );
-                    })}
-                </div>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="h-8 px-2.5 text-xs font-semibold gap-1 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  Next <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          )}
-        </>
-      )}
+
+            {/* Pagination Controls */}
+            {filteredCoupons.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span>
+                    Showing{" "}
+                    <strong className="font-semibold text-foreground">
+                      {(currentPage - 1) * pageSize + 1}
+                    </strong>{" "}
+                    to{" "}
+                    <strong className="font-semibold text-foreground">
+                      {Math.min(currentPage * pageSize, filteredCoupons.length)}
+                    </strong>{" "}
+                    of{" "}
+                    <strong className="font-semibold text-foreground">
+                      {filteredCoupons.length}
+                    </strong>{" "}
+                    coupons
+                  </span>
+                  <span className="hidden sm:inline text-muted-foreground/40">•</span>
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <span>Rows:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="h-7 rounded-lg border border-border bg-card px-2 text-xs font-semibold text-foreground outline-none cursor-pointer"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="h-8 px-2.5 text-xs font-semibold gap-1 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" /> Prev
+                  </Button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((p) => {
+                        return p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1;
+                      })
+                      .map((p, idx, arr) => {
+                        const prev = arr[idx - 1];
+                        const showEllipsis = prev && p - prev > 1;
+                        return (
+                          <div key={p} className="flex items-center gap-1">
+                            {showEllipsis && (
+                              <span className="px-1 text-muted-foreground">...</span>
+                            )}
+                            <button
+                              onClick={() => setCurrentPage(p)}
+                              className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                                currentPage === p
+                                  ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          </div>
+                        );
+                      })}
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    className="h-8 px-2.5 text-xs font-semibold gap-1 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Next <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Create / Edit Modal Dialog */}
@@ -820,7 +908,10 @@ function AdminCouponsPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="coupon-discount-value" className="text-xs font-semibold text-muted-foreground block mb-1.5">
+                  <label
+                    htmlFor="coupon-discount-value"
+                    className="text-xs font-semibold text-muted-foreground block mb-1.5"
+                  >
                     {watchDiscountType === "FLAT" ? "Rupees Off (₹)" : "Percent Off (%)"}{" "}
                     <span className="text-destructive">*</span>
                   </label>
@@ -834,9 +925,7 @@ function AdminCouponsPage() {
                     max={watchDiscountType === "PERCENT" ? 100 : undefined}
                   />
                   {errors.discountValue && (
-                    <p className="mt-1 text-xs text-destructive">
-                      {errors.discountValue.message}
-                    </p>
+                    <p className="mt-1 text-xs text-destructive">{errors.discountValue.message}</p>
                   )}
                 </div>
               </div>
@@ -1014,7 +1103,9 @@ function AdminCouponsPage() {
                   Are you sure you want to remove coupon <strong>{deletingCoupon.code}</strong>?
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  If this coupon has already been redeemed by students, it will be <strong>deactivated</strong> instead of deleted to preserve student transaction records.
+                  If this coupon has already been redeemed by students, it will be{" "}
+                  <strong>deactivated</strong> instead of deleted to preserve student transaction
+                  records.
                 </p>
               </div>
             </div>

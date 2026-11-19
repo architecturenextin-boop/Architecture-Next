@@ -14,34 +14,42 @@ import {
   GraduationCap,
   Layers3,
   Play,
-  RefreshCw,
   Share2,
   ShieldCheck,
-  Sparkles,
   Star,
+  Tag,
   Users,
   Wrench,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { CourseOfferNotification } from "@/components/course-offer-notification";
 import { SiteHeader } from "@/components/site-header";
 import { Footer } from "@/components/footer";
 import { instructor } from "@/lib/static-data";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/lib/services/course.service";
 import { testimonialService } from "@/lib/services/testimonial.service";
+import { couponService, type CourseCouponProgress } from "@/lib/services/coupon.service";
 import type { CourseWithContent } from "@/lib/database.types";
 import certificateImg from "@/assets/certificate.png";
 import certificateWebp from "@/assets/certificate.webp";
 import { useAuth } from "@/hooks/use-auth";
+import { OG_IMAGE } from "@/lib/seo";
 import { getMediaUrl } from "@/lib/utils";
 
 export const Route = createFileRoute("/courses/$courseId")({
   head: () => {
     return {
       meta: [
-        { title: "Course Details — ArchitectureNext" },
-        { name: "description", content: "Explore complete curriculum, projects, and enrolment details." },
+        { title: "Course Curriculum, Projects & Fees | ArchitectureNext" },
+        {
+          name: "description",
+          content:
+            "View the full architecture course curriculum, project briefs, software modules, fees and internship certificate details. Learn BIM, Revit, 3D visualisation and AI workflows from practising architects.",
+        },
+        { property: "og:image", content: OG_IMAGE },
+        { name: "twitter:image", content: OG_IMAGE },
       ],
     };
   },
@@ -57,7 +65,9 @@ function getYouTubeVideoId(url?: string | null): string {
 
 function getVimeoVideoId(url?: string | null): string {
   if (!url) return "";
-  const match = url.match(/(?:vimeo\.com\/(?:video\/|channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|manage\/videos\/)?|player\.vimeo\.com\/video\/)(\d+)/);
+  const match = url.match(
+    /(?:vimeo\.com\/(?:video\/|channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|manage\/videos\/)?|player\.vimeo\.com\/video\/)(\d+)/,
+  );
   return match ? match[1] : "";
 }
 
@@ -66,7 +76,8 @@ function getVimeoEmbedUrl(url?: string | null): string {
   const vimeoId = getVimeoVideoId(url);
   if (!vimeoId) return url;
 
-  const hashMatch = url.match(/[?&]h=([a-zA-Z0-9]+)/) || url.match(/vimeo\.com\/\d+\/([a-zA-Z0-9]+)/);
+  const hashMatch =
+    url.match(/[?&]h=([a-zA-Z0-9]+)/) || url.match(/vimeo\.com\/\d+\/([a-zA-Z0-9]+)/);
   const hashParam = hashMatch ? `&h=${hashMatch[1]}` : "";
 
   return `https://player.vimeo.com/video/${vimeoId}?autoplay=0&playsinline=1&title=0&byline=0&portrait=0&color=00b2ff&transparent=0&dnt=1${hashParam}`;
@@ -85,7 +96,11 @@ function CourseDetailPage() {
   const [copiedShare, setCopiedShare] = useState(false);
   const [showAllOutcomes, setShowAllOutcomes] = useState(false);
 
-  const { data: course, isLoading, error } = useQuery({
+  const {
+    data: course,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["course", courseId],
     queryFn: async () => {
       const data = await courseService.getCourse(courseId);
@@ -122,39 +137,48 @@ function CourseDetailPage() {
     enabled: !!courseId,
   });
 
+  // Coupon progress for this course
+  const { data: courseCoupons = [] } = useQuery({
+    queryKey: ["course-coupons", course?.id || courseId],
+    queryFn: async () => {
+      if (!course?.id) return [];
+      try {
+        return await couponService.getCourseCoupons(course.id);
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!course?.id,
+    select: (data) =>
+      // Filter to only show coupons specifically for this course (not global coupons)
+      data.filter((cp) => cp.coupon.courseId === course?.id),
+  });
+
   const enrollment = learningData?.isEnrolled ? { status: "active" } : null;
   const progress = learningData?.progress || [];
 
-  const originalPrice = course?.original_price || (course?.price ? Math.round(course.price * 2.5) : 0);
+  const originalPrice =
+    course?.original_price || (course?.price ? Math.round(course.price * 2.5) : 0);
   const price = course?.price || 0;
   const discountPercentage =
-    originalPrice > price
-      ? Math.round(((originalPrice - price) / originalPrice) * 100)
-      : 0;
+    originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
 
-  const isYouTube = course?.preview_video_url?.includes("youtube.com") || course?.preview_video_url?.includes("youtu.be");
+  const isYouTube =
+    course?.preview_video_url?.includes("youtube.com") ||
+    course?.preview_video_url?.includes("youtu.be");
   const youTubeId = isYouTube ? getYouTubeVideoId(course?.preview_video_url) : "";
   const isVimeo = !!course?.preview_video_url && course.preview_video_url.includes("vimeo.com");
   const vimeoEmbedUrl = isVimeo ? getVimeoEmbedUrl(course?.preview_video_url) : "";
   const isDirectVideo = !!course?.preview_video_url && !isYouTube && !isVimeo;
 
-  const lastUpdatedFormatted = useMemo(() => {
-    if (!course?.updated_at) return "Recently updated";
-    try {
-      return new Date(course.updated_at).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return "Recently updated";
-    }
-  }, [course?.updated_at]);
-
   const materialsList =
     course?.highlights && course.highlights.length > 0
       ? course.highlights
-      : ["HD Video Lessons & Practice Files", "Downloadable CAD/BIM Resource Packs", "Lifetime Access & Certificate of Completion"];
+      : [
+          "HD Video Lessons & Practice Files",
+          "Downloadable CAD/BIM Resource Packs",
+          "Lifetime Access & Certificate of Completion",
+        ];
 
   const requirementsList =
     course?.requirements && course.requirements.length > 0
@@ -180,11 +204,7 @@ function CourseDetailPage() {
           const [title] = item.split(":");
           return title.trim();
         })
-      : [
-          "BIM & CAD Workflows",
-          "Visualisation & Detailing",
-          "Industry Best Practices",
-        ];
+      : ["BIM & CAD Workflows", "Visualisation & Detailing", "Industry Best Practices"];
 
   const courseModules = course?.modules || [];
 
@@ -268,24 +288,16 @@ function CourseDetailPage() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1 text-amber-400">
                   {Array.from({ length: 5 }).map((_, index) => (
-                    <Star
-                      key={index}
-                      className="h-4 w-4 fill-amber-400 text-amber-400"
-                    />
+                    <Star key={index} className="h-4 w-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <span className="font-bold text-foreground">
-                  {course.rating || 4.9}
-                </span>
-                <span>
-                  ({(course.review_count || 1240).toLocaleString()} ratings)
-                </span>
+                <span className="font-bold text-foreground">{course.rating || 4.9}</span>
+                <span>({(course.review_count || 1240).toLocaleString()} ratings)</span>
                 <span>Architecture &amp; Interior Design</span>
               </div>
 
               <div className="mt-7 max-w-5xl">
                 <div className="mb-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">
-                  <Sparkles className="h-4 w-4" />
                   {course.level || "Professional"} Online Programme
                 </div>
 
@@ -294,7 +306,9 @@ function CourseDetailPage() {
                 </h1>
 
                 <p className="mt-4 sm:mt-6 max-w-4xl text-sm sm:text-base lg:text-lg leading-relaxed text-muted-foreground">
-                  {course.tagline || course.description || "Master industry-standard architectural workflows through practical structured lessons."}
+                  {course.tagline ||
+                    course.description ||
+                    "Master industry-standard architectural workflows through practical structured lessons."}
                 </p>
               </div>
 
@@ -305,9 +319,7 @@ function CourseDetailPage() {
                   className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-white px-4 text-sm font-semibold text-foreground shadow-xs transition hover:border-primary/40 hover:text-primary"
                 >
                   <Bookmark
-                    className={`h-4 w-4 ${
-                      isWishlisted ? "fill-primary text-primary" : ""
-                    }`}
+                    className={`h-4 w-4 ${isWishlisted ? "fill-primary text-primary" : ""}`}
                   />
                   {isWishlisted ? "Saved to wishlist" : "Add to wishlist"}
                 </button>
@@ -323,7 +335,10 @@ function CourseDetailPage() {
               </div>
 
               {/* Dynamic Preview Media: YouTube iframe / Direct MP4 / Cover Image */}
-              <div id="preview" className="mt-9 scroll-mt-28 overflow-hidden rounded-[24px] border border-border/70 bg-black shadow-elevated">
+              <div
+                id="preview"
+                className="mt-9 scroll-mt-28 overflow-hidden rounded-[24px] border border-border/70 bg-black shadow-elevated"
+              >
                 <div className="aspect-video w-full">
                   {isYouTube ? (
                     <iframe
@@ -388,7 +403,8 @@ function CourseDetailPage() {
                   )}
                 </div>
                 <p className="mt-3 text-xs sm:text-sm leading-relaxed text-muted-foreground">
-                  One-time payment with lifetime access to lessons, resources, future updates, and certification.
+                  One-time payment with lifetime access to lessons, resources, future updates, and
+                  certification.
                 </p>
 
                 {!user ? (
@@ -403,7 +419,7 @@ function CourseDetailPage() {
                     }
                     className="mt-6 h-12 w-full bg-gradient-primary text-base font-bold text-primary-foreground shadow-glow transition-all hover:-translate-y-0.5 hover:brightness-110"
                   >
-                     {isPrebookCourse ? "Login to Prebook" : "Login to Enroll"}
+                    {isPrebookCourse ? "Login to Prebook" : "Login to Enroll"}
                   </Button>
                 ) : enrollmentLoading ? (
                   <Button
@@ -417,7 +433,9 @@ function CourseDetailPage() {
                     onClick={() => {
                       if (progress && progress.length > 0) {
                         const latest = [...progress].sort(
-                          (a, b) => new Date(b.last_watched_at).getTime() - new Date(a.last_watched_at).getTime()
+                          (a, b) =>
+                            new Date(b.last_watched_at).getTime() -
+                            new Date(a.last_watched_at).getTime(),
                         )[0];
                         navigate({
                           to: "/learn/$courseId",
@@ -433,7 +451,11 @@ function CourseDetailPage() {
                     }}
                     className="mt-6 h-12 w-full bg-gradient-primary text-base font-bold text-primary-foreground shadow-glow transition-all hover:-translate-y-0.5 hover:brightness-110"
                   >
-                    {isPrebookCourse ? "Prebook Complete" : (progress && progress.length > 0 ? "Continue Learning" : "Start Learning")}
+                    {isPrebookCourse
+                      ? "Prebook Complete"
+                      : progress && progress.length > 0
+                        ? "Continue Learning"
+                        : "Start Learning"}
                   </Button>
                 ) : (
                   <Button
@@ -453,6 +475,82 @@ function CourseDetailPage() {
                   <ShieldCheck className="h-4 w-4 text-primary" />
                   Secure checkout · Instant enrollment
                 </div>
+
+                {/* Coupon Progress Indicator */}
+                {courseCoupons.length > 0 && (
+                  <div className="mt-6 rounded-xl border border-border/60 bg-muted/30 p-4">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-primary mb-3">
+                      <Tag className="h-4 w-4" />
+                      Available Coupons
+                    </div>
+                    <div className="space-y-3">
+                      {courseCoupons.slice(0, 2).map((cp) => (
+                        <div key={cp.coupon.id} className="space-y-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate({
+                                to: "/checkout",
+                                search: {
+                                  course: course.slug || course.id,
+                                  coupon: cp.coupon.code,
+                                },
+                              })
+                            }
+                            className="w-full text-left p-3 rounded-lg border border-border/60 bg-white hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer group"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-mono text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                                {cp.coupon.code}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {cp.coupon.discountType === "FLAT"
+                                  ? `₹${cp.coupon.discountValue.toLocaleString()} off`
+                                  : `${cp.coupon.discountValue}% off${cp.coupon.maxDiscount ? ` (max ₹${cp.coupon.maxDiscount.toLocaleString()})` : ""}`}
+                              </span>
+                            </div>
+                            {cp.coupon.usageLimit && cp.coupon.usageLimit > 0 && (
+                              <div className="space-y-1 mt-2 pt-2 border-t border-border/40">
+                                <div className="flex items-center justify-between text-[11px]">
+                                  <span className="text-muted-foreground">Usage</span>
+                                  <span className="font-semibold text-foreground">
+                                    {cp.coupon.usedCount} / {cp.coupon.usageLimit}
+                                  </span>
+                                </div>
+                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary transition-all duration-300"
+                                    style={{ width: `${Math.min(cp.usagePercentage, 100)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                            {cp.coupon.expiresAt && (
+                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-2 pt-2 border-t border-border/40">
+                                <Clock3 className="h-3 w-3" />
+                                <span>
+                                  Expires {new Date(cp.coupon.expiresAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+                            <span className="absolute inset-0" aria-hidden="true" />
+                          </button>
+                        </div>
+                      ))}
+                      {courseCoupons.length > 2 && (
+                        <button
+                          type="button"
+                          className="w-full text-center text-xs font-semibold text-primary hover:underline p-2 rounded-lg hover:bg-primary/5 transition-colors"
+                        >
+                          +{courseCoupons.length - 2} more coupons available
+                        </button>
+                      )}
+                    </div>
+                    <p className="mt-3 text-center text-[11px] text-muted-foreground">
+                      Click a coupon to apply it at checkout
+                    </p>
+                  </div>
+                )}
 
                 <div className="mt-8 border-y border-border/70">
                   <CourseFact
@@ -509,11 +607,6 @@ function CourseDetailPage() {
                       </p>
                     </div>
                   </div>
-                </div>
-
-                <div className="mt-7 flex items-center gap-2 border-t border-border/70 pt-5 text-xs font-medium text-muted-foreground">
-                  <RefreshCw className="h-4 w-4 shrink-0 text-primary" />
-                  Last updated <strong className="text-foreground">{lastUpdatedFormatted}</strong>
                 </div>
               </div>
             </aside>
@@ -588,10 +681,7 @@ function CourseDetailPage() {
                     const isOpen = openModule === index;
 
                     return (
-                      <div
-                        key={module.id}
-                        className="border-b border-border/70 last:border-b-0"
-                      >
+                      <div key={module.id} className="border-b border-border/70 last:border-b-0">
                         <button
                           type="button"
                           onClick={() => setOpenModule(isOpen ? null : index)}
@@ -635,7 +725,9 @@ function CourseDetailPage() {
                                       if (!user) {
                                         navigate({
                                           to: "/auth",
-                                          search: { redirect: `/learn/${course.slug || course.id}?lessonId=${lesson.id}` },
+                                          search: {
+                                            redirect: `/learn/${course.slug || course.id}?lessonId=${lesson.id}`,
+                                          },
                                         });
                                       } else {
                                         navigate({
@@ -651,16 +743,22 @@ function CourseDetailPage() {
                                   }`}
                                 >
                                   <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-                                    <span className={`grid h-6 w-6 sm:h-7 sm:w-7 shrink-0 place-items-center rounded-full transition ${
-                                      canWatch 
-                                        ? "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105" 
-                                        : "bg-muted text-muted-foreground/60"
-                                    }`}>
+                                    <span
+                                      className={`grid h-6 w-6 sm:h-7 sm:w-7 shrink-0 place-items-center rounded-full transition ${
+                                        canWatch
+                                          ? "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105"
+                                          : "bg-muted text-muted-foreground/60"
+                                      }`}
+                                    >
                                       <Play className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-current" />
                                     </span>
-                                    <span className={`truncate text-xs sm:text-sm font-medium transition ${
-                                      canWatch ? "text-foreground group-hover:text-primary" : "text-foreground"
-                                    }`}>
+                                    <span
+                                      className={`truncate text-xs sm:text-sm font-medium transition ${
+                                        canWatch
+                                          ? "text-foreground group-hover:text-primary"
+                                          : "text-foreground"
+                                      }`}
+                                    >
                                       {lessonIndex + 1}. {lesson.title}
                                     </span>
                                     {lesson.is_free && (
@@ -700,9 +798,7 @@ function CourseDetailPage() {
                       <span className="font-display text-sm font-extrabold text-primary">
                         {String(index + 1).padStart(2, "0")}
                       </span>
-                      <h3 className="font-display text-base font-bold text-foreground">
-                        {item}
-                      </h3>
+                      <h3 className="font-display text-base font-bold text-foreground">{item}</h3>
                     </article>
                   ))}
                 </div>
@@ -722,7 +818,8 @@ function CourseDetailPage() {
                       Complete the programme with a verifiable certificate.
                     </h2>
                     <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                      Add it to your resume, LinkedIn profile, and portfolio to demonstrate structured learning and practical project experience.
+                      Add it to your resume, LinkedIn profile, and portfolio to demonstrate
+                      structured learning and practical project experience.
                     </p>
 
                     <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-foreground">
@@ -789,24 +886,17 @@ function CourseDetailPage() {
                   <span className="font-display text-6xl font-extrabold tracking-[-0.06em] text-foreground">
                     {course.rating || "4.9"}
                   </span>
-                  <span className="pb-2 text-sm font-semibold text-muted-foreground">
-                    / 5.0
-                  </span>
+                  <span className="pb-2 text-sm font-semibold text-muted-foreground">/ 5.0</span>
                 </div>
                 <div className="mt-3 flex text-amber-400">
                   {Array.from({ length: 5 }).map((_, index) => (
-                    <Star
-                      key={index}
-                      className="h-5 w-5 fill-amber-400 text-amber-400"
-                    />
+                    <Star key={index} className="h-5 w-5 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-primary">
-                  Verified student feedback
-                </p>
+                <p className="text-sm font-semibold text-primary">Verified student feedback</p>
                 <h2 className="mt-2 max-w-3xl font-display text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
                   What students say after completing the course
                 </h2>
@@ -856,14 +946,9 @@ function CourseDetailPage() {
                   >
                     <div>
                       <div className="flex text-amber-400">
-                        {Array.from({ length: testimonial.rating }).map(
-                          (_, starIndex) => (
-                            <Star
-                              key={starIndex}
-                              className="h-4 w-4 fill-amber-400 text-amber-400"
-                            />
-                          ),
-                        )}
+                        {Array.from({ length: testimonial.rating }).map((_, starIndex) => (
+                          <Star key={starIndex} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                        ))}
                       </div>
                       <blockquote className="mt-5 text-base leading-8 text-foreground/85 italic">
                         “{testimonial.quote}”
@@ -917,7 +1002,9 @@ function CourseDetailPage() {
                 onClick={() => {
                   if (progress && progress.length > 0) {
                     const latest = [...progress].sort(
-                      (a, b) => new Date(b.last_watched_at).getTime() - new Date(a.last_watched_at).getTime()
+                      (a, b) =>
+                        new Date(b.last_watched_at).getTime() -
+                        new Date(a.last_watched_at).getTime(),
                     )[0];
                     navigate({
                       to: "/learn/$courseId",
@@ -933,7 +1020,11 @@ function CourseDetailPage() {
                 }}
                 className="h-11 bg-gradient-primary px-6 font-bold text-primary-foreground shadow-glow hover:brightness-110"
               >
-                {isPrebookCourse ? "Prebook Complete" : (progress && progress.length > 0 ? "Continue Learning" : "Start Learning")}
+                {isPrebookCourse
+                  ? "Prebook Complete"
+                  : progress && progress.length > 0
+                    ? "Continue Learning"
+                    : "Start Learning"}
               </Button>
             </>
           ) : (
@@ -952,12 +1043,22 @@ function CourseDetailPage() {
                 onClick={handleAddToCart}
                 className="h-11 bg-gradient-primary px-6 font-bold text-primary-foreground hover:brightness-110"
               >
-                {!user ? (isPrebookCourse ? "Login to Prebook" : "Login to Enroll") : (isPrebookCourse ? "Prebook Now" : "Buy Course")}
+                {!user
+                  ? isPrebookCourse
+                    ? "Login to Prebook"
+                    : "Login to Enroll"
+                  : isPrebookCourse
+                    ? "Prebook Now"
+                    : "Buy Course"}
               </Button>
             </>
           )}
         </div>
       </div>
+
+      {!enrollment && !enrollmentLoading && courseCoupons.length > 0 && (
+        <CourseOfferNotification course={course} coupon={courseCoupons[0]} />
+      )}
 
       <Footer />
     </div>
@@ -1004,9 +1105,7 @@ function ContentSection({
   return (
     <section className="mb-16 last:mb-0">
       <div className="mb-7">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
-          {eyebrow}
-        </p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{eyebrow}</p>
         <h2 className="mt-3 max-w-3xl font-display text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
           {title}
         </h2>
@@ -1040,7 +1139,10 @@ function InformationList({
             key={`${item}-${index}`}
             className="flex items-start gap-3 text-sm leading-6 text-muted-foreground"
           >
-            <Check className="mt-1 h-4 w-4 shrink-0 text-primary" />
+            <span
+              className="mt-[10px] h-1 w-1 shrink-0 rounded-full bg-primary"
+              aria-hidden="true"
+            />
             <span>{item}</span>
           </li>
         ))}

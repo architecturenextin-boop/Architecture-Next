@@ -9,6 +9,7 @@ import {
 import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
+import { KEYWORDS, OG_IMAGE, SITE_URL, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -72,17 +73,38 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ArchitectureNext — School of Internship" },
-      { name: "description", content: "Build your architecture career with real industry experience. Live projects, BIM workflows, mentorship and portfolio development by practising architects." },
+      { title: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
+      { name: "description", content: "Learn architecture and interior design from practising architects — BIM, Revit, SketchUp, 3D visualisation and AI design workflows, live projects, internship certificate and lifetime access. Online and classroom training in Kozhikode, Kerala." },
       { name: "author", content: "ArchitectureNext" },
+      { name: "keywords", content: KEYWORDS },
+      { name: "robots", content: "index, follow, max-image-preview:large" },
       { name: "theme-color", content: "#294398" },
-      { property: "og:title", content: "ArchitectureNext — School of Internship" },
-      { property: "og:description", content: "Premium architecture internship program. Real projects, BIM workflows, mentorship and portfolio development." },
+      { name: "geo.region", content: "IN-KL" },
+      { name: "geo.placename", content: "Kozhikode, Kerala" },
+      { property: "og:title", content: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
+      { property: "og:description", content: "BIM, Revit, 3D visualisation and AI design courses taught by practising architects, with live projects, internship certification and lifetime access." },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "ArchitectureNext" },
+      { property: "og:locale", content: "en_IN" },
+      { property: "og:url", content: `${SITE_URL}/` },
+      { property: "og:image", content: OG_IMAGE },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "ArchitectureNext — architecture and interior design courses in Kerala" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "ArchitectureNext — School of Internship" },
-      { name: "twitter:description", content: "Premium architecture internship program with live projects, BIM workflows and portfolio mentorship." },
+      { name: "twitter:title", content: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
+      { name: "twitter:description", content: "BIM, Revit, 3D visualisation and AI design courses with live projects, internship certification and lifetime access." },
+      { name: "twitter:image", content: OG_IMAGE },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(organizationJsonLd),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(websiteJsonLd),
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

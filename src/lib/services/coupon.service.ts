@@ -10,6 +10,13 @@ export interface ValidateCouponResponse {
   coupon?: Coupon;
 }
 
+export interface CourseCouponProgress {
+  coupon: Coupon;
+  usagePercentage: number;
+  isAvailable: boolean;
+  canApply: boolean;
+}
+
 export const couponService = {
   validateCoupon: async (payload: {
     code: string;
@@ -19,5 +26,13 @@ export const couponService = {
       method: "POST",
       body: JSON.stringify(payload),
     });
+  },
+
+  getCourseCoupons: async (courseId: string): Promise<CourseCouponProgress[]> => {
+    try {
+      return await apiClient<CourseCouponProgress[]>(`/courses/${courseId}/coupons`);
+    } catch {
+      return [];
+    }
   },
 };

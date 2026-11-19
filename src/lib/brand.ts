@@ -12,7 +12,7 @@ export const brand = {
     email: "architecturenextin@gmail.com",
     phone: "+91 88910 91894",
     whatsapp: import.meta.env.VITE_WHATSAPP_NUMBER || "918891091894",
-    location: "First floor, HiLITE Business Park, Palazhi, Kozhikode, Pantheeramkavu, Kerala 673014",
+    location: "Phase 2, 5th Floor, HiLITE Business Park, Palazhi, Kozhikode, Kerala – 673014.",
   },
   colors: {
     blue: "#294398",

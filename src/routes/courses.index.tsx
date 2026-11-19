@@ -7,15 +7,41 @@ import { CourseCard } from "@/components/course-card";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/lib/services/course.service";
 import type { Course } from "@/lib/database.types";
+import { KEYWORDS, OG_IMAGE, SITE_URL, breadcrumbJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/courses/")({
   head: () => ({
     meta: [
-      { title: "Our Courses — ArchitectureNext" },
+      { title: "Architecture, BIM & Interior Design Courses in Kerala | ArchitectureNext" },
       {
         name: "description",
         content:
-          "Explore industry-grade architectural design, BIM Revit, SketchUp Lumion 3D rendering, and AI design courses.",
+          "Explore ArchitectureNext courses — BIM and Revit, SketchUp with Lumion 3D rendering, plan presentation and animation, parametric design and AI design workflows. See curriculum, fees, live projects and internship certification.",
+      },
+      { name: "keywords", content: KEYWORDS },
+      {
+        property: "og:title",
+        content: "Architecture, BIM & Interior Design Courses in Kerala",
+      },
+      {
+        property: "og:description",
+        content:
+          "BIM, Revit, 3D rendering, parametric design and AI workflow courses with live projects and internship certification.",
+      },
+      { property: "og:url", content: SITE_URL + "/courses" },
+      { property: "og:image", content: OG_IMAGE },
+      { name: "twitter:image", content: OG_IMAGE },
+    ],
+    links: [{ rel: "canonical", href: SITE_URL + "/courses" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Courses", path: "/courses" },
+          ]),
+        ),
       },
     ],
   }),
@@ -58,11 +84,8 @@ function CoursesCatalogPage() {
         <div className="pointer-events-none absolute -top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-brand-blue/15 blur-[120px]" />
         <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-purple/15 blur-[120px]" />
         <div className="relative mx-auto max-w-7xl px-5 md:px-8">
-       
-
           <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary shadow-soft backdrop-blur mb-6">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
               OUR COURSES
             </div>
 
@@ -149,7 +172,8 @@ function CoursesCatalogPage() {
               <div>
                 <h4 className="font-display font-bold text-foreground">Lifetime Access</h4>
                 <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Enroll once and keep lifetime access to all video modules, templates, and future updates.
+                  Enroll once and keep lifetime access to all video modules, templates, and future
+                  updates.
                 </p>
               </div>
             </div>
@@ -161,7 +185,8 @@ function CoursesCatalogPage() {
               <div>
                 <h4 className="font-display font-bold text-foreground">Verifiable Certificates</h4>
                 <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Earn industry-recognized course & internship certificates signed by practicing architects.
+                  Earn industry-recognized course & internship certificates signed by practicing
+                  architects.
                 </p>
               </div>
             </div>
@@ -173,7 +198,8 @@ function CoursesCatalogPage() {
               <div>
                 <h4 className="font-display font-bold text-foreground">Portfolio Support</h4>
                 <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Build real-world client case studies and receive 1-on-1 portfolio reviews from top mentors.
+                  Build real-world client case studies and receive 1-on-1 portfolio reviews from top
+                  mentors.
                 </p>
               </div>
             </div>
@@ -183,6 +209,5 @@ function CoursesCatalogPage() {
 
       <Footer />
     </div>
-    
   );
 }

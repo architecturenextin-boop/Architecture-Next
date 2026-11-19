@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   Award,
-  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -11,8 +10,6 @@ import {
   Leaf,
   PencilRuler,
   PlayCircle,
-  Sparkles,
-  Star,
   Trophy,
   Users,
 } from "lucide-react";
@@ -22,6 +19,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/footer";
 import { SiteHeader } from "@/components/site-header";
+import { Testimonials } from "@/components/testimonials";
+import { KEYWORDS, OG_IMAGE, SITE_URL, faqJsonLd } from "@/lib/seo";
 import { brand } from "@/lib/brand";
 import {
   faqs,
@@ -33,7 +32,6 @@ import {
 } from "@/lib/static-data";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/lib/services/course.service";
-import { testimonialService } from "@/lib/services/testimonial.service";
 import { useAuth } from "@/hooks/use-auth";
 import { useEnrolledCourses } from "@/hooks/use-enrolled-courses";
 import heroImg from "@/assets/hero-learner.jpeg";
@@ -41,19 +39,28 @@ import heroImg from "@/assets/hero-learner.jpeg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ArchitectureNext — School of Internship" },
+      { title: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
       {
         name: "description",
         content:
-          "Join ArchitectureNext School of Internship and learn directly from practising architects through real projects, BIM workflows, mentorship and portfolio-driven education.",
+          "Learn architecture and interior design from practising architects — BIM, Revit, SketchUp, 3D visualisation and AI design workflows, live projects, internship certificate and lifetime access. Online and classroom training in Kozhikode, Kerala.",
       },
-      { property: "og:title", content: "ArchitectureNext — School of Internship" },
+      { name: "keywords", content: KEYWORDS },
+      {
+        property: "og:title",
+        content: "Architecture & Interior Design Courses in Kerala | ArchitectureNext",
+      },
       {
         property: "og:description",
         content:
-          "Premium architecture internship program with live industry projects, BIM workflows and mentorship.",
+          "BIM, Revit, 3D visualisation and AI design courses taught by practising architects, with live projects, internship certification and lifetime access.",
       },
+      { property: "og:url", content: SITE_URL + "/" },
+      { property: "og:image", content: OG_IMAGE },
+      { name: "twitter:image", content: OG_IMAGE },
     ],
+    links: [{ rel: "canonical", href: SITE_URL + "/" }],
+    scripts: [{ type: "application/ld+json", children: JSON.stringify(faqJsonLd) }],
   }),
   component: Landing,
 });
@@ -239,12 +246,12 @@ function Hero() {
 
 function TrustBar() {
   const items = [
-    { label: "AI Workflow", icon: Sparkles },
-    { label: "360 Rendering", icon: Compass },
-    { label: "Presentation", icon: Layers },
-    { label: "Animation", icon: PlayCircle },
-    { label: "Portfolio", icon: Award },
-    { label: "Skill Development", icon: Trophy },
+    { label: "AI Workflow" },
+    { label: "360 Rendering" },
+    { label: "Presentation" },
+    { label: "Animation" },
+    { label: "Portfolio" },
+    { label: "Skill Development" },
   ];
 
   return (
@@ -254,10 +261,9 @@ function TrustBar() {
         {items.map((item) => (
           <span
             key={item.label}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card/90 px-3 py-1.5 text-xs font-semibold tracking-wide text-foreground/85 shadow-2xs"
+            className="inline-flex items-center rounded-full border border-border/70 bg-card/90 px-3 py-1.5 text-xs font-semibold tracking-wide text-foreground/85 shadow-2xs"
           >
-            <item.icon className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
-            <span>{item.label}</span>
+            {item.label}
           </span>
         ))}
       </div>
@@ -615,238 +621,6 @@ function Instructor() {
   );
 }
 
-function Testimonials() {
-  const { data: testimonials = [], isLoading } = useQuery({
-    queryKey: ["public-testimonials"],
-    queryFn: () => testimonialService.getPublicTestimonials(),
-  });
-
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
-  const trackRef = useRef<HTMLDivElement>(null);
-
-  const handleScroll = () => {
-    if (!trackRef.current) return;
-    const cards = trackRef.current.querySelectorAll(".testimonial-card");
-    const scrollLeft = trackRef.current.scrollLeft;
-    let closestIdx = 0;
-    let minDiff = Infinity;
-    cards.forEach((card, idx) => {
-      const diff = Math.abs(
-        (card as HTMLElement).offsetLeft - trackRef.current!.offsetLeft - scrollLeft
-      );
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIdx = idx;
-      }
-    });
-    setActiveTestimonial(closestIdx);
-  };
-
-  const scrollToTestimonial = (idx: number) => {
-    if (!trackRef.current) return;
-    const cards = trackRef.current.querySelectorAll(".testimonial-card");
-    if (cards[idx]) {
-      const card = cards[idx] as HTMLElement;
-      const targetLeft =
-        card.offsetLeft - (trackRef.current.clientWidth - card.clientWidth) / 2;
-      trackRef.current.scrollTo({
-        left: Math.max(0, targetLeft),
-        behavior: "smooth",
-      });
-      setActiveTestimonial(idx);
-    }
-  };
-
-  return (
-    <section id="testimonials" className="scroll-mt-24 mx-auto max-w-7xl px-4 sm:px-6 md:px-8 py-16 sm:py-24 md:py-28">
-      {/* Section Header */}
-      <div className="mx-auto max-w-2xl text-center space-y-3">
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary shadow-xs">
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>Verified Alumni Stories</span>
-        </div>
-        <h2 className="type-h1 text-foreground tracking-tight">
-          Architects in the making. <span className="text-gradient-brand">Real Results.</span>
-        </h2>
-        <p className="text-xs sm:text-sm md:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
-          Hear from students and junior architects who transformed their presentation workflows, BIM coordination, and portfolio quality with ArchitectureNext.
-        </p>
-
-        {/* Social Proof Badges */}
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-[11px] sm:text-xs font-semibold text-muted-foreground">
-          <span className="inline-flex items-center gap-1 rounded-full bg-card border border-border px-3 py-1 shadow-xs">
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            <span className="text-foreground font-bold">4.9/5</span> Average Rating
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-card border border-border px-3 py-1 shadow-xs">
-            <Users className="h-3.5 w-3.5 text-primary" />
-            <span className="text-foreground font-bold">200+</span> Active Learners
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-card border border-border px-3 py-1 shadow-xs">
-            <Award className="h-3.5 w-3.5 text-emerald-500" />
-            <span className="text-foreground font-bold">100%</span> Practical Projects
-          </span>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="mt-10 sm:mt-12 grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((n) => (
-            <div
-              key={n}
-              className="flex flex-col justify-between rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-soft animate-pulse"
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <div key={s} className="h-3.5 w-3.5 rounded-full bg-muted" />
-                    ))}
-                  </div>
-                  <div className="h-4 w-16 rounded-full bg-muted" />
-                </div>
-                <div className="space-y-2">
-                  <div className="h-4 w-full rounded bg-muted" />
-                  <div className="h-4 w-5/6 rounded bg-muted" />
-                  <div className="h-4 w-4/6 rounded bg-muted" />
-                </div>
-              </div>
-              <div className="mt-6 flex items-center gap-3 border-t border-border pt-4">
-                <div className="h-10 w-10 rounded-full bg-muted" />
-                <div className="space-y-1.5 flex-1">
-                  <div className="h-3.5 w-24 rounded bg-muted" />
-                  <div className="h-3 w-32 rounded bg-muted" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : testimonials.length === 0 ? (
-        <div className="mt-10 sm:mt-12 text-center rounded-2xl sm:rounded-3xl border border-dashed border-border p-8 sm:p-12 bg-card/60">
-          <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-            Student testimonials are being reviewed and will appear here shortly.
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* Mobile Swipe Container & Desktop 3-Column Grid */}
-          <div
-            ref={trackRef}
-            onScroll={handleScroll}
-            className="mt-8 sm:mt-12 flex md:grid md:grid-cols-3 gap-4 sm:gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-4 md:px-0 -mx-4 md:mx-0 pb-2 md:pb-0 touch-pan-x touch-pan-y"
-          >
-            {testimonials.map((t) => (
-              <figure
-                key={t.id}
-                className="testimonial-card w-[85vw] sm:w-[75vw] md:w-auto shrink-0 snap-center md:shrink group relative flex flex-col justify-between rounded-2xl sm:rounded-3xl border border-border/80 bg-card/90 p-5 sm:p-7 shadow-soft backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
-              >
-                <div className="space-y-3.5">
-                  {/* Rating & Verified Badge */}
-                  <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex text-amber-400">
-                        {Array.from({ length: t.rating || 5 }).map((_, i) => (
-                          <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
-                      <span className="text-xs font-bold text-foreground">
-                        {(t.rating || 5).toFixed(1)}
-                      </span>
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      <Check className="h-2.5 w-2.5" /> Verified Learner
-                    </span>
-                  </div>
-
-                  {/* Testimonial Quote */}
-                  <blockquote className="text-sm sm:text-base leading-relaxed text-foreground/85">
-                    "{t.quote}"
-                  </blockquote>
-                </div>
-
-                {/* Student Bio / Footer */}
-                <figcaption className="mt-5 flex items-center gap-3 border-t border-border/60 pt-4">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-xs font-bold text-primary-foreground shadow-xs overflow-hidden">
-                    {t.avatarUrl || (t as any).avatar ? (
-                      <img src={t.avatarUrl || (t as any).avatar} alt={t.name} className="h-full w-full object-cover" />
-                    ) : (
-                      (t.name || "A")[0]?.toUpperCase() || "A"
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs sm:text-sm font-bold text-foreground truncate">{t.name || "Architecture Student"}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">
-                      {t.course ? t.course : t.role || "ArchitectureNext Alumni"}
-                    </div>
-                  </div>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-
-          {/* Mobile-Only Navigation Controls (Dots + Prev/Next) */}
-          {testimonials.length > 1 && (
-            <div className="flex md:hidden items-center justify-between px-2 pt-4 w-full max-w-xs mx-auto">
-              <button
-                type="button"
-                disabled={activeTestimonial === 0}
-                onClick={() => scrollToTestimonial(activeTestimonial - 1)}
-                className="grid h-7 w-7 place-items-center rounded-full border border-border bg-card text-foreground shadow-2xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
-                aria-label="Previous testimonial"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </button>
-
-              <div className="flex items-center gap-1.5">
-                {testimonials.map((t, idx) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => scrollToTestimonial(idx)}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      activeTestimonial === idx
-                        ? "w-5 bg-primary"
-                        : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60"
-                    }`}
-                    aria-label={`Go to testimonial ${idx + 1}`}
-                  />
-                ))}
-              </div>
-
-              <button
-                type="button"
-                disabled={activeTestimonial === testimonials.length - 1}
-                onClick={() => scrollToTestimonial(activeTestimonial + 1)}
-                className="grid h-7 w-7 place-items-center rounded-full border border-border bg-card text-foreground shadow-2xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95"
-                aria-label="Next testimonial"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Minimal Share Story Link */}
-      <div className="mt-8 sm:mt-10 flex justify-center">
-        <div className="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 rounded-full border border-border/80 bg-card/80 px-4 py-2 text-center backdrop-blur-sm shadow-xs transition hover:border-primary/40">
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-            Enrolled in ArchitectureNext?
-          </span>
-          <Link
-            to="/dashboard/testimonials"
-            className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline transition-colors"
-          >
-            <span>Share your review</span>
-            <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function Pricing({ course }: { course: any }) {
   const { isEnrolledIn } = useEnrolledCourses();
   const isEnrolled = isEnrolledIn(course.id) || isEnrolledIn(course.slug);
@@ -868,18 +642,18 @@ function Pricing({ course }: { course: any }) {
   }
 
   return (
-    <section id="pricing" className="scroll-mt-24 bg-surface py-24 md:py-32">
-      <div className="mx-auto max-w-3xl px-5 md:px-8">
+    <section id="pricing" className="scroll-mt-24 bg-surface py-14 sm:py-20 md:py-24">
+      <div className="mx-auto max-w-2xl px-5 md:px-8">
         <div className="text-center">
           <span className="text-xs font-bold uppercase tracking-widest text-primary">Pricing</span>
           <h2 className="mt-3 type-h1 text-foreground tracking-tight">
             One enrolment. <span className="text-gradient-brand">Lifetime access.</span>
           </h2>
-          <p className="mt-4 type-body text-muted-foreground">
+          <p className="mt-3 type-small text-muted-foreground">
             {course.tagline || course.description || "Transparent pricing. No subscriptions. Yours forever."}
           </p>
         </div>
-        <div className="relative mt-12 overflow-hidden rounded-[1.75rem] border border-border bg-card p-8 shadow-elevated md:p-12">
+        <div className="relative mt-8 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-elevated sm:p-6 md:p-8">
           <div className="relative">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-primary">
@@ -887,7 +661,7 @@ function Pricing({ course }: { course: any }) {
               </span>
               {isEnrolled ? (
                 <span className="rounded-md bg-emerald-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">
-                  ✓ Enrolled in Course
+                  Enrolled in Course
                 </span>
               ) : course.language ? (
                 <span className="rounded-md bg-gradient-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground shadow-sm">
@@ -896,24 +670,28 @@ function Pricing({ course }: { course: any }) {
               ) : null}
             </div>
 
-            <h3 className="mt-3 max-w-2xl type-h2 text-foreground tracking-tight">
+            <h3 className="mt-2 max-w-2xl text-lg font-bold leading-snug text-foreground tracking-tight sm:text-xl md:text-2xl">
               {course.title || "Architecture Plan Presentation & Animation"}
             </h3>
 
             {(course.total_duration || course.total_lessons) && (
-              <div className="mt-3 flex items-center gap-4 type-small text-xs font-semibold text-muted-foreground">
-                {course.total_duration && <span>⏱ {course.total_duration}</span>}
-                {course.total_lessons && <span>📚 {course.total_lessons} Lessons</span>}
-                {course.rating && <span>⭐ {course.rating} ({course.review_count || 100}+ reviews)</span>}
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 type-small text-xs font-semibold text-muted-foreground">
+                {course.total_duration && <span>{course.total_duration}</span>}
+                {course.total_lessons && <span>{course.total_lessons} Lessons</span>}
+                {course.rating && (
+                  <span>
+                    {course.rating}/5 · {course.review_count || 100}+ reviews
+                  </span>
+                )}
               </div>
             )}
 
-            <div className="mt-6 flex flex-wrap items-end gap-4">
-              <span className="type-display text-foreground">
+            <div className="mt-4 flex flex-wrap items-end gap-3">
+              <span className="text-3xl font-extrabold leading-none text-foreground sm:text-4xl">
                 {currency}
                 {price.toLocaleString()}
               </span>
-              <span className="pb-1 text-lg font-medium text-muted-foreground line-through">
+              <span className="pb-0.5 text-base font-medium text-muted-foreground line-through">
                 {currency}
                 {originalPrice.toLocaleString()}
               </span>
@@ -921,12 +699,10 @@ function Pricing({ course }: { course: any }) {
                 {discount > 0 ? `Save ${discount}% OFF` : "Limited launch price"}
               </span>
             </div>
-            <ul className="mt-10 grid gap-3.5 sm:grid-cols-2">
+            <ul className="mt-6 grid gap-x-4 gap-y-2 sm:grid-cols-2">
               {featuresList.slice(0, 6).map((f) => (
-                <li key={f} className="flex items-start gap-2.5 type-body text-sm font-medium">
-                  <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gradient-primary text-primary-foreground">
-                    <Check className="h-3 w-3" />
-                  </span>
+                <li key={f} className="flex items-start gap-2.5 text-[13px] leading-snug font-medium text-foreground/85">
+                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden="true" />
                   {f}
                 </li>
               ))}
@@ -935,7 +711,7 @@ function Pricing({ course }: { course: any }) {
               <Button
                 asChild
                 size="lg"
-                className="mt-10 h-13 w-full bg-emerald-600 hover:bg-emerald-700 py-3.5 text-base font-bold text-white shadow-glow transition-all hover:scale-[1.01] hover:brightness-110 cursor-pointer"
+                className="mt-7 h-12 w-full bg-emerald-600 hover:bg-emerald-700 py-3 text-sm font-bold text-white shadow-glow transition-all hover:scale-[1.01] hover:brightness-110 cursor-pointer sm:text-base"
               >
                 <Link to="/learn/$courseId" params={{ courseId: course.slug || course.id }}>
                   <PlayCircle className="mr-2 h-5 w-5" /> Continue Learning
@@ -945,14 +721,14 @@ function Pricing({ course }: { course: any }) {
               <Button
                 asChild
                 size="lg"
-                className="mt-10 h-13 w-full bg-gradient-primary py-3.5 text-base font-semibold text-primary-foreground shadow-glow transition-all hover:scale-[1.01] hover:brightness-110"
+                className="mt-7 h-12 w-full bg-gradient-primary py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-all hover:scale-[1.01] hover:brightness-110 sm:text-base"
               >
                 <Link to="/courses/$courseId" params={{ courseId: course.slug || course.id }}>
                   Enroll Now <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Link>
               </Button>
             )}
-            <p className="mt-4 text-center type-small text-xs text-muted-foreground">
+            <p className="mt-3 text-center text-[11px] text-muted-foreground sm:text-xs">
               7-day refund · Internship certificate · Lifetime updates
             </p>
           </div>
@@ -965,14 +741,17 @@ function Pricing({ course }: { course: any }) {
 function FAQ() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section id="faq" className="scroll-mt-24 mx-auto max-w-3xl px-5 py-24 md:px-8 md:py-32">
+    <section id="faq" className="scroll-mt-24 mx-auto max-w-3xl px-5 py-14 sm:py-20 md:px-8 md:py-24">
       <div className="text-center">
         <span className="text-xs font-bold uppercase tracking-widest text-primary">FAQ</span>
         <h2 className="mt-3 type-h1 text-foreground tracking-tight">
-          Questions, answered.
+          Got questions? <span className="text-gradient-brand">We’ve got answers.</span>
         </h2>
+        <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-muted-foreground sm:text-sm">
+          Check out our FAQs!
+        </p>
       </div>
-      <div className="mt-12 space-y-3">
+      <div className="mt-7 space-y-2 sm:mt-10 sm:space-y-2.5">
         {faqs.map((f, i) => {
           const active = open === i;
           return (
@@ -984,11 +763,13 @@ function FAQ() {
             >
               <button
                 onClick={() => setOpen(active ? null : i)}
-                className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left sm:px-5 sm:py-4"
               >
-                <span className="type-h3 text-base sm:text-lg font-bold tracking-tight text-foreground">{f.q}</span>
+                <span className="text-[13px] font-semibold leading-snug tracking-tight text-foreground sm:text-sm md:text-[15px]">
+                  {f.q}
+                </span>
                 <ChevronDown
-                  className={`h-5 w-5 shrink-0 text-primary transition-transform duration-300 ${
+                  className={`h-4 w-4 shrink-0 text-primary transition-transform duration-300 sm:h-[18px] sm:w-[18px] ${
                     active ? "rotate-180" : ""
                   }`}
                 />
@@ -999,7 +780,9 @@ function FAQ() {
                 }`}
               >
                 <div className="overflow-hidden">
-                  <p className="px-6 pb-6 type-body text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+                  <p className="px-4 pb-4 text-[13px] leading-relaxed text-muted-foreground sm:px-5 sm:pb-5 sm:text-sm">
+                    {f.a}
+                  </p>
                 </div>
               </div>
             </div>
