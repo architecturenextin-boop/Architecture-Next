@@ -13,6 +13,7 @@ interface GoogleAuthButtonProps {
   width?: string;
   theme?: "outline" | "filled_blue" | "filled_black";
   redirect?: string;
+  hideTrustBadge?: boolean;
 }
 
 export function GoogleAuthButton({
@@ -22,6 +23,7 @@ export function GoogleAuthButton({
   theme = "outline",
   width,
   redirect: redirectProp,
+  hideTrustBadge = false,
 }: GoogleAuthButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
@@ -142,10 +144,12 @@ export function GoogleAuthButton({
       )}
 
       {/* Trust badge for mobile & desktop */}
-      <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground select-none">
-        <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-        <span>1-Tap Fast &amp; Secure Access</span>
-      </div>
+      {!hideTrustBadge && (
+        <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground select-none">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+          <span>1-Tap Fast &amp; Secure Access</span>
+        </div>
+      )}
     </div>
   );
 }

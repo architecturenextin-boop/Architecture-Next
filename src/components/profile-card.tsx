@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { LayoutDashboard, ShieldCheck, User, LogOut, ChevronDown } from "lucide-react";
+import { LayoutDashboard, ShieldCheck, User, LogOut, ChevronDown, Database } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
@@ -11,7 +11,8 @@ export function ProfileCard() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const isAdminActive = pathname.startsWith("/admin");
+  const isAdminActive = pathname === "/admin" || (pathname.startsWith("/admin") && !pathname.startsWith("/admin/backup"));
+  const isBackupActive = pathname.startsWith("/admin/backup");
   const isDashboardActive = pathname.startsWith("/dashboard") && !pathname.startsWith("/dashboard/profile");
   const isProfileActive = pathname.startsWith("/dashboard/profile");
 
@@ -161,21 +162,39 @@ export function ProfileCard() {
             </Link>
 
             {isAdmin && (
-              <Link
-                to="/admin"
-                onClick={() => setOpen(false)}
-                className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors ${
-                  isAdminActive
-                    ? "bg-primary/10 text-primary font-bold"
-                    : "text-muted-foreground font-medium hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span>Admin Dashboard</span>
-                </div>
-                {isAdminActive && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
-              </Link>
+              <>
+                <Link
+                  to="/admin"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors ${
+                    isAdminActive
+                      ? "bg-primary/10 text-primary font-bold"
+                      : "text-muted-foreground font-medium hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>Admin Dashboard</span>
+                  </div>
+                  {isAdminActive && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                </Link>
+
+                <Link
+                  to="/admin/backup"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors ${
+                    isBackupActive
+                      ? "bg-primary/10 text-primary font-bold"
+                      : "text-muted-foreground font-medium hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Database className="h-4 w-4" />
+                    <span>Backup Data</span>
+                  </div>
+                  {isBackupActive && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                </Link>
+              </>
             )}
 
             <Link

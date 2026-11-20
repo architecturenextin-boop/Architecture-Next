@@ -6,6 +6,59 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Checks if a duration string is a valid time duration (e.g. "12:30", "45 mins", "1h 20m")
+ * and filters out placeholder strings like "PDF Document", "Document", "00:00", etc.
+ */
+export function isValidDuration(dur?: string | null): boolean {
+  if (!dur) return false;
+  const s = dur.trim().toLowerCase();
+  if (
+    !s ||
+    s === "00:00" ||
+    s === "0:00" ||
+    s === "0" ||
+    s === "--:--" ||
+    s.includes("pdf") ||
+    s.includes("document") ||
+    s.includes("doc") ||
+    s.includes("file") ||
+    s.includes("download") ||
+    s.includes("resource") ||
+    s.includes("attachment")
+  ) {
+    return false;
+  }
+  // Must contain at least one digit to be a valid time duration
+  if (!/\d/.test(s)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Reads a course's own enrollment total from whichever field the courses API
+ * provides. Returns 0 when the API sends no per-course count, so the UI can hide
+ * the metric instead of showing an invented number.
+ */
+export function getCourseEnrollmentCount(course: {
+  enrollment_count?: number | null;
+  enrolled_count?: number | null;
+  students_count?: number | null;
+} | null | undefined): number {
+  if (!course) return 0;
+  const raw = course.enrollment_count ?? course.enrolled_count ?? course.students_count ?? 0;
+  const count = Number(raw);
+  return Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
+}
+
+/** Compact learner counts: 950, 1.2k, 18k. */
+export function formatLearnerCount(count: number): string {
+  if (count < 1000) return String(count);
+  if (count < 10000) return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return `${Math.round(count / 1000)}k`;
+}
+
+/**
  * Resolves media paths and URLs (covers, lesson videos, avatars, documents)
  * to work seamlessly across development and production environments.
  */

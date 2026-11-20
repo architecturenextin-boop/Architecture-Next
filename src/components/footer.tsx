@@ -13,9 +13,13 @@ export function Footer({ className = "" }: { className?: string }) {
         {/* Brand Column */}
         <div className="md:col-span-5 space-y-4">
           <div className="inline-flex items-center gap-3">
-            <div className="rounded-2xl bg-white p-2.5 shadow-soft border border-white/10">
-              <img src={brand.logoUrl} alt={brand.fullName} className="h-8 sm:h-9 w-auto object-contain" />
-            </div>
+            <Link to="/" className="inline-block">
+              <img
+                src={brand.logoUrl}
+                alt={brand.fullName}
+                className="h-8 sm:h-9 w-auto object-contain brightness-0 invert opacity-95 hover:opacity-100 transition-opacity"
+              />
+            </Link>
           </div>
           
           <p className="font-display text-base sm:text-lg font-bold tracking-tight text-white leading-snug">

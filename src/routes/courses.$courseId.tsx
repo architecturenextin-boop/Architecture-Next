@@ -13,6 +13,7 @@ import {
   Globe,
   GraduationCap,
   Layers3,
+  MessageSquareQuote,
   Play,
   Share2,
   ShieldCheck,
@@ -31,12 +32,12 @@ import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/lib/services/course.service";
 import { testimonialService } from "@/lib/services/testimonial.service";
 import { couponService, type CourseCouponProgress } from "@/lib/services/coupon.service";
-import type { CourseWithContent } from "@/lib/database.types";
+import type { CourseWithContent, PublicTestimonial } from "@/lib/database.types";
 import certificateImg from "@/assets/certificate.png";
 import certificateWebp from "@/assets/certificate.webp";
 import { useAuth } from "@/hooks/use-auth";
 import { OG_IMAGE } from "@/lib/seo";
-import { getMediaUrl } from "@/lib/utils";
+import { getMediaUrl, isValidDuration } from "@/lib/utils";
 
 export const Route = createFileRoute("/courses/$courseId")({
   head: () => {
@@ -128,30 +129,34 @@ function CourseDetailPage() {
   const { data: testimonials = [], isLoading: testimonialsLoading } = useQuery({
     queryKey: ["course-testimonials", course?.id || courseId],
     queryFn: async () => {
-      const list = await testimonialService.getPublicTestimonials(course?.id || courseId);
-      if (list.length === 0) {
-        return testimonialService.getPublicTestimonials();
+      const target = course?.id || courseId;
+      if (!target) return [];
+      try {
+        return await testimonialService.getPublicTestimonials(target);
+      } catch {
+        return [];
       }
-      return list;
     },
-    enabled: !!courseId,
+    enabled: !!(course?.id || courseId),
   });
 
   // Coupon progress for this course
   const { data: courseCoupons = [] } = useQuery({
     queryKey: ["course-coupons", course?.id || courseId],
     queryFn: async () => {
-      if (!course?.id) return [];
+      const target = course?.id || courseId;
+      if (!target) return [];
       try {
-        return await couponService.getCourseCoupons(course.id);
+        return await couponService.getCourseCoupons(target);
       } catch {
         return [];
       }
     },
-    enabled: !!course?.id,
+    enabled: !!(course?.id || courseId),
     select: (data) =>
-      // Filter to only show coupons specifically for this course (not global coupons)
-      data.filter((cp) => cp.coupon.courseId === course?.id),
+      Array.isArray(data)
+        ? data.filter((cp) => cp?.coupon?.isActive)
+        : [],
   });
 
   const enrollment = learningData?.isEnrolled ? { status: "active" } : null;
@@ -297,10 +302,6 @@ function CourseDetailPage() {
               </div>
 
               <div className="mt-7 max-w-5xl">
-                <div className="mb-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">
-                  {course.level || "Professional"} Online Programme
-                </div>
-
                 <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold leading-[1.15] tracking-[-0.03em] text-foreground">
                   {course.title}
                 </h1>
@@ -316,7 +317,7 @@ function CourseDetailPage() {
                 <button
                   type="button"
                   onClick={() => setIsWishlisted((current) => !current)}
-                  className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-white px-4 text-sm font-semibold text-foreground shadow-xs transition hover:border-primary/40 hover:text-primary"
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-white px-4 text-sm font-semibold text-foreground shadow-xs transition hover:border-primary/40 hover:text-primary cursor-pointer"
                 >
                   <Bookmark
                     className={`h-4 w-4 ${isWishlisted ? "fill-primary text-primary" : ""}`}
@@ -327,7 +328,7 @@ function CourseDetailPage() {
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-white px-4 text-sm font-semibold text-foreground shadow-xs transition hover:border-primary/40 hover:text-primary"
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-white px-4 text-sm font-semibold text-foreground shadow-xs transition hover:border-primary/40 hover:text-primary cursor-pointer"
                 >
                   <Share2 className="h-4 w-4" />
                   {copiedShare ? "Link copied" : "Share course"}
@@ -476,82 +477,6 @@ function CourseDetailPage() {
                   Secure checkout · Instant enrollment
                 </div>
 
-                {/* Coupon Progress Indicator */}
-                {courseCoupons.length > 0 && (
-                  <div className="mt-6 rounded-xl border border-border/60 bg-muted/30 p-4">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-primary mb-3">
-                      <Tag className="h-4 w-4" />
-                      Available Coupons
-                    </div>
-                    <div className="space-y-3">
-                      {courseCoupons.slice(0, 2).map((cp) => (
-                        <div key={cp.coupon.id} className="space-y-1.5">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              navigate({
-                                to: "/checkout",
-                                search: {
-                                  course: course.slug || course.id,
-                                  coupon: cp.coupon.code,
-                                },
-                              })
-                            }
-                            className="w-full text-left p-3 rounded-lg border border-border/60 bg-white hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer group"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-mono text-xs font-bold text-foreground group-hover:text-primary transition-colors">
-                                {cp.coupon.code}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {cp.coupon.discountType === "FLAT"
-                                  ? `₹${cp.coupon.discountValue.toLocaleString()} off`
-                                  : `${cp.coupon.discountValue}% off${cp.coupon.maxDiscount ? ` (max ₹${cp.coupon.maxDiscount.toLocaleString()})` : ""}`}
-                              </span>
-                            </div>
-                            {cp.coupon.usageLimit && cp.coupon.usageLimit > 0 && (
-                              <div className="space-y-1 mt-2 pt-2 border-t border-border/40">
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="text-muted-foreground">Usage</span>
-                                  <span className="font-semibold text-foreground">
-                                    {cp.coupon.usedCount} / {cp.coupon.usageLimit}
-                                  </span>
-                                </div>
-                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-primary transition-all duration-300"
-                                    style={{ width: `${Math.min(cp.usagePercentage, 100)}%` }}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                            {cp.coupon.expiresAt && (
-                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-2 pt-2 border-t border-border/40">
-                                <Clock3 className="h-3 w-3" />
-                                <span>
-                                  Expires {new Date(cp.coupon.expiresAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-                            <span className="absolute inset-0" aria-hidden="true" />
-                          </button>
-                        </div>
-                      ))}
-                      {courseCoupons.length > 2 && (
-                        <button
-                          type="button"
-                          className="w-full text-center text-xs font-semibold text-primary hover:underline p-2 rounded-lg hover:bg-primary/5 transition-colors"
-                        >
-                          +{courseCoupons.length - 2} more coupons available
-                        </button>
-                      )}
-                    </div>
-                    <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                      Click a coupon to apply it at checkout
-                    </p>
-                  </div>
-                )}
-
                 <div className="mt-8 border-y border-border/70">
                   <CourseFact
                     icon={<BarChart3 className="h-4 w-4" />}
@@ -616,7 +541,7 @@ function CourseDetailPage() {
 
       {/* Tabs */}
       <div className="border-b border-border/70 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center gap-8 px-5 md:px-8">
+        <div className="mx-auto flex max-w-7xl items-center gap-6 sm:gap-8 px-4 sm:px-6 md:px-8">
           {[
             { id: "overview" as const, label: "Course overview" },
             { id: "reviews" as const, label: "Student reviews" },
@@ -625,7 +550,7 @@ function CourseDetailPage() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`relative py-4 text-sm font-bold transition sm:text-base ${
+              className={`relative py-3.5 sm:py-4 text-xs sm:text-base font-bold transition ${
                 activeTab === tab.id
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -640,8 +565,8 @@ function CourseDetailPage() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-5 py-12 md:px-8 lg:py-16">
-        {activeTab === "overview" ? (
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 md:px-8 lg:py-16">
+        {activeTab === "overview" && (
           <div className="grid gap-14 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-20">
             <div className="min-w-0">
               <ContentSection
@@ -685,17 +610,17 @@ function CourseDetailPage() {
                         <button
                           type="button"
                           onClick={() => setOpenModule(isOpen ? null : index)}
-                          className="grid w-full grid-cols-[42px_minmax(0,1fr)_auto] items-center gap-4 px-5 py-5 text-left transition hover:bg-muted/30 sm:grid-cols-[58px_minmax(0,1fr)_120px_auto] sm:px-6"
+                          className="grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3.5 text-left transition hover:bg-muted/30 sm:grid-cols-[58px_minmax(0,1fr)_120px_auto] sm:gap-4 sm:px-6 sm:py-5"
                         >
                           <span className="font-display text-xs font-extrabold text-muted-foreground">
                             {String(index + 1).padStart(2, "0")}
                           </span>
 
                           <div className="min-w-0">
-                            <h3 className="font-display text-base font-extrabold text-foreground sm:text-lg">
+                            <h3 className="font-display text-sm sm:text-base font-extrabold text-foreground sm:text-lg">
                               {module.title}
                             </h3>
-                            <p className="mt-1 text-xs text-muted-foreground sm:hidden">
+                            <p className="mt-0.5 text-xs text-muted-foreground sm:hidden">
                               {module.lessons_safe?.length || 0} lessons
                             </p>
                           </div>
@@ -704,7 +629,7 @@ function CourseDetailPage() {
                             {module.lessons_safe?.length || 0} lessons
                           </span>
 
-                          <span className="grid h-9 w-9 place-items-center rounded-full border border-border bg-white text-foreground">
+                          <span className="grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-full border border-border bg-white text-foreground">
                             <ChevronDown
                               className={`h-4 w-4 transition-transform duration-200 ${
                                 isOpen ? "rotate-180" : ""
@@ -768,11 +693,13 @@ function CourseDetailPage() {
                                       </span>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground">
-                                      {lesson.duration}
-                                    </span>
-                                  </div>
+                                  {isValidDuration(lesson.duration) && (
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground">
+                                        {lesson.duration}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -805,41 +732,41 @@ function CourseDetailPage() {
               </ContentSection>
 
               {/* Certificate Section */}
-              <section className="relative overflow-hidden rounded-[28px] border border-primary/15 bg-gradient-to-br from-primary/[0.07] via-white to-brand-blue/[0.08] p-7 sm:p-10 lg:p-12 shadow-elevated">
+              <section className="relative overflow-hidden rounded-2xl sm:rounded-[28px] border border-primary/15 bg-gradient-to-br from-primary/[0.07] via-white to-brand-blue/[0.08] p-5 sm:p-10 lg:p-12 shadow-soft sm:shadow-elevated">
                 <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
 
-                <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
+                <div className="relative grid gap-6 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
                   <div>
                     <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">
                       <GraduationCap className="h-4 w-4" />
                       Professional recognition
                     </div>
-                    <h2 className="mt-4 max-w-2xl font-display text-2xl font-extrabold leading-tight text-foreground sm:text-3xl">
+                    <h2 className="mt-2.5 sm:mt-4 max-w-2xl font-display text-xl sm:text-2xl lg:text-3xl font-extrabold leading-tight text-foreground">
                       Complete the programme with a verifiable certificate.
                     </h2>
-                    <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
+                    <p className="mt-2.5 sm:mt-4 max-w-2xl text-xs sm:text-base leading-relaxed text-muted-foreground">
                       Add it to your resume, LinkedIn profile, and portfolio to demonstrate
                       structured learning and practical project experience.
                     </p>
 
-                    <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-foreground">
-                      <span className="inline-flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                    <div className="mt-4 sm:mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs sm:text-sm font-semibold text-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                         Verifiable credential
                       </span>
-                      <span className="inline-flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <span className="inline-flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                         Resume &amp; LinkedIn ready
                       </span>
                     </div>
                   </div>
 
-                  <div className="relative flex min-h-[250px] items-center justify-center rounded-2xl border border-border/70 bg-white p-5 shadow-soft">
+                  <div className="relative flex min-h-[160px] sm:min-h-[220px] items-center justify-center rounded-xl sm:rounded-2xl border border-border/70 bg-white p-3 sm:p-5 shadow-soft">
                     {course?.certificate_url ? (
                       <img
                         src={getMediaUrl(course.certificate_url)}
                         alt={`${course.title} certificate of completion`}
-                        className="max-h-[250px] w-full object-contain rounded-lg shadow-xs"
+                        className="max-h-[160px] sm:max-h-[230px] w-full object-contain rounded-lg shadow-xs"
                       />
                     ) : (
                       <picture>
@@ -847,7 +774,7 @@ function CourseDetailPage() {
                         <img
                           src={certificateImg}
                           alt="ArchitectureNext certificate of completion"
-                          className="max-h-[230px] w-full object-contain"
+                          className="max-h-[150px] sm:max-h-[220px] w-full object-contain"
                         />
                       </picture>
                     )}
@@ -857,7 +784,7 @@ function CourseDetailPage() {
             </div>
 
             {/* Sidebar Details: Materials, Requirements, Target Audience */}
-            <aside className="space-y-10">
+            <aside className="space-y-6 sm:space-y-10">
               <InformationList
                 icon={<FileText className="h-4 w-4" />}
                 title="Materials included"
@@ -875,108 +802,90 @@ function CourseDetailPage() {
               />
             </aside>
           </div>
-        ) : (
-          <section className="mx-auto max-w-6xl">
-            <div className="grid gap-8 border-b border-border/70 pb-10 md:grid-cols-[240px_minmax(0,1fr)] md:items-end">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  Overall rating
-                </p>
-                <div className="mt-4 flex items-end gap-3">
-                  <span className="font-display text-6xl font-extrabold tracking-[-0.06em] text-foreground">
-                    {course.rating || "4.9"}
-                  </span>
-                  <span className="pb-2 text-sm font-semibold text-muted-foreground">/ 5.0</span>
-                </div>
-                <div className="mt-3 flex text-amber-400">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star key={index} className="h-5 w-5 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-              </div>
+        )}
 
-              <div>
-                <p className="text-sm font-semibold text-primary">Verified student feedback</p>
-                <h2 className="mt-2 max-w-3xl font-display text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-                  What students say after completing the course
+        {/* Student Reviews Tab Content (Removed from Course overview, shown exclusively in Student reviews tab) */}
+        {activeTab === "reviews" && (
+          <section id="reviews" className="scroll-mt-24">
+            <div className="flex items-center justify-between gap-4 mb-5 sm:mb-7">
+              <div className="flex items-center gap-2">
+                <h2 className="font-display text-lg sm:text-xl font-extrabold tracking-tight text-foreground">
+                  Student Reviews
                 </h2>
               </div>
+
+              {/* Write a Review Button */}
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-8 sm:h-9 rounded-full border-primary/30 hover:border-primary hover:bg-primary/5 text-xs font-semibold text-primary"
+              >
+                <Link
+                  to="/dashboard/testimonials"
+                  search={{ courseId: course.id }}
+                >
+                  <MessageSquareQuote className="h-3.5 w-3.5 mr-1" />
+                  <span>{enrollment ? "Write a Review" : "Reviews"}</span>
+                </Link>
+              </Button>
             </div>
 
             {testimonialsLoading ? (
-              <div className="grid gap-6 pt-8 md:grid-cols-2">
-                {[1, 2].map((i) => (
+              <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
+                {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="flex flex-col justify-between rounded-2xl border border-border/70 bg-card p-6 shadow-soft animate-pulse"
+                    className="flex h-44 flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 sm:p-6 shadow-2xs animate-pulse"
                   >
                     <div className="space-y-3">
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((s) => (
-                          <div key={s} className="h-4 w-4 rounded-full bg-muted" />
+                          <div key={s} className="h-3.5 w-3.5 rounded-full bg-muted" />
                         ))}
                       </div>
-                      <div className="h-4 w-full rounded bg-muted" />
-                      <div className="h-4 w-4/5 rounded bg-muted" />
+                      <div className="h-3.5 w-full rounded bg-muted" />
+                      <div className="h-3.5 w-4/5 rounded bg-muted" />
                     </div>
-                    <div className="mt-7 border-t border-border/70 pt-5 flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-muted" />
+                    <div className="flex items-center gap-2.5 pt-3 border-t border-border/60">
+                      <div className="h-8 w-8 rounded-full bg-muted" />
                       <div className="space-y-1">
-                        <div className="h-3.5 w-24 rounded bg-muted" />
-                        <div className="h-3 w-16 rounded bg-muted" />
+                        <div className="h-3 w-20 rounded bg-muted" />
+                        <div className="h-2.5 w-14 rounded bg-muted" />
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : testimonials.length === 0 ? (
-              <div className="pt-8 text-center">
-                <div className="rounded-2xl border border-dashed border-border/80 bg-card/50 p-10">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    No student reviews published for this course yet.
+              <div className="pt-4 text-center">
+                <div className="rounded-2xl border border-dashed border-border/80 bg-card/40 p-8 sm:p-10 max-w-lg mx-auto">
+                  <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
+                    <MessageSquareQuote className="h-5 w-5" />
+                  </div>
+                  <h3 className="font-display text-sm sm:text-base font-bold text-foreground">
+                    No student reviews for this course yet
+                  </h3>
+                  <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+                    Be the first enrolled learner to share your project feedback and experience for this programme.
                   </p>
+                  {enrollment && (
+                    <Button
+                      asChild
+                      size="sm"
+                      className="mt-4 h-8 rounded-full bg-gradient-primary text-xs font-bold text-primary-foreground shadow-soft"
+                    >
+                      <Link to="/dashboard/testimonials" search={{ courseId: course.id }}>
+                        Write First Review
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : (
-              <div className="grid gap-6 pt-8 md:grid-cols-2">
-                {testimonials.map((testimonial) => (
-                  <figure
-                    key={testimonial.id}
-                    className="flex flex-col justify-between rounded-2xl border border-border/70 bg-card p-6 shadow-soft transition hover:-translate-y-1 hover:shadow-elevated"
-                  >
-                    <div>
-                      <div className="flex text-amber-400">
-                        {Array.from({ length: testimonial.rating }).map((_, starIndex) => (
-                          <Star key={starIndex} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
-                      <blockquote className="mt-5 text-base leading-8 text-foreground/85 italic">
-                        “{testimonial.quote}”
-                      </blockquote>
-                    </div>
-
-                    <figcaption className="mt-7 border-t border-border/70 pt-5 flex items-center gap-3">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground overflow-hidden">
-                        {testimonial.avatarUrl || (testimonial as any).avatar ? (
-                          <img
-                            src={testimonial.avatarUrl || (testimonial as any).avatar}
-                            alt={testimonial.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          testimonial.name[0]
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-display text-sm font-extrabold text-foreground">
-                          {testimonial.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {testimonial.course || testimonial.role || "Architecture Learner"}
-                        </p>
-                      </div>
-                    </figcaption>
-                  </figure>
+              <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
+                {testimonials.slice(0, 4).map((testimonial) => (
+                  <CourseReviewCard key={testimonial.id} testimonial={testimonial} />
                 ))}
               </div>
             )}
@@ -985,12 +894,12 @@ function CourseDetailPage() {
       </main>
 
       {/* Mobile sticky purchase / continue learning bar */}
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white/95 px-4 py-3 shadow-elevated backdrop-blur lg:hidden">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/95 px-4 py-2.5 shadow-elevated backdrop-blur-md lg:hidden pb-[max(0.65rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           {enrollment ? (
             <>
               <div className="min-w-0 flex-1">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Enrolled
                 </span>
                 <p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground">
@@ -1018,7 +927,7 @@ function CourseDetailPage() {
                     });
                   }
                 }}
-                className="h-11 bg-gradient-primary px-6 font-bold text-primary-foreground shadow-glow hover:brightness-110"
+                className="h-10 bg-gradient-primary px-5 font-bold text-sm text-primary-foreground shadow-glow hover:brightness-110 active:scale-95 cursor-pointer"
               >
                 {isPrebookCourse
                   ? "Prebook Complete"
@@ -1030,18 +939,32 @@ function CourseDetailPage() {
           ) : (
             <>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                  Course price
-                </p>
-                <p className="font-display text-xl font-extrabold text-foreground">
-                  {course.currency || "₹"}
-                  {course.price.toLocaleString()}
-                </p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-display text-lg sm:text-xl font-extrabold text-foreground">
+                    {course.currency || "₹"}
+                    {course.price.toLocaleString()}
+                  </span>
+                  {originalPrice > price && (
+                    <span className="text-xs font-semibold text-muted-foreground line-through">
+                      {course.currency || "₹"}
+                      {originalPrice.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+                {discountPercentage > 0 ? (
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    Save {discountPercentage}% · Instant Access
+                  </span>
+                ) : (
+                  <p className="text-[10px] font-semibold text-muted-foreground">
+                    One-time payment
+                  </p>
+                )}
               </div>
 
               <Button
                 onClick={handleAddToCart}
-                className="h-11 bg-gradient-primary px-6 font-bold text-primary-foreground hover:brightness-110"
+                className="h-10 bg-gradient-primary px-5 font-bold text-sm text-primary-foreground shadow-glow hover:brightness-110 active:scale-95 cursor-pointer"
               >
                 {!user
                   ? isPrebookCourse
@@ -1056,7 +979,7 @@ function CourseDetailPage() {
         </div>
       </div>
 
-      {!enrollment && !enrollmentLoading && courseCoupons.length > 0 && (
+      {!enrollment && courseCoupons.length > 0 && (
         <CourseOfferNotification course={course} coupon={courseCoupons[0]} />
       )}
 
@@ -1078,15 +1001,15 @@ function CourseFact({
 }) {
   return (
     <div
-      className={`grid grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-3 py-4 ${
+      className={`grid grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-3 py-3.5 ${
         last ? "" : "border-b border-border/70"
       }`}
     >
       <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-primary">
         {icon}
       </span>
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      <span className="max-w-[145px] text-right text-sm font-extrabold leading-5 text-foreground">
+      <span className="text-xs sm:text-sm font-medium text-muted-foreground">{label}</span>
+      <span className="max-w-[145px] text-right text-xs sm:text-sm font-extrabold leading-5 text-foreground">
         {value}
       </span>
     </div>
@@ -1103,10 +1026,10 @@ function ContentSection({
   children: ReactNode;
 }) {
   return (
-    <section className="mb-16 last:mb-0">
-      <div className="mb-7">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{eyebrow}</p>
-        <h2 className="mt-3 max-w-3xl font-display text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+    <section className="mb-10 sm:mb-16 last:mb-0">
+      <div className="mb-4 sm:mb-7">
+        <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-primary">{eyebrow}</p>
+        <h2 className="mt-2 sm:mt-3 max-w-3xl font-display text-xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           {title}
         </h2>
       </div>
@@ -1125,22 +1048,22 @@ function InformationList({
   items: string[];
 }) {
   return (
-    <section className="border-t border-border/70 pt-6">
+    <section className="rounded-xl border border-border/70 bg-card/60 p-4 sm:p-5 shadow-2xs">
       <div className="flex items-center gap-2 text-primary">
         {icon}
-        <h3 className="font-display text-sm font-extrabold uppercase tracking-[0.12em] text-foreground">
+        <h3 className="font-display text-xs sm:text-sm font-extrabold uppercase tracking-[0.12em] text-foreground">
           {title}
         </h3>
       </div>
 
-      <ul className="mt-5 space-y-3.5">
+      <ul className="mt-3 space-y-2 sm:space-y-2.5">
         {items.map((item, index) => (
           <li
             key={`${item}-${index}`}
-            className="flex items-start gap-3 text-sm leading-6 text-muted-foreground"
+            className="flex items-start gap-2.5 text-xs sm:text-sm leading-relaxed text-muted-foreground"
           >
             <span
-              className="mt-[10px] h-1 w-1 shrink-0 rounded-full bg-primary"
+              className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
               aria-hidden="true"
             />
             <span>{item}</span>
@@ -1148,5 +1071,67 @@ function InformationList({
         ))}
       </ul>
     </section>
+  );
+}
+
+function CourseReviewCard({ testimonial }: { testimonial: PublicTestimonial }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isLong = (testimonial.quote || "").length > 140;
+
+  return (
+    <figure className="group relative flex h-full flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 sm:p-6 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-soft">
+      <div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex text-amber-400">
+            {Array.from({ length: testimonial.rating || 5 }).map((_, starIndex) => (
+              <Star key={starIndex} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            ))}
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="h-3 w-3" /> Verified Student
+          </span>
+        </div>
+
+        <blockquote className="mt-3.5 text-xs sm:text-sm leading-relaxed text-foreground/85">
+          <p className={isExpanded ? "" : "line-clamp-3"}>
+            “{testimonial.quote}”
+          </p>
+        </blockquote>
+
+        {isLong && (
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-primary hover:underline cursor-pointer"
+          >
+            {isExpanded ? "Show less" : "Read more"}
+          </button>
+        )}
+      </div>
+
+      <figcaption className="mt-5 border-t border-border/60 pt-3.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="grid h-8 w-8 sm:h-9 sm:w-9 shrink-0 place-items-center rounded-full bg-gradient-primary text-xs font-bold text-primary-foreground overflow-hidden">
+            {testimonial.avatarUrl || (testimonial as any).avatar ? (
+              <img
+                src={testimonial.avatarUrl || (testimonial as any).avatar}
+                alt={testimonial.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              (testimonial.name || "A")[0]
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-display text-xs sm:text-sm font-bold text-foreground">
+              {testimonial.name}
+            </p>
+            <p className="truncate text-[10px] sm:text-xs text-muted-foreground">
+              {testimonial.role || "Architecture Learner"}
+            </p>
+          </div>
+        </div>
+      </figcaption>
+    </figure>
   );
 }

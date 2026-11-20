@@ -9,7 +9,7 @@ import { courseService } from "@/lib/services/course.service";
 import { tokenStorage } from "@/lib/api-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CourseWithContent } from "@/lib/database.types";
-import { getMediaUrl } from "@/lib/utils";
+import { getMediaUrl, isValidDuration } from "@/lib/utils";
 import Hls from "hls.js";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
@@ -291,8 +291,10 @@ function LearnPage() {
   }, [flatLessons, activeId]);
 
   const isPdfLesson = useMemo(() => {
-    const hasPdf = !!(activeLesson?.pdf_url || (activeLesson as any)?.pdf_path);
-    const hasVideo = !!(activeLesson?.video_url || (activeLesson as any)?.video_path);
+    const rawPdf = activeLesson?.pdf_url || (activeLesson as any)?.pdf_path;
+    const rawVideo = activeLesson?.video_url || (activeLesson as any)?.video_path;
+    const hasPdf = Boolean(rawPdf && typeof rawPdf === "string" && rawPdf.trim() !== "");
+    const hasVideo = Boolean(rawVideo && typeof rawVideo === "string" && rawVideo.trim() !== "" && rawVideo.trim() !== "null");
     return hasPdf && !hasVideo;
   }, [activeLesson]);
 
@@ -447,7 +449,14 @@ function LearnPage() {
              : currentLesson.video_url || (currentLesson as any).video_path) ||
            currentLesson.video_url ||
            (currentLesson as any).video_path;
-        if (rawVideo) {
+        const hasValidVideo = Boolean(
+          rawVideo &&
+          typeof rawVideo === "string" &&
+          rawVideo.trim() !== "" &&
+          rawVideo.trim() !== "null" &&
+          rawVideo.trim() !== "undefined"
+        );
+        if (hasValidVideo) {
            const resolved = getMediaUrl(rawVideo);
            if (active) {
              setVideoUrl(resolved);
@@ -457,12 +466,57 @@ function LearnPage() {
         }
 
         const rawPdf = currentLesson.pdf_url || (currentLesson as any).pdf_path;
-        if (rawPdf) {
-          if (active) {
-            setPdfBlobUrl(getMediaUrl(rawPdf));
-            setVideoUrl(null);
-            setPlayerReady(true);
-            setPdfLoading(false);
+        if (rawPdf && typeof rawPdf === "string" && rawPdf.trim() !== "") {
+          const ext = rawPdf.split("?")[0].split(".").pop()?.toLowerCase() || "";
+          if (ext === "pdf") {
+            setPdfLoading(true);
+            setPdfError(null);
+            try {
+              let resolvedPdf = getMediaUrl(rawPdf);
+              const isPresignedR2 =
+                resolvedPdf.includes("X-Amz-") ||
+                resolvedPdf.includes("r2.cloudflarestorage.com") ||
+                resolvedPdf.includes("media.architecturenext.in");
+              const headers: Record<string, string> = {};
+
+              if (!isPresignedR2) {
+                const token = tokenStorage.get();
+                if (token) headers["Authorization"] = `Bearer ${token}`;
+              }
+
+              const res = await fetch(resolvedPdf, { headers });
+              if (res.ok) {
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+                if (active) {
+                  setPdfBlobUrl(blobUrl);
+                  setVideoUrl(null);
+                  setPlayerReady(true);
+                }
+              } else {
+                if (active) {
+                  setPdfBlobUrl(resolvedPdf);
+                  setVideoUrl(null);
+                  setPlayerReady(true);
+                }
+              }
+            } catch (pErr: any) {
+              if (active) {
+                let resolvedPdf = getMediaUrl(rawPdf);
+                setPdfBlobUrl(resolvedPdf);
+                setVideoUrl(null);
+                setPlayerReady(true);
+              }
+            } finally {
+              if (active) setPdfLoading(false);
+            }
+          } else {
+            if (active) {
+              setPdfBlobUrl(getMediaUrl(rawPdf));
+              setVideoUrl(null);
+              setPlayerReady(true);
+              setPdfLoading(false);
+            }
           }
           return;
         }
@@ -1389,7 +1443,7 @@ function LearnPage() {
           {/* Video / PDF Container: Tall Reel Background with Centered Landscape Video */}
           <div className={`overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-gradient-to-b from-[#0e0e18] via-[#05050a] to-[#0e0e18] shadow-elevated transition-all duration-300 flex items-center justify-center ${
             isPdfLesson
-              ? "w-full min-h-[360px] sm:min-h-[440px] md:min-h-[500px]"
+              ? "w-full min-h-[500px] sm:min-h-[600px] md:min-h-[700px] max-h-[85vh]"
               : "relative w-full aspect-video min-h-[260px] sm:min-h-[360px] md:min-h-[440px] max-h-[80vh] bg-black"
           }`}>
             {isPdfLesson ? (
@@ -1398,6 +1452,61 @@ function LearnPage() {
                   const rawPdf = activeLesson?.pdf_url || (activeLesson as any)?.pdf_path || "";
                   const filename = rawPdf.split("?")[0].split("/").pop() || "Resource File";
                   const ext = rawPdf.split("?")[0].split(".").pop()?.toLowerCase() || "";
+
+                  if (ext === "pdf") {
+                    if (pdfLoading) {
+                      return (
+                        <div className="w-full h-full min-h-[450px] sm:min-h-[550px] md:min-h-[650px] bg-slate-950 flex flex-col items-center justify-center text-white p-6 text-center">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+                          <p className="text-sm font-semibold">Loading PDF Document...</p>
+                        </div>
+                      );
+                    }
+
+                    const targetPdfUrl = pdfBlobUrl || getMediaUrl(rawPdf);
+
+                    return (
+                      <div className="w-full h-full min-h-[500px] sm:min-h-[600px] md:min-h-[700px] bg-[#1e1e2d] relative flex flex-col rounded-2xl sm:rounded-3xl overflow-hidden">
+                        {/* Top bar with document name and actions */}
+                        <div className="flex items-center justify-between px-4 py-2.5 bg-black/75 backdrop-blur border-b border-white/10 text-white z-10 shrink-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="h-4 w-4 text-primary shrink-0" />
+                            <span className="text-xs font-semibold truncate font-mono">
+                              {filename}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <a
+                              href={getMediaUrl(rawPdf)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/10 hover:bg-white/20 px-2.5 py-1 text-xs font-semibold text-white transition active:scale-95 cursor-pointer"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Open in New Tab</span>
+                            </a>
+                            <a
+                              href={getMediaUrl(rawPdf)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3 py-1 text-xs font-bold text-white shadow-soft hover:opacity-95 transition active:scale-95 cursor-pointer"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Download</span>
+                            </a>
+                          </div>
+                        </div>
+
+                        {/* Direct PDF rendering iframe */}
+                        <iframe
+                          src={`${targetPdfUrl}#toolbar=1&navpanes=0`}
+                          title={activeLesson.title || "PDF Document"}
+                          className="w-full flex-1 min-h-[460px] sm:min-h-[560px] md:min-h-[660px] border-0 bg-white"
+                        />
+                      </div>
+                    );
+                  }
 
                   if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext)) {
                     return (
@@ -1443,12 +1552,7 @@ function LearnPage() {
                   let descriptionLabel = "Download this resource file to open it in your local design software and start working.";
                   let downloadBtnLabel = "Download Resource File";
 
-                  if (ext === "pdf") {
-                    fileIcon = <FileText className="h-10 w-10 text-primary" />;
-                    fileTypeLabel = "Lesson Material File";
-                    descriptionLabel = "Download this resource file to open it in your local design software and start working.";
-                    downloadBtnLabel = "Download Resource File";
-                  } else if (ext === "dwg") {
+                  if (ext === "dwg") {
                     fileIcon = <Layers className="h-10 w-10 text-emerald-500" />;
                     fileTypeLabel = "AutoCAD Drawing (DWG)";
                     descriptionLabel = "This AutoCAD drawing template file can be downloaded and opened directly in AutoCAD, Revit, or compatible CAD software.";
@@ -1713,8 +1817,8 @@ function LearnPage() {
                   <span>{activeLesson?.is_free && !isEnrolled ? "Free Preview" : "NOW PLAYING"}</span>
                 </div>
 
-                {/* Duration Capsule */}
-                {(liveDuration || activeLesson?.duration) && (
+                {/* Duration Capsule (hidden for PDF/document lessons and non-time strings) */}
+                {!isPdfLesson && isValidDuration(liveDuration || activeLesson?.duration) && (
                   <div className="inline-flex h-9 items-center gap-1.5 rounded-full bg-muted/70 border border-border/60 px-3 text-[11px] font-mono font-medium text-muted-foreground shadow-2xs">
                     <Clock className="h-3.5 w-3.5 opacity-65" />
                     <span>{liveDuration || activeLesson.duration}</span>
@@ -2077,7 +2181,7 @@ function LearnPage() {
                             Free
                           </span>
                         )}
-                        {((active ? liveDuration : null) || l.duration) && (
+                        {!isLessonPdf && isValidDuration((active ? liveDuration : null) || l.duration) && (
                           <span className="text-xs text-muted-foreground font-mono shrink-0">
                             {(active ? liveDuration : null) || l.duration}
                           </span>
@@ -2184,7 +2288,7 @@ function LearnPage() {
                                 Free
                               </span>
                             )}
-                            {((active ? liveDuration : null) || l.duration) && (
+                            {!isLessonPdf && isValidDuration((active ? liveDuration : null) || l.duration) && (
                               <span className="text-xs text-muted-foreground font-mono shrink-0">
                                 {(active ? liveDuration : null) || l.duration}
                               </span>

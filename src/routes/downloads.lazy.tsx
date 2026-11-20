@@ -4,6 +4,7 @@ import { downloadManager, OfflineLessonRecord, StorageEstimateInfo } from "@/lib
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
+import { isValidDuration } from "@/lib/utils";
 import { 
   Download, 
   Trash2, 
@@ -186,10 +187,12 @@ function DownloadsPage() {
                         <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                           {lesson.quality}
                         </span>
-                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {lesson.duration || "15:00"}
-                        </div>
+                        {isValidDuration(lesson.duration) && (
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {lesson.duration}
+                          </div>
+                        )}
                       </div>
 
                       <h4 className="font-bold text-sm text-foreground line-clamp-2 mb-1">

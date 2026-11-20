@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState, redirect, isRedirect, useNavigate } from "@tanstack/react-router";
-import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2, MessageSquareQuote, Tag, ChevronRight, Globe, LogOut } from "lucide-react";
+import { BookOpen, CreditCard, LayoutDashboard, Users, Loader2, MessageSquareQuote, Tag, ChevronRight, Globe, LogOut, Database } from "lucide-react";
 import type { ReactNode } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
@@ -51,6 +51,7 @@ function AdminShell({ children }: { children: ReactNode }) {
     { to: "/admin/courses", label: "Courses", icon: BookOpen },
     { to: "/admin/coupons", label: "Coupons", icon: Tag },
     { to: "/admin/testimonials", label: "Testimonials", icon: MessageSquareQuote },
+    { to: "/admin/backup", label: "Backup Data", icon: Database },
   ];
 
   const handleSignOut = async () => {

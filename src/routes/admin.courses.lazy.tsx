@@ -2,7 +2,7 @@ import { createLazyFileRoute } from "@tanstack/react-router";
 import { 
   Edit3, Plus, Trash2, Upload, Video, Loader2, ArrowUp, ArrowDown, Image, Info,
   Pause, Play, RefreshCw, XCircle, CheckCircle2, PlayCircle, Eye, EyeOff, AlertCircle, FileVideo,
-  UploadCloud, Link2, FileText, X, Award, Languages
+  UploadCloud, Link2, FileText, X, Award, Languages, Download
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -433,7 +433,7 @@ function getVimeoEmbedUrl(url: string): string {
   return `https://player.vimeo.com/video/${vimeoId}?autoplay=0&playsinline=1&title=0&byline=0&portrait=0&color=00b2ff&transparent=0&dnt=1${hashParam}`;
 }
 
-// Subcomponent to handle lesson video uploads and streaming URLs with instant preview and auto duration detection
+// Subcomponent to handle lesson video uploads, streaming URLs, and optional study material files
 function LessonVideoManager({
   lesson,
   onChange
@@ -443,99 +443,110 @@ function LessonVideoManager({
   lesson: any;
   onChange: (updates: any) => void;
 }) {
-  // Determine starting tab based on what resources exist on the lesson model
-  const getInitialTab = () => {
-    if (lesson.pdf_path || (lesson.pdf_url && !lesson.video_url)) {
-      return "pdf";
-    }
-    if (lesson.video_path) {
-      return "video";
-    }
-    if (lesson.video_url) {
+  // Video Mode: local upload vs external URL
+  const [videoTab, setVideoTab] = useState<"video" | "url">(() => {
+    if (lesson.video_url && !lesson.video_path && !lesson.video_url.includes("/api/v1/media/")) {
       return "url";
     }
     return "video";
-  };
+  });
 
-  const [tab, setTab] = useState<"video" | "url" | "pdf">(getInitialTab);
   const [urlInput, setUrlInput] = useState(lesson.video_url || "");
   const [showUrlPreview, setShowUrlPreview] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStage, setUploadStage] = useState("");
-  const [uploadError, setUploadError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Video Upload States
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [videoUploadStage, setVideoUploadStage] = useState("");
+  const [videoUploadError, setVideoUploadError] = useState("");
+  const videoFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Subtitle States
   const subtitleInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploadingSubtitle, setIsUploadingSubtitle] = useState(false);
 
-  const handleSaveUrl = (url: string) => {
+  // Separate Document / Study Material States (Optional separate attachment)
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [docUploadProgress, setDocUploadProgress] = useState(0);
+  const [docUploadStage, setDocUploadStage] = useState("");
+  const [docUploadError, setDocUploadError] = useState("");
+  const docFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleSaveVideoUrl = (url: string) => {
     setUrlInput(url);
     onChange({
       video_url: url.trim() || null,
       video_path: null,
-      pdf_url: null,
-      pdf_path: null,
     });
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
-    setUploadProgress(0);
-    setUploadStage("Preparing upload...");
-    setUploadError("");
+    setIsUploadingVideo(true);
+    setVideoUploadProgress(0);
+    setVideoUploadStage("Preparing upload...");
+    setVideoUploadError("");
 
     try {
-      if (tab === "video") {
-        // 1. Auto-detect video duration
-        const detectedDuration = await getVideoDurationFromFile(file);
+      const detectedDuration = await getVideoDurationFromFile(file);
 
-        // 2. Upload file
-        const res = await adminService.uploadVideo(file, (progress) => {
-          const percent = typeof progress === "number" ? progress : (progress?.percent ?? 0);
-          setUploadProgress(percent);
-          if (typeof progress === "object" && progress?.stage) {
-            setUploadStage(progress.stage);
-          }
-        });
+      const res = await adminService.uploadVideo(file, (progress) => {
+        const percent = typeof progress === "number" ? progress : (progress?.percent ?? 0);
+        setVideoUploadProgress(percent);
+        if (typeof progress === "object" && progress?.stage) {
+          setVideoUploadStage(progress.stage);
+        }
+      });
 
-        // 3. Update lesson
-        onChange({
-          video_url: res.videoPath || res.videoUrl,
-          video_path: res.videoPath,
-          pdf_url: null,
-          pdf_path: null,
-          duration: detectedDuration !== "00:00" ? detectedDuration : lesson.duration || "15:00",
-        });
+      onChange({
+        video_url: res.videoPath || res.videoUrl,
+        video_path: res.videoPath,
+        duration: detectedDuration !== "00:00" ? detectedDuration : lesson.duration || "15:00",
+      });
 
-        setUrlInput(res.videoPath || res.videoUrl);
-      } else if (tab === "pdf") {
-        // 1. Upload PDF document
-        const res = await adminService.uploadDocument(file, (progress) => {
-          const percent = typeof progress === "number" ? progress : (progress?.percent ?? 0);
-          setUploadProgress(percent);
-          if (typeof progress === "object" && progress?.stage) {
-            setUploadStage(progress.stage);
-          }
-        });
-
-        // 2. Update lesson to represent a PDF document lesson
-        onChange({
-          pdf_url: res.documentPath || res.documentUrl,
-          pdf_path: res.documentPath,
-          video_url: null,
-          video_path: null,
-          duration: "PDF Document",
-        });
-
-        setUrlInput("");
-      }
-      setIsUploading(false);
+      setUrlInput(res.videoPath || res.videoUrl);
+      toast.success("Video uploaded and attached successfully!");
     } catch (err: any) {
-      setUploadError(err.message || `Failed to upload ${tab === "video" ? "video" : "PDF"}.`);
-      setIsUploading(false);
+      setVideoUploadError(err.message || "Failed to upload video.");
+      toast.error(err.message || "Failed to upload video.");
+    } finally {
+      setIsUploadingVideo(false);
+      if (videoFileInputRef.current) videoFileInputRef.current.value = "";
+    }
+  };
+
+  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingDoc(true);
+    setDocUploadProgress(0);
+    setDocUploadStage("Uploading study material...");
+    setDocUploadError("");
+
+    try {
+      const res = await adminService.uploadDocument(file, (progress) => {
+        const percent = typeof progress === "number" ? progress : (progress?.percent ?? 0);
+        setDocUploadProgress(percent);
+        if (typeof progress === "object" && progress?.stage) {
+          setDocUploadStage(progress.stage);
+        }
+      });
+
+      onChange({
+        pdf_url: res.documentPath || res.documentUrl,
+        pdf_path: res.documentPath,
+      });
+
+      toast.success("Study material attached successfully!");
+    } catch (err: any) {
+      setDocUploadError(err.message || "Failed to upload study material.");
+      toast.error(err.message || "Failed to upload study material.");
+    } finally {
+      setIsUploadingDoc(false);
+      if (docFileInputRef.current) docFileInputRef.current.value = "";
     }
   };
 
@@ -544,7 +555,6 @@ function LessonVideoManager({
     if (!file) return;
     setIsUploadingSubtitle(true);
     try {
-      // 1. Read file text & convert SRT to standard WebVTT format
       const rawText = await file.text();
       let vttText = rawText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
       if (!vttText.startsWith("WEBVTT")) {
@@ -584,7 +594,6 @@ function LessonVideoManager({
         toast.success("Subtitle converted to WebVTT and attached successfully!");
       }
     } catch (err: any) {
-      setUploadError(err?.message || "Failed to upload subtitle.");
       toast.error(err?.message || "Failed to upload subtitle.");
     } finally {
       setIsUploadingSubtitle(false);
@@ -592,53 +601,79 @@ function LessonVideoManager({
     }
   };
 
-  const handleRemoveMedia = () => {
+  const handleRemoveVideo = () => {
+    setUrlInput("");
+    onChange({
+      video_url: null,
+      video_path: null,
+      duration: (lesson.pdf_url || lesson.pdf_path) ? "" : "00:00",
+    });
+    if (videoFileInputRef.current) {
+      videoFileInputRef.current.value = "";
+    }
+    toast.success("Lesson video removed.");
+  };
+
+  const handleRemoveDocument = () => {
+    onChange({
+      pdf_url: null,
+      pdf_path: null,
+    });
+    if (docFileInputRef.current) {
+      docFileInputRef.current.value = "";
+    }
+    toast.success("Study material removed.");
+  };
+
+  const handleRemoveAllMedia = () => {
     setUrlInput("");
     onChange({
       video_url: null,
       video_path: null,
       pdf_url: null,
       pdf_path: null,
+      subtitle_url: null,
+      subtitle_path: null,
       duration: "00:00",
     });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (videoFileInputRef.current) videoFileInputRef.current.value = "";
+    if (docFileInputRef.current) docFileInputRef.current.value = "";
+    if (subtitleInputRef.current) subtitleInputRef.current.value = "";
+    toast.success("All attached media cleared.");
   };
 
   const isYouTube = urlInput.includes("youtube.com") || urlInput.includes("youtu.be");
   const youTubeId = isYouTube ? getYouTubeVideoId(urlInput) : "";
   const isVimeo = urlInput.includes("vimeo.com");
   const vimeoEmbedUrl = isVimeo ? getVimeoEmbedUrl(urlInput) : "";
-  const isVideoAttached = lesson.video_path || (lesson.video_url && !lesson.pdf_url);
-  const isPdfAttached = lesson.pdf_path || (lesson.pdf_url && !lesson.video_url);
+
+  const isVideoAttached = Boolean(lesson.video_path || lesson.video_url);
+  const isPdfAttached = Boolean(lesson.pdf_path || lesson.pdf_url);
 
   return (
-    <div className="rounded-xl border border-border/80 bg-muted/20 p-3.5 space-y-3 text-xs transition-all">
+    <div className="rounded-xl border border-border/80 bg-muted/20 p-3.5 space-y-3.5 text-xs transition-all">
+      {/* Top Media Status Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2.5">
         <span className="font-semibold text-foreground flex items-center gap-1.5">
-          {isPdfAttached ? (
-            <>
-              <FileText className="h-3.5 w-3.5 text-primary" /> Lesson Document / File
-            </>
-          ) : (
-            <>
-              <PlayCircle className="h-3.5 w-3.5 text-primary" /> Lesson Content Media
-            </>
-          )}
+          <PlayCircle className="h-3.5 w-3.5 text-primary" /> Lesson Media & Materials
         </span>
 
         {isVideoAttached || isPdfAttached ? (
           <div className="flex items-center gap-2">
             <span className="font-mono bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" /> {isPdfAttached ? "File Attached" : "Video Attached"}
+              <CheckCircle2 className="h-3 w-3" />
+              {isVideoAttached && isPdfAttached
+                ? "Video + Study Material Attached"
+                : isVideoAttached
+                  ? "Video Attached"
+                  : "Study Material Attached"}
             </span>
             <button
               type="button"
-              onClick={handleRemoveMedia}
+              onClick={handleRemoveAllMedia}
               className="text-[10px] text-destructive hover:underline font-semibold"
             >
-              Remove
+              Clear All
             </button>
           </div>
         ) : (
@@ -648,96 +683,185 @@ function LessonVideoManager({
         )}
       </div>
 
-      {/* Mode Switcher Tabs */}
-      <div className="flex rounded-lg border border-border bg-card/60 p-0.5 w-fit">
-        <button
-          type="button"
-          onClick={() => setTab("video")}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition ${
-            tab === "video"
-              ? "bg-primary text-primary-foreground shadow-2xs"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <UploadCloud className="h-3.5 w-3.5" /> Upload Video
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("url")}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition ${
-            tab === "url"
-              ? "bg-primary text-primary-foreground shadow-2xs"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Link2 className="h-3.5 w-3.5" /> External URL
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("pdf")}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition ${
-            tab === "pdf"
-              ? "bg-primary text-primary-foreground shadow-2xs"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <FileText className="h-3.5 w-3.5" /> Upload File / Resource
-        </button>
-      </div>
-
-      {tab === "video" && (
-        /* TAB 1: LOCAL VIDEO UPLOAD */
-        <div className="space-y-3">
-          <input
-            ref={fileInputRef}
-            type="file"
-            key="video-file-input"
-            accept="video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.webm,.mov,.mkv"
-            className="hidden"
-            onChange={handleFileUpload}
-          />
-
-          {!isUploading ? (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="group cursor-pointer rounded-xl border-2 border-dashed border-border/80 bg-card/40 p-4 text-center transition hover:border-primary/60 hover:bg-primary/5"
+      {/* 1. LESSON VIDEO SECTION (Upload File or External URL) */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+            <Video className="h-3.5 w-3.5 text-primary" /> Lesson Video
+          </span>
+          {isVideoAttached && (
+            <button
+              type="button"
+              onClick={handleRemoveVideo}
+              className="text-[10px] text-destructive hover:underline font-semibold"
             >
-              <div className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover:scale-105">
-                <FileVideo className="h-5 w-5" />
-              </div>
-              <div className="mt-2 text-xs font-bold text-foreground">
-                {lesson.video_url ? "Click to Replace Video File" : "Choose MP4 / WebM Video File"}
-              </div>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Supports direct uploads up to 1 GB · Auto-detects exact lesson duration
-              </p>
-              {lesson.video_url && (
-                <div className="mt-2 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 truncate max-w-sm mx-auto">
-                  Current Video: {lesson.video_url.split("/").pop()}
+              Remove Video
+            </button>
+          )}
+        </div>
+
+        {/* Video Mode Switcher Tabs */}
+        <div className="flex rounded-lg border border-border bg-card/60 p-0.5 w-fit">
+          <button
+            type="button"
+            onClick={() => setVideoTab("video")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition ${
+              videoTab === "video"
+                ? "bg-primary text-primary-foreground shadow-2xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <UploadCloud className="h-3.5 w-3.5" /> Upload Video
+          </button>
+          <button
+            type="button"
+            onClick={() => setVideoTab("url")}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition ${
+              videoTab === "url"
+                ? "bg-primary text-primary-foreground shadow-2xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Link2 className="h-3.5 w-3.5" /> External URL
+          </button>
+        </div>
+
+        {videoTab === "video" && (
+          <div className="space-y-2">
+            <input
+              ref={videoFileInputRef}
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.webm,.mov,.mkv"
+              className="hidden"
+              onChange={handleVideoUpload}
+            />
+
+            {!isUploadingVideo ? (
+              <div
+                onClick={() => videoFileInputRef.current?.click()}
+                className="group cursor-pointer rounded-xl border-2 border-dashed border-border/80 bg-card/40 p-4 text-center transition hover:border-primary/60 hover:bg-primary/5"
+              >
+                <div className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover:scale-105">
+                  <FileVideo className="h-5 w-5" />
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-border bg-card p-4 space-y-2.5">
-              <div className="flex items-center justify-between text-xs font-bold text-foreground">
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  {uploadStage || "Uploading Video File..."}
-                </span>
-                <span className="font-mono text-primary">{uploadProgress}%</span>
+                <div className="mt-2 text-xs font-bold text-foreground">
+                  {lesson.video_url ? "Click to Replace Video File" : "Choose MP4 / WebM Video File"}
+                </div>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Supports direct uploads up to 1 GB · Auto-detects exact lesson duration
+                </p>
+                {lesson.video_url && (
+                  <div className="mt-2 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 truncate max-w-sm mx-auto">
+                    Current Video: {lesson.video_url.split("/").pop()}
+                  </div>
+                )}
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full bg-gradient-primary transition-all duration-300 rounded-full"
-                  style={{ width: `${uploadProgress}%` }}
+            ) : (
+              <div className="rounded-xl border border-border bg-card p-4 space-y-2.5">
+                <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    {videoUploadStage || "Uploading Video File..."}
+                  </span>
+                  <span className="font-mono text-primary">{videoUploadProgress}%</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-gradient-primary transition-all duration-300 rounded-full"
+                    style={{ width: `${videoUploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {videoUploadError && (
+              <p className="text-[11px] text-destructive flex items-center gap-1 font-semibold">
+                <AlertCircle className="h-3 w-3" /> {videoUploadError}
+              </p>
+            )}
+          </div>
+        )}
+
+        {videoTab === "url" && (
+          <div className="space-y-2">
+            <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 flex items-start gap-2 text-muted-foreground text-[11px]">
+              <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <strong className="text-foreground font-semibold">Video Stream Hosting:</strong>
+                <p className="mt-0.5">
+                  Paste an Unlisted YouTube link, Vimeo stream, Cloudflare Stream, Bunny.net, or direct MP4 URL.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 items-center">
+              <div className="flex-1">
+                <Input
+                  value={urlInput}
+                  onChange={(e) => handleSaveVideoUrl(e.target.value)}
+                  placeholder="Paste YouTube, Vimeo, or direct MP4 stream URL"
+                  className="h-8 text-xs bg-card"
                 />
               </div>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      <div className="space-y-1.5">
+        {/* Video Preview Player Toggle */}
+        {urlInput && (
+          <div className="pt-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setShowUrlPreview(!showUrlPreview)}
+              className="h-7 text-[11px] font-semibold flex items-center gap-1.5 bg-card"
+            >
+              <Eye className="h-3.5 w-3.5 text-primary" /> {showUrlPreview ? "Hide Preview Player" : "Open Preview Player"}
+            </Button>
+
+            {showUrlPreview && (
+              <div className="mt-2.5 rounded-xl border border-border bg-card p-3 space-y-2">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-semibold text-foreground flex items-center gap-1">
+                    <PlayCircle className="h-3.5 w-3.5 text-primary" /> Player Preview:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlPreview(false)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+                <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-black shadow-inner">
+                  {isYouTube ? (
+                    <iframe
+                      src={`https://www.youtube-nocookie.com/embed/${youTubeId}?autoplay=0&rel=0`}
+                      title="YouTube video player"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  ) : isVimeo ? (
+                    <iframe
+                      src={vimeoEmbedUrl}
+                      title="Vimeo video player"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  ) : (
+                    <video src={getMediaUrl(urlInput)} controls playsInline className="w-full h-full object-contain" />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 2. SUBTITLE SECTION (SRT/VTT) */}
+      <div className="space-y-1.5 pt-1 border-t border-border/40">
         <div className="flex items-center justify-between">
           <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
             <Languages className="h-3.5 w-3.5 text-primary" /> Subtitle (SRT/VTT)
@@ -802,136 +926,114 @@ function LessonVideoManager({
         )}
       </div>
 
-      {tab === "pdf" && (
-        /* TAB 3: LOCAL FILE/DOCUMENT UPLOAD */
-        <div className="space-y-3">
-          <input
-            ref={fileInputRef}
-            type="file"
-            key="pdf-file-input"
-            accept=".pdf,.zip,.rar,.psd,.dwg,.mp3,.wav,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.webp,.svg,.gif"
-            className="hidden"
-            onChange={handleFileUpload}
-          />
+      {/* 3. OPTIONAL LESSON STUDY MATERIAL / ATTACHED RESOURCE */}
+      <div className="rounded-xl border border-border/80 bg-card/40 p-3 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
+            <FileText className="h-3.5 w-3.5 text-primary" />
+            <span>Upload File / Resource (Study Material)</span>
+            <span className="rounded-full bg-muted/80 border border-border/60 px-1.5 py-0.2 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Optional
+            </span>
+          </label>
 
-          {!isUploading ? (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="group cursor-pointer rounded-xl border-2 border-dashed border-border/80 bg-card/40 p-4 text-center transition hover:border-primary/60 hover:bg-primary/5"
-            >
-              <div className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover:scale-105">
-                <FileText className="h-5 w-5" />
-              </div>
-              <div className="mt-2 text-xs font-bold text-foreground">
-                {lesson.pdf_url ? "Click to Replace Attached File" : "Choose Resource File"}
-              </div>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Supports PDF, Images, ZIP, PSD, DWG, or MP3 files up to 100 MB
-              </p>
-              {lesson.pdf_url && (
-                <div className="mt-2 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 truncate max-w-sm mx-auto">
-                  Current File: {lesson.pdf_url.split("/").pop()}
-                </div>
-              )}
+          {(lesson.pdf_url || (lesson as any).pdf_path) ? (
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" /> Attached
+              </span>
+              <button
+                type="button"
+                onClick={handleRemoveDocument}
+                className="text-[10px] text-destructive hover:underline font-semibold"
+                title="Remove study material file"
+              >
+                Remove
+              </button>
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card p-4 space-y-2.5">
-              <div className="flex items-center justify-between text-xs font-bold text-foreground">
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  {uploadStage || "Uploading Resource File..."}
-                </span>
-                <span className="font-mono text-primary">{uploadProgress}%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full bg-gradient-primary transition-all duration-300 rounded-full"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-            </div>
+            <span className="text-[10px] text-muted-foreground italic">None attached</span>
           )}
         </div>
-      )}
 
-      {tab === "url" && (
-        /* TAB 2: EXTERNAL STREAM URL */
-        <div className="space-y-3">
-          <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 flex items-start gap-2 text-muted-foreground text-[11px]">
-            <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-            <div>
-              <strong className="text-foreground font-semibold">Video Stream Hosting:</strong>
-              <p className="mt-0.5">
-                Paste an Unlisted YouTube link, Vimeo stream, Cloudflare Stream, Bunny.net, or direct MP4 URL.
-              </p>
+        <input
+          ref={docFileInputRef}
+          type="file"
+          accept=".pdf,.zip,.rar,.psd,.dwg,.mp3,.wav,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.webp,.svg,.gif"
+          className="hidden"
+          onChange={handleDocumentUpload}
+        />
+
+        {/* If study material file is currently attached */}
+        {(lesson.pdf_url || (lesson as any).pdf_path) ? (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-border/80 bg-background/60 p-2.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="grid h-7 w-7 shrink-0 place-items-center rounded bg-primary/10 text-primary">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold text-foreground font-mono">
+                  {((lesson.pdf_url || (lesson as any).pdf_path) as string).split("?")[0].split("/").pop()}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  Attached study material for this lesson (downloadable by enrolled students)
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <a
+                href={getMediaUrl(lesson.pdf_url || (lesson as any).pdf_path)}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-semibold text-foreground hover:bg-muted transition"
+              >
+                <Download className="h-3 w-3" /> View
+              </a>
+              <button
+                type="button"
+                onClick={() => docFileInputRef.current?.click()}
+                disabled={isUploadingDoc}
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/5 transition disabled:opacity-50"
+              >
+                <UploadCloud className="h-3 w-3" /> Replace
+              </button>
             </div>
           </div>
-
-          <div className="flex gap-2 items-center">
-            <div className="flex-1">
-              <Input
-                value={urlInput}
-                onChange={(e) => handleSaveUrl(e.target.value)}
-                placeholder="Paste YouTube, Vimeo, or direct MP4 stream URL"
-                className="h-8 text-xs bg-card"
+        ) : isUploadingDoc ? (
+          <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-foreground">
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                {docUploadStage || "Uploading Resource File..."}
+              </span>
+              <span className="font-mono text-primary">{docUploadProgress}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-gradient-primary transition-all duration-300 rounded-full"
+                style={{ width: `${docUploadProgress}%` }}
               />
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Preview Player Toggle (Only for Video URL / Video Local) */}
-      {tab !== "pdf" && urlInput && (
-        <div className="pt-1">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => setShowUrlPreview(!showUrlPreview)}
-            className="h-7 text-[11px] font-semibold flex items-center gap-1.5 bg-card"
+        ) : (
+          /* Empty State / Upload trigger */
+          <div
+            onClick={() => docFileInputRef.current?.click()}
+            className="group cursor-pointer flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/80 bg-background/40 hover:border-primary/50 hover:bg-primary/5 p-3 text-xs font-semibold text-muted-foreground hover:text-foreground transition"
           >
-            <Eye className="h-3.5 w-3.5 text-primary" /> {showUrlPreview ? "Hide Preview Player" : "Open Preview Player"}
-          </Button>
+            <UploadCloud className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+            <span>Upload File / Resource (PDF, ZIP, DWG, PSD, CAD, MP3, etc. up to 100 MB)</span>
+          </div>
+        )}
 
-          {showUrlPreview && (
-            <div className="mt-2.5 rounded-xl border border-border bg-card p-3 space-y-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-foreground flex items-center gap-1">
-                  <PlayCircle className="h-3.5 w-3.5 text-primary" /> Player Preview:
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowUrlPreview(false)}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  ✕ Close
-                </button>
-              </div>
-              <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-black shadow-inner">
-                {isYouTube ? (
-                  <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${youTubeId}?autoplay=0&rel=0`}
-                    title="YouTube video player"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                    allowFullScreen
-                    className="w-full h-full border-0"
-                  />
-                ) : isVimeo ? (
-                  <iframe
-                    src={vimeoEmbedUrl}
-                    title="Vimeo video player"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                    allowFullScreen
-                    className="w-full h-full border-0"
-                  />
-                ) : (
-                  <video src={getMediaUrl(urlInput)} controls playsInline className="w-full h-full object-contain" />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        {docUploadError && (
+          <p className="text-[11px] text-destructive flex items-center gap-1 font-semibold">
+            <AlertCircle className="h-3 w-3" /> {docUploadError}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

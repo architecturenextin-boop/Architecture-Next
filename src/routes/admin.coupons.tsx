@@ -131,30 +131,12 @@ function AdminCouponsPage() {
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(
-    () => {
-      try {
-        const val = localStorage.getItem("coupon-notifications-enabled");
-        return val !== "false"; // default true
-      } catch {
-        return true;
-      }
-    }
-  );
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("coupon-notifications-enabled", String(notificationsEnabled));
-    } catch {
-      /* storage blocked */
-    }
-  }, [notificationsEnabled]);
-
   // Modal dialog states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [deletingCoupon, setDeletingCoupon] = useState<Coupon | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [notifyToggles, setNotifyToggles] = useState<Record<string, boolean>>({});
   const couponModalScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Lock background scroll and guarantee modal scrolling
@@ -168,6 +150,38 @@ function AdminCouponsPage() {
       return adminService.getAllCoupons();
     },
   });
+
+  // Initialize per-coupon notification toggles from localStorage / coupon state
+  useEffect(() => {
+    const saved: Record<string, boolean> = {};
+    coupons.forEach((c) => {
+      const key = `coupon-notify:${c.id}`;
+      try {
+        const stored = localStorage.getItem(key);
+        saved[c.id] = stored !== null ? stored !== "false" : c.isActive;
+      } catch {
+        saved[c.id] = c.isActive;
+      }
+    });
+    setNotifyToggles(saved);
+  }, [coupons]);
+
+  const handleToggleStatus = (coupon: Coupon) => {
+    const isExpired = coupon.expiresAt && new Date(coupon.expiresAt) < new Date();
+    if (isExpired) {
+      toast.error("This coupon has expired. Edit the expiry date to reactivate it.");
+      return;
+    }
+
+    const nextState = !coupon.isActive;
+    try {
+      localStorage.setItem(`coupon-notify:${coupon.id}`, String(nextState));
+    } catch {
+      /* storage blocked */
+    }
+    setNotifyToggles((prev) => ({ ...prev, [coupon.id]: nextState }));
+    toggleMutation.mutate(coupon.id);
+  };
 
   // 2. Fetch Courses for dropdown
   const { data: courses = [] } = useQuery({
@@ -209,10 +223,21 @@ function AdminCouponsPage() {
     mutationFn: (id: string) => adminService.toggleCoupon(id),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ["admin-coupons"] });
-      toast.success(`Coupon ${updated.code} is now ${updated.isActive ? "active" : "inactive"}`);
+      queryClient.invalidateQueries({ queryKey: ["course-coupons"] });
+      try {
+        localStorage.setItem(`coupon-notify:${updated.id}`, String(updated.isActive));
+      } catch {
+        /* storage blocked */
+      }
+      setNotifyToggles((prev) => ({ ...prev, [updated.id]: updated.isActive }));
+      toast.success(
+        updated.isActive
+          ? `Coupon ${updated.code} is now activated (Offer live on frontend)`
+          : `Coupon ${updated.code} is now deactivated (Offer hidden from frontend)`
+      );
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to toggle coupon status");
+      toast.error(err.message || "Failed to update coupon status");
     },
   });
 
@@ -445,34 +470,6 @@ function AdminCouponsPage() {
         </div>
       </div>
 
-      {/* Coupon Notification Toggle */}
-      <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-          <div>
-            <h3 className="font-semibold text-foreground">Coupon Notification on Course Pages</h3>
-            <p className="text-xs text-muted-foreground">
-              When enabled, students see a coupon popup notification on course detail pages.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              {notificationsEnabled ? "Enabled" : "Disabled"}
-            </span>
-            <button
-              type="button"
-              onClick={() => setNotificationsEnabled((prev) => !prev)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${notificationsEnabled ? "bg-primary border-primary" : "bg-input border-input"}`}
-              aria-pressed={notificationsEnabled}
-              aria-label="Toggle coupon notification"
-            >
-              <span
-                className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform ${notificationsEnabled ? "translate-x-6" : "translate-x-1"}`}
-              />
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Coupons Table */}
       <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
         {isLoading ? (
@@ -651,32 +648,40 @@ function AdminCouponsPage() {
                           )}
                         </td>
 
-                        {/* Status */}
+                        {/* Status Toggle Button Only */}
                         <td className="px-5 py-3.5">
                           {isExpired ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600">
                               <Clock className="h-3 w-3" /> Expired
                             </span>
-                          ) : coupon.isActive ? (
-                            <button
-                              type="button"
-                              onClick={() => toggleMutation.mutate(coupon.id)}
-                              disabled={toggleMutation.isPending}
-                              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-                              title="Click to toggle status"
-                            >
-                              <CheckCircle2 className="h-3 w-3" /> Active
-                            </button>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => toggleMutation.mutate(coupon.id)}
-                              disabled={toggleMutation.isPending}
-                              className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer"
-                              title="Click to toggle status"
-                            >
-                              <XCircle className="h-3 w-3" /> Inactive
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={coupon.isActive}
+                                disabled={toggleMutation.isPending && toggleMutation.variables === coupon.id}
+                                onClick={() => handleToggleStatus(coupon)}
+                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+                                  coupon.isActive ? "bg-emerald-500" : "bg-muted-foreground/30"
+                                }`}
+                                aria-label={`Toggle active status for ${coupon.code}`}
+                                title={
+                                  coupon.isActive
+                                    ? "Active — click to deactivate"
+                                    : "Deactivated — click to activate"
+                                }
+                              >
+                                <span
+                                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                    coupon.isActive ? "translate-x-5" : "translate-x-0"
+                                  }`}
+                                />
+                              </button>
+                              {toggleMutation.isPending && toggleMutation.variables === coupon.id && (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                              )}
+                            </div>
                           )}
                         </td>
 

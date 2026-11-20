@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import {
   Menu,
@@ -16,11 +17,13 @@ import {
   LogIn,
   MessageSquareQuote,
   Sparkles,
+  Database,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { useModalScrollLock } from "@/hooks/use-modal-scroll-lock";
 
 type SiteHeaderProps = {
   /** Optional route-specific action, such as course enrolment or checkout back navigation. */
@@ -33,12 +36,19 @@ type SiteHeaderProps = {
 export function SiteHeader({ action }: SiteHeaderProps) {
   const { user, profile, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useModalScrollLock(mobileMenuOpen);
 
   // Track scroll position for frosted-glass & scroll direction for hide/show effect (desktop only)
   useEffect(() => {
@@ -111,18 +121,6 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [mobileMenuOpen]);
-
-  // Lock scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [mobileMenuOpen]);
 
   const navLinks = [
@@ -228,164 +226,200 @@ export function SiteHeader({ action }: SiteHeaderProps) {
         </div>
       </div>
 
-      {/* Mobile Menu Backdrop Overlay (< 768px) */}
-      <div
-        className={`fixed inset-0 top-20 z-40 bg-background/80 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
-          mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setMobileMenuOpen(false)}
-        aria-hidden="true"
-      />
+      {/* Mobile Menu Portal (Mounted to document.body to prevent sticky/backdrop-filter containing block bugs) */}
+      {isMounted &&
+        createPortal(
+          <div
+            className={`fixed inset-0 z-50 md:hidden transition-all duration-300 ${
+              mobileMenuOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"
+            }`}
+          >
+            {/* Backdrop overlay */}
+            <div
+              className={`fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 ${
+                mobileMenuOpen ? "opacity-100" : "opacity-0"
+              }`}
+              onClick={() => setMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
 
-      {/* Mobile Menu Slide-Down Drawer (< 768px) */}
-      <div
-        id="mobile-navigation-drawer"
-        ref={menuRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Site Navigation"
-        className={`fixed inset-x-0 top-20 z-50 max-h-[calc(100vh-5rem)] overflow-y-auto border-b border-border bg-card/95 px-4 py-5 shadow-2xl backdrop-blur-xl transition-all duration-300 ease-in-out md:hidden ${
-          mobileMenuOpen
-            ? "translate-y-0 opacity-100 visible"
-            : "-translate-y-4 opacity-0 invisible pointer-events-none"
-        }`}
-      >
-        <nav aria-label="Mobile Navigation" className="mx-auto max-w-md space-y-4">
-          {/* If Logged In: Compact Mobile User Header Card */}
-          {user && (
-            <div className="flex items-center gap-3 rounded-2xl border border-border/80 bg-muted/40 p-3 shadow-xs">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-primary text-base font-bold text-primary-foreground shadow-soft shrink-0">
-                {initial}
+            {/* Slide-over Drawer from right */}
+            <div
+              id="mobile-navigation-drawer"
+              ref={menuRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Site Navigation"
+              className={`fixed inset-y-0 right-0 z-50 w-full max-w-[340px] sm:max-w-[380px] bg-background/98 dark:bg-card/98 backdrop-blur-2xl border-l border-border/80 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out ${
+                mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+              }`}
+            >
+              {/* Top Drawer Header with Brand Logo and Close Button */}
+              <div className="flex items-center justify-between p-5 border-b border-border/60 shrink-0">
+                <BrandLogo size="sm" />
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Close navigation menu"
+                  className="grid h-10 w-10 place-items-center rounded-xl bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95 transition-all cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-bold text-foreground leading-snug">{name}</div>
-                <div className="truncate text-xs text-muted-foreground">{email}</div>
-              </div>
-              {isAdmin && (
-                <span className="rounded-md bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent shrink-0">
-                  Admin
-                </span>
-              )}
-            </div>
-          )}
 
-          {/* Primary Site Navigation Links */}
-          <ul className="flex flex-col gap-1">
-            {navLinks.map((item) => (
-              <li key={item.label}>
-                {item.isAnchor ? (
-                  <a
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex min-h-[48px] items-center gap-3.5 rounded-xl px-4 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-muted/80"
-                  >
-                    <item.icon className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />
-                    <span>{item.label}</span>
-                  </a>
-                ) : (
-                  <Link
-                    to={item.to}
-                    onClick={() => setMobileMenuOpen(false)}
-                    activeProps={{ className: "bg-primary/10 text-primary font-semibold shadow-xs" }}
-                    inactiveProps={{ className: "text-muted-foreground hover:bg-muted hover:text-foreground" }}
-                    activeOptions={{ exact: item.to === "/" }}
-                    className="flex min-h-[48px] items-center gap-3.5 rounded-xl px-4 py-3 text-base font-medium transition-colors active:bg-muted/80"
-                  >
-                    <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                    <span>{item.label}</span>
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          {/* Bottom Drawer Section: Authenticated shortcuts OR Guest CTA Buttons */}
-          <div className="border-t border-border/70 pt-3">
-            {user ? (
-              <ul className="flex flex-col gap-1">
-                <li>
-                  <Link
-                    to="/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex min-h-[48px] items-center gap-3.5 rounded-xl px-4 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    <LayoutDashboard className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />
-                    <span>Student Dashboard</span>
-                  </Link>
-                </li>
-
-                {isAdmin && (
-                  <li>
-                    <Link
-                      to="/admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex min-h-[48px] items-center gap-3.5 rounded-xl px-4 py-3 text-base font-semibold text-accent transition-colors hover:bg-accent/10"
-                    >
-                      <ShieldAlert className="h-5 w-5 text-accent shrink-0" aria-hidden="true" />
-                      <span>Admin Dashboard</span>
-                    </Link>
-                  </li>
+              {/* Scrollable Navigation Body */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 overscroll-contain">
+                {/* User Profile Card if logged in */}
+                {user && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-border/80 bg-muted/40 p-3 shadow-xs">
+                    <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-primary text-base font-bold text-primary-foreground shadow-soft shrink-0">
+                      {initial}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-foreground leading-snug">{name}</div>
+                      <div className="truncate text-xs text-muted-foreground">{email}</div>
+                    </div>
+                    {isAdmin && (
+                      <span className="rounded-md bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent shrink-0">
+                        Admin
+                      </span>
+                    )}
+                  </div>
                 )}
 
-                <li>
-                  <Link
-                    to="/dashboard/profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex min-h-[48px] items-center gap-3.5 rounded-xl px-4 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    <User className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />
-                    <span>My Profile</span>
-                  </Link>
-                </li>
+                {/* Primary Site Navigation Links */}
+                <ul className="flex flex-col gap-1">
+                  {navLinks.map((item) => (
+                    <li key={item.label}>
+                      {item.isAnchor ? (
+                        <a
+                          href={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex min-h-[46px] items-center gap-3.5 rounded-xl px-4 py-2.5 text-sm sm:text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-muted/80"
+                        >
+                          <item.icon className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />
+                          <span>{item.label}</span>
+                        </a>
+                      ) : (
+                        <Link
+                          to={item.to}
+                          onClick={() => setMobileMenuOpen(false)}
+                          activeProps={{ className: "bg-primary/10 text-primary font-semibold shadow-xs" }}
+                          inactiveProps={{ className: "text-muted-foreground hover:bg-muted hover:text-foreground" }}
+                          activeOptions={{ exact: item.to === "/" }}
+                          className="flex min-h-[46px] items-center gap-3.5 rounded-xl px-4 py-2.5 text-sm sm:text-base font-medium transition-colors active:bg-muted/80"
+                        >
+                          <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                          <span>{item.label}</span>
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
 
-                <li>
+                {/* Authenticated Links if logged in */}
+                {user && (
+                  <div className="border-t border-border/70 pt-3">
+                    <ul className="flex flex-col gap-1">
+                      <li>
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex min-h-[46px] items-center gap-3.5 rounded-xl px-4 py-2.5 text-sm sm:text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <LayoutDashboard className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />
+                          <span>Student Dashboard</span>
+                        </Link>
+                      </li>
+                      {isAdmin && (
+                        <>
+                          <li>
+                            <Link
+                              to="/admin"
+                              onClick={() => setMobileMenuOpen(false)}
+                              className="flex min-h-[46px] items-center gap-3.5 rounded-xl px-4 py-2.5 text-sm sm:text-base font-semibold text-accent transition-colors hover:bg-accent/10"
+                            >
+                              <ShieldAlert className="h-5 w-5 text-accent shrink-0" aria-hidden="true" />
+                              <span>Admin Dashboard</span>
+                            </Link>
+                          </li>
+                          <li>
+                            <Link
+                              to="/admin/backup"
+                              onClick={() => setMobileMenuOpen(false)}
+                              className="flex min-h-[46px] items-center gap-3.5 rounded-xl px-4 py-2.5 text-sm sm:text-base font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            >
+                              <Database className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />
+                              <span>Backup Data</span>
+                            </Link>
+                          </li>
+                        </>
+                      )}
+                      <li>
+                        <Link
+                          to="/dashboard/profile"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex min-h-[46px] items-center gap-3.5 rounded-xl px-4 py-2.5 text-sm sm:text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <User className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />
+                          <span>My Profile</span>
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Drawer Actions */}
+              <div className="border-t border-border/70 p-5 bg-muted/20 shrink-0">
+                {user ? (
                   <button
                     type="button"
                     onClick={handleSignOut}
-                    className="flex w-full min-h-[48px] items-center gap-3.5 rounded-xl px-4 py-3 text-left text-base font-medium text-destructive transition-colors hover:bg-destructive/10"
+                    className="flex w-full min-h-[46px] items-center justify-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10 cursor-pointer"
                   >
-                    <LogOut className="h-5 w-5 text-destructive shrink-0" aria-hidden="true" />
+                    <LogOut className="h-4 w-4" />
                     <span>Sign out</span>
                   </button>
-                </li>
-              </ul>
-            ) : (
-              <div className="flex flex-col gap-2.5 pt-1">
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  className="w-full min-h-[48px] rounded-xl font-semibold border-border text-foreground hover:bg-muted"
-                >
-                  <Link
-                    to="/auth"
-                    search={
-                      typeof window !== "undefined" &&
-                      window.location.pathname !== "/auth" &&
-                      window.location.pathname !== "/"
-                        ? { redirect: window.location.pathname + window.location.search }
-                        : undefined
-                    }
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <LogIn className="h-4 w-4 mr-2" /> Sign in
-                  </Link>
-                </Button>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="lg"
+                      className="w-full min-h-[46px] rounded-xl font-semibold border-border text-foreground hover:bg-muted cursor-pointer"
+                    >
+                      <Link
+                        to="/auth"
+                        search={
+                          typeof window !== "undefined" &&
+                          window.location.pathname !== "/auth" &&
+                          window.location.pathname !== "/"
+                            ? { redirect: window.location.pathname + window.location.search }
+                            : undefined
+                        }
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <LogIn className="h-4 w-4 mr-2" /> Sign in
+                      </Link>
+                    </Button>
 
-                <Button
-                  asChild
-                  size="lg"
-                  className="w-full min-h-[48px] rounded-xl bg-gradient-primary font-semibold text-primary-foreground shadow-soft transition-all hover:scale-[1.01] hover:brightness-110"
-                >
-                  <Link to="/courses" onClick={() => setMobileMenuOpen(false)}>
-                    <Sparkles className="h-4 w-4 mr-2" /> Enroll Now
-                  </Link>
-                </Button>
+                    <Button
+                      asChild
+                      size="lg"
+                      className="w-full min-h-[46px] rounded-xl bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:brightness-110 active:scale-[0.99] cursor-pointer"
+                    >
+                      <Link to="/courses" onClick={() => setMobileMenuOpen(false)}>
+                        <Sparkles className="h-4 w-4 mr-2" /> Enroll Now
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </nav>
-      </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </header>
   );
 }

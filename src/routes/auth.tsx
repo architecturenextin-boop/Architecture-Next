@@ -1,13 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, ArrowLeft, Mail, Lock, Sparkles, CheckCircle2, ShieldCheck, Eye, EyeOff, KeyRound } from "lucide-react";
+import { ArrowLeft, Lock, AtSign, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BrandLogo } from "@/components/brand-logo";
+import { brand } from "@/lib/brand";
 import { GoogleAuthButton } from "@/components/google-auth-button";
+import { AuthTestimonial } from "@/components/auth-testimonial";
 import { authService } from "@/lib/services/auth.service";
 import { dispatchAuthChange } from "@/hooks/use-auth";
 import { tokenStorage } from "@/lib/api-client";
+import heroImg from "@/assets/hero-learner.jpeg";
 
 interface AuthSearch {
   redirect?: string;
@@ -141,82 +143,149 @@ function AuthPage() {
   };
 
   return (
-    <div className="grid min-h-screen md:grid-cols-2 bg-background selection:bg-primary selection:text-primary-foreground">
-      {/* Left Branding Showcase (Desktop) */}
-      <div className="hidden bg-gradient-hero p-12 md:flex md:flex-col md:justify-between border-r border-border/60 relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-brand-blue/20 blur-[120px]" />
-        <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-brand-purple/20 blur-[120px]" />
+    <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-[40%_60%] bg-background selection:bg-primary selection:text-primary-foreground">
+      {/* Mobile Top Image Banner — tighter crop on the learner, safe-area aware */}
+      <div className="relative w-full h-56 sm:h-64 lg:hidden overflow-hidden bg-muted shrink-0 pt-[env(safe-area-inset-top)]">
+        <img
+          src={heroImg}
+          alt="Architecture student"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ objectPosition: "center 8%" }}
+        />
+        {/* Top scrim keeps the back button and logo legible over the photo */}
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/70 via-black/25 to-transparent pointer-events-none" />
+        {/* Bottom fade runs into the sheet below so the banner and card read as one surface */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B12]/95 via-[#0B0B12]/25 to-transparent pointer-events-none" />
 
-        <BrandLogo size="lg" />
-
-        <div className="relative space-y-6 max-w-lg">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary">
-            Welcome Back
-          </span>
-          <h1 className="font-display text-4xl font-extrabold leading-tight text-foreground tracking-tight">
-            Pick up where you left off.
-          </h1>
-          <p className="text-base text-muted-foreground leading-relaxed">
-            Sign in to access your enrolled courses, BIM project files, verified certificates, and live mentor sessions.
-          </p>
-
-          <div className="space-y-3.5 pt-2">
-            <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-              <span>Resume video lessons &amp; downloadable resources</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-              <span>Track course progress &amp; module certificates</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-              <span>Secure password-protected student accounts</span>
-            </div>
+        {/* Mobile Header elements inside top banner */}
+        <div className="relative z-10 flex h-full flex-col justify-between p-4 pb-10 pt-5">
+          <div className="flex items-center justify-between">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-xs font-semibold text-white hover:bg-black/70 transition-all shadow-md"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Home</span>
+            </Link>
+            <Link to="/">
+              <img
+                src={brand.logoUrl}
+                alt={brand.name}
+                className="h-7 w-auto object-contain brightness-0 invert drop-shadow-md"
+              />
+            </Link>
           </div>
-        </div>
 
-        <div className="relative text-xs font-medium text-muted-foreground">
-          © {new Date().getFullYear()} ArchitectureNext. All rights reserved.
+          <div className="text-white drop-shadow-md pb-0">
+            <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-white/90 bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-full mb-1 border border-white/20">
+              ArchitectureNext
+            </span>
+            <p className="text-sm font-semibold leading-tight text-white/95 drop-shadow-sm">
+              Master BIM workflows, design &amp; verified certification
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Right Sign-in Form */}
-      <div className="flex flex-col items-center justify-start sm:justify-center p-4 sm:p-8 md:p-12 pt-6 sm:pt-10 pb-12 sm:pb-16 relative overflow-y-auto">
-        <div className="w-full max-w-md space-y-6 sm:space-y-7">
-          <div className="flex items-center justify-between w-full pb-1">
-            <div className="md:hidden">
-              <BrandLogo size="sm" />
-            </div>
+      {/* Left Panel: Full-Bleed Split Image + Logo + Quote (Desktop: 40% width) */}
+      <div className="relative hidden h-full flex-col bg-muted p-10 lg:p-12 text-white dark:border-r lg:flex justify-between overflow-hidden">
+        {/* Full-bleed background hero photo anchored to top */}
+        <img
+          src={heroImg}
+          alt="Architecture student"
+          className="absolute inset-0 h-full w-full object-cover object-top"
+          style={{ objectPosition: "center top" }}
+        />
+
+        {/* Ambient Dark & Brand Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B12]/95 via-[#0B0B12]/80 to-[#1F3375]/75" />
+        <div className="pointer-events-none absolute -top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-[#294398]/30 blur-[120px]" />
+        <div className="pointer-events-none absolute -bottom-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-[#643A91]/40 blur-[120px]" />
+
+        {/* Top Logo */}
+        <div className="relative z-20 flex items-center">
+          <Link to="/" className="inline-block">
+            <img
+              src={brand.logoUrl}
+              alt={brand.name}
+              className="h-8 w-auto object-contain brightness-0 invert drop-shadow-md"
+            />
+          </Link>
+        </div>
+
+        {/* Bottom Testimonial / Quote (following 21st.dev login pattern) */}
+        <div className="relative z-20 mt-auto pt-12">
+          <AuthTestimonial />
+        </div>
+      </div>
+
+      {/* Right Panel: Clean, Spacious Authentication Form */}
+      <div className="relative z-20 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none bg-background border-t border-border/40 lg:border-t-0 flex flex-col justify-between p-6 sm:p-10 lg:p-12 min-h-screen lg:min-h-full overflow-y-auto">
+        <div className="mx-auto flex w-full flex-col justify-center my-auto max-w-[420px] sm:max-w-[440px]">
+          {/* Top navigation row: < Home on left (Desktop only, mobile has it in banner) */}
+          <div className="mb-6 hidden lg:flex items-center justify-between">
             <Link
               to="/"
-              className="inline-flex min-h-[36px] items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-primary bg-muted/40 hover:bg-primary/10 border border-border/60 hover:border-primary/25 transition-all group ml-auto"
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group cursor-pointer"
             >
-              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
-              <span>Back to Home</span>
+              <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
+              <span>Home</span>
             </Link>
           </div>
 
           {!isForgotPassword ? (
             /* STANDARD LOGIN FORM */
             <>
-              <div>
-                <h2 className="font-display text-3xl font-extrabold tracking-tight text-foreground">
-                  Sign in to your account
-                </h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Enter your registered email and password to log in.
+              <div className="mb-6">
+                <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                  Sign In or Join Now!
+                </h1>
+                <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
+                  Login or create your ArchitectureNext account.
                 </p>
               </div>
 
-              <form onSubmit={submit} className="space-y-5">
-                {/* Email Address */}
+              {/* Preferred route in: Google first, email as the fallback */}
+              <div className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-3 sm:p-3.5">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    Recommended
+                  </p>
+                  <span className="text-[10px] font-semibold text-primary">Fastest sign in</span>
+                </div>
+                <div className="w-full max-w-full min-w-0">
+                  <GoogleAuthButton
+                    redirect={safeRedirect || undefined}
+                    text="continue_with"
+                    shape="rectangular"
+                    size="large"
+                    hideTrustBadge={true}
+                  />
+                </div>
+              </div>
+
+              {/* Clean OR Divider */}
+              <div className="relative my-6 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border/80" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-3 font-semibold text-muted-foreground tracking-wider">
+                    OR
+                  </span>
+                </div>
+              </div>
+
+              {/* Email & Password Form */}
+              <form onSubmit={submit} className="space-y-4">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+                  Enter your email address to sign in or create an account
+                </p>
+
+                {/* Email Address with @ icon */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    Email Address
-                  </label>
-                  <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
-                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="relative flex items-center">
+                    <AtSign className="absolute left-3.5 h-4.5 w-4.5 text-muted-foreground pointer-events-none" />
                     <Input
                       type="email"
                       value={email}
@@ -224,33 +293,17 @@ function AuthPage() {
                         setEmail(e.target.value);
                         setErr("");
                       }}
-                      placeholder="name@example.com"
-                      className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
+                      placeholder="your.email@example.com"
+                      className="h-12 rounded-xl bg-background border-border/80 pl-10 pr-4 text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary shadow-xs"
                       required
                     />
                   </div>
                 </div>
 
-                {/* Password */}
+                {/* Password with Lock icon & Eye toggle */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Password
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForgotEmail(email.trim().toLowerCase());
-                        setIsForgotPassword(true);
-                        setErr("");
-                      }}
-                      className="text-xs font-semibold text-primary hover:underline py-1 px-1 touch-manipulation cursor-pointer"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all relative">
-                    <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="relative flex items-center">
+                    <Lock className="absolute left-3.5 h-4.5 w-4.5 text-muted-foreground pointer-events-none" />
                     <Input
                       type={showPassword ? "text" : "password"}
                       value={password}
@@ -258,53 +311,83 @@ function AuthPage() {
                         setPassword(e.target.value);
                         setErr("");
                       }}
-                      placeholder="••••••••"
-                      className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium pr-10"
+                      placeholder="Password"
+                      className="h-12 rounded-xl bg-background border-border/80 pl-10 pr-11 text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary shadow-xs"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-3.5 text-muted-foreground hover:text-foreground transition-colors p-1"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  {err && (
-                    <span className="mt-1.5 block text-xs font-semibold text-destructive">{err}</span>
-                  )}
                 </div>
 
+                {/* Remember Me & Forgot Password Row */}
+                <div className="flex items-center justify-between pt-0.5">
+                  <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                    />
+                    <span>Remember me</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(email.trim().toLowerCase());
+                      setIsForgotPassword(true);
+                      setErr("");
+                    }}
+                    className="text-xs font-semibold text-[#294398] dark:text-primary hover:underline cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+
+                {err && (
+                  <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-xs font-semibold text-destructive">
+                    {err}
+                  </div>
+                )}
+
+                {/* Continue With Email Primary Button */}
                 <Button
                   type="submit"
                   size="lg"
                   disabled={isLoading}
-                  className="w-full h-12 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated hover:brightness-110 rounded-xl"
+                  className="w-full h-12 bg-gradient-to-r from-[#294398] to-[#643A91] hover:brightness-110 font-bold text-white shadow-sm transition-all rounded-xl text-base cursor-pointer mt-1"
                 >
-                  {isLoading ? "Signing in..." : "Sign In"} <ArrowRight className="ml-2 h-4 w-4" />
+                  {isLoading ? "Signing in..." : "Continue With Email"}
                 </Button>
               </form>
 
-              {/* OR Divider */}
-              <div className="relative my-5">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border/80" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-3 font-semibold text-muted-foreground tracking-wider">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
+              {/* Terms Agreement notice */}
+              <p className="mt-5 text-center text-xs text-muted-foreground leading-normal">
+                By clicking continue, you agree to our{" "}
+                <a href="#" onClick={(e) => e.preventDefault()} className="underline underline-offset-4 hover:text-primary">
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a href="#" onClick={(e) => e.preventDefault()} className="underline underline-offset-4 hover:text-primary">
+                  Privacy Policy
+                </a>.
+              </p>
 
-              {/* Google Sign In */}
-              <div className="w-full max-w-full min-w-0 flex justify-center overflow-hidden">
-                <GoogleAuthButton
-                  redirect={safeRedirect || undefined}
-                  text="signin_with"
-                  shape="rectangular"
-                  size="large"
-                />
+              {/* Don't have an account link */}
+              <div className="pt-4 text-center text-xs sm:text-sm text-muted-foreground">
+                Don't have an account?{" "}
+                <Link
+                  to="/signup"
+                  search={safeRedirect ? { redirect: safeRedirect } : undefined}
+                  className="font-bold text-[#294398] dark:text-primary hover:underline"
+                >
+                  Sign Up
+                </Link>
               </div>
             </>
           ) : (
@@ -317,7 +400,7 @@ function AuthPage() {
                     setIsForgotPassword(false);
                     setErr("");
                   }}
-                  className="inline-flex min-h-[40px] items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold text-muted-foreground hover:text-primary bg-muted/40 hover:bg-primary/10 border border-border/60 hover:border-primary/25 transition-all duration-200 mb-4 group cursor-pointer"
+                  className="inline-flex min-h-[36px] items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-primary bg-muted/40 hover:bg-primary/10 border border-border/60 hover:border-primary/25 transition-all duration-200 mb-4 group cursor-pointer"
                 >
                   <ArrowLeft className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-transform group-hover:-translate-x-1" />
                   <span>Return to Sign In</span>
@@ -331,73 +414,56 @@ function AuthPage() {
               </div>
 
               {forgotMsg && (
-                <div className="rounded-xl border border-primary/20 bg-primary/10 p-3.5 text-xs font-semibold text-primary flex items-center gap-2">
+                <div className="rounded-md border border-primary/20 bg-primary/10 p-3 text-xs font-semibold text-primary flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 shrink-0" />
                   <span>{forgotMsg}</span>
                 </div>
               )}
 
               {err && (
-                <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-xs font-semibold text-destructive">
+                <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-xs font-semibold text-destructive">
                   {err}
                 </div>
               )}
 
-              <form onSubmit={handleForgotPassword} className="space-y-5">
+              <form onSubmit={handleForgotPassword} className="space-y-3.5 pt-2">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  <label className="block text-xs font-semibold text-foreground mb-1">
                     Email Address
                   </label>
-                  <div className="flex items-center gap-2.5 rounded-xl border border-input bg-surface px-3.5 py-1 focus-within:ring-2 focus-within:ring-ring transition-all">
-                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <Input
-                      type="email"
-                      value={forgotEmail}
-                      onChange={(e) => {
-                        setForgotEmail(e.target.value);
-                        setErr("");
-                      }}
-                      placeholder="name@example.com"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      spellCheck={false}
-                      inputMode="email"
-                      className="border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 text-sm h-10 tracking-wide font-medium"
-                      required
-                    />
-                  </div>
+                  <Input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => {
+                      setForgotEmail(e.target.value);
+                      setErr("");
+                    }}
+                    placeholder="name@example.com"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    inputMode="email"
+                    className="h-11 rounded-md bg-white dark:bg-card border-border/80 px-3.5 text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary shadow-xs"
+                    required
+                  />
                 </div>
 
                 <Button
                   type="submit"
                   size="lg"
                   disabled={forgotLoading}
-                  className="w-full h-12 bg-gradient-primary font-bold text-primary-foreground shadow-soft transition-all hover:shadow-elevated hover:brightness-110 rounded-xl"
+                  className="w-full h-12 bg-gradient-to-r from-[#294398] to-[#643A91] hover:brightness-110 font-bold text-white shadow-sm transition-all rounded-xl cursor-pointer text-base"
                 >
-                  {forgotLoading ? "Sending Code..." : "Send Verification Code"} <ArrowRight className="ml-2 h-4 w-4" />
+                  {forgotLoading ? "Sending Code..." : "Send Verification Code"}
                 </Button>
               </form>
             </>
           )}
+        </div>
 
-          <p className="text-center text-xs text-muted-foreground">
-            By continuing, you agree to ArchitectureNext's{" "}
-            <a href="#" className="font-semibold text-foreground hover:underline">Terms of Service</a>{" "}
-            and{" "}
-            <a href="#" className="font-semibold text-foreground hover:underline">Privacy Policy</a>.
-          </p>
-
-          {/* Don't have an account link */}
-          <div className="border-t border-border pt-6 text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link
-              to="/signup"
-              search={safeRedirect ? { redirect: safeRedirect } : undefined}
-              className="font-bold text-primary hover:underline"
-            >
-              Create account
-            </Link>
-          </div>
+        {/* Bottom copyright footer */}
+        <div className="pt-6 text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()} ArchitectureNext. All rights reserved.
         </div>
       </div>
     </div>

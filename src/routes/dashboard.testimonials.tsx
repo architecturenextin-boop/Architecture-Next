@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   MessageSquareQuote,
@@ -28,6 +28,9 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard/testimonials")({
   head: () => ({ meta: [{ title: "My Testimonials — ArchitectureNext" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    courseId: typeof search.courseId === "string" ? search.courseId : undefined,
+  }),
   component: StudentTestimonialsPage,
 });
 
@@ -52,12 +55,13 @@ const PROMPT_SUGGESTIONS = [
 
 function StudentTestimonialsPage() {
   const { user } = useAuth();
+  const search = Route.useSearch();
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(Boolean(search.courseId));
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [quote, setQuote] = useState("");
-  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [selectedCourseId, setSelectedCourseId] = useState<string>(search.courseId || "");
   const [showPreview, setShowPreview] = useState(false);
   const [activeTab, setActiveTab] = useState<"ALL" | "APPROVED" | "PENDING">("ALL");
 
@@ -72,6 +76,19 @@ function StudentTestimonialsPage() {
     queryKey: ["my-courses"],
     queryFn: () => dashboardService.getMyCourses(),
   });
+
+  // Auto-select course if courseId passed in search params
+  useEffect(() => {
+    if (search.courseId && enrolledCourses.length > 0) {
+      const match = enrolledCourses.find(
+        (c) => c.course_id === search.courseId || (c as any).course?.slug === search.courseId || (c as any).slug === search.courseId
+      );
+      if (match) {
+        setSelectedCourseId(match.course_id);
+        setShowForm(true);
+      }
+    }
+  }, [search.courseId, enrolledCourses]);
 
   // Testimonial stats summary
   const stats = useMemo(() => {

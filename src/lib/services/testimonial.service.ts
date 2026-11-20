@@ -46,10 +46,14 @@ export const testimonialService = {
     try {
       const url = courseId ? `/testimonials?courseId=${encodeURIComponent(courseId)}` : "/testimonials";
       const data = await apiClient<PublicTestimonial[]>(url);
-      if (Array.isArray(data) && data.length > 0) return data;
-      return FALLBACK_PUBLIC_TESTIMONIALS;
+      if (Array.isArray(data)) {
+        if (data.length > 0) return data;
+        // If a specific course was requested and has no reviews yet, return empty list (not global fallbacks)
+        if (courseId) return [];
+      }
+      return courseId ? [] : FALLBACK_PUBLIC_TESTIMONIALS;
     } catch {
-      return FALLBACK_PUBLIC_TESTIMONIALS;
+      return courseId ? [] : FALLBACK_PUBLIC_TESTIMONIALS;
     }
   },
 

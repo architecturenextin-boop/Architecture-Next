@@ -509,7 +509,12 @@ export interface Database {
 }
 
 // Convenience Type Aliases
-export type Course = Database['public']['Tables']['courses']['Row']
+export type Course = Database['public']['Tables']['courses']['Row'] & {
+  /** Per-course enrollment total, when the courses API includes it. */
+  enrollment_count?: number | null
+  enrolled_count?: number | null
+  students_count?: number | null
+}
 export type Module = Database['public']['Tables']['course_modules']['Row']
 export type Lesson = Database['public']['Tables']['course_lessons']['Row']
 export type LessonSafe = Database['public']['Views']['lessons_safe']['Row']

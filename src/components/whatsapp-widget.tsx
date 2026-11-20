@@ -1,6 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { brand } from "@/lib/brand";
+import { getUnifiedWidgetActive, subscribeUnifiedWidget } from "@/lib/floating-widget-state";
 
 /**
  * Format course slug into a human-readable title
@@ -27,7 +28,14 @@ function formatSlugToTitle(slug: string): string {
  */
 export function WhatsAppWidget() {
   const [isHovered, setIsHovered] = useState(false);
+  const [unifiedActive, setUnifiedActive] = useState(getUnifiedWidgetActive());
   const path = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    return subscribeUnifiedWidget(() => {
+      setUnifiedActive(getUnifiedWidgetActive());
+    });
+  }, []);
 
   // Generate dynamic prefilled message based on current page context
   const prefilledMessage = useMemo(() => {
@@ -70,21 +78,23 @@ export function WhatsAppWidget() {
   // Mobile position offset: on dashboard/course detail pages with sticky bottom bars, raise button above them
   const hasBottomBar =
     path.startsWith("/dashboard") ||
-    (path.startsWith("/courses/") && path !== "/courses" && path !== "/courses/") ||
+    path.startsWith("/courses/") ||
     path.startsWith("/learn/");
 
   const bottomPositionClass = hasBottomBar
     ? "bottom-20 right-4 sm:bottom-6 sm:right-6"
     : "bottom-6 right-4 sm:bottom-6 sm:right-6";
 
-  // Hide on admin, learning classroom, onboarding, and authentication flow routes to prevent overlaying action buttons & inputs
+  // Hide on admin, learning classroom, onboarding, and authentication flow routes
+  // Also hide on course pages when the unified Speed Dial widget is active
   if (
     path.startsWith("/admin") ||
     path.startsWith("/learn") ||
     path.startsWith("/auth") ||
     path.startsWith("/signup") ||
     path.startsWith("/verify-otp") ||
-    path.startsWith("/onboarding")
+    path.startsWith("/onboarding") ||
+    (unifiedActive && path.startsWith("/courses/"))
   ) {
     return null;
   }

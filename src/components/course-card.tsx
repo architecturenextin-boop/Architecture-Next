@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Clock, BookOpen, Star, PlayCircle, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Clock, BookOpen, Star, PlayCircle, CheckCircle2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Course } from "@/lib/database.types";
-import { getMediaUrl } from "@/lib/utils";
+import { formatLearnerCount, getCourseEnrollmentCount, getMediaUrl } from "@/lib/utils";
 import { useEnrolledCourses } from "@/hooks/use-enrolled-courses";
 
 interface CourseCardProps {
@@ -24,6 +24,7 @@ export function CourseCard({ course, badge }: CourseCardProps) {
 
   const courseTargetId = course.slug || course.id;
   const hasLessons = (course.total_lessons || 0) > 0;
+  const enrolledCount = getCourseEnrollmentCount(course);
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-border/80 bg-card/90 shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-elevated cursor-pointer">
@@ -104,16 +105,24 @@ export function CourseCard({ course, badge }: CourseCardProps) {
           {course.tagline || course.description}
         </p>
 
-        {/* Meta Stats: Duration & Lessons */}
-        <div className="mt-4 flex items-center gap-4 text-xs sm:text-sm font-medium text-muted-foreground border-t border-border/60 pt-4">
+        {/* Meta Stats: Duration, Lessons & Enrolled Students */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border/60 pt-4 text-xs font-medium text-muted-foreground sm:text-sm">
           <div className="flex items-center gap-1.5">
             <Clock className="h-3.5 w-3.5 text-primary" />
             <span>{course.total_duration}</span>
           </div>
-           <div className="flex items-center gap-1.5">
-             <BookOpen className="h-3.5 w-3.5 text-primary" />
-             <span>{hasLessons ? `${course.total_lessons} Lessons` : "Lessons coming soon"}</span>
-           </div>
+          <div className="flex items-center gap-1.5">
+            <BookOpen className="h-3.5 w-3.5 text-primary" />
+            <span>{hasLessons ? `${course.total_lessons} Lessons` : "Lessons coming soon"}</span>
+          </div>
+          {enrolledCount > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-primary" />
+              <span>
+                {formatLearnerCount(enrolledCount)} {enrolledCount === 1 ? "student" : "students"}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Pricing & CTA Row */}

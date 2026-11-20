@@ -605,6 +605,27 @@
   animation: wa-pulse 2.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
 }
 
+@keyframes coupon-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(41, 67, 152, 0.6);
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(100, 58, 145, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(100, 58, 145, 0);
+    transform: scale(1);
+  }
+}
+
+.animate-coupon-pulse {
+  animation: coupon-pulse 2.2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
 /* Course Sidebar Smooth Sticky Scrollbar */
 .course-sidebar-scroll {
   overscroll-behavior: contain;

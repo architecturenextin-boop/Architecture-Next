@@ -575,5 +575,45 @@ export const adminService = {
       method: "DELETE",
     });
   },
+
+  // Backup Management
+  getBackups: async (): Promise<{
+    backups: Array<{
+      filename: string;
+      size: number;
+      createdAt: string;
+      summary: Record<string, number> | null;
+    }>;
+    liveSummary: Record<string, number>;
+  }> => {
+    return apiClient("/admin/backup");
+  },
+
+  createBackup: async (): Promise<{
+    filename: string;
+    size: number;
+    createdAt: string;
+    summary: Record<string, number>;
+  }> => {
+    return apiClient("/admin/backup", {
+      method: "POST",
+    });
+  },
+
+  deleteBackup: async (filename: string): Promise<{ deleted: boolean }> => {
+    return apiClient(`/admin/backup/${encodeURIComponent(filename)}`, {
+      method: "DELETE",
+    });
+  },
+
+  downloadBackup: async (filename?: string): Promise<Blob> => {
+    const query = filename ? `?filename=${encodeURIComponent(filename)}` : "";
+    const { url, headers } = getApiConfig(`/admin/backup/download${query}`);
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      throw new Error("Failed to download backup");
+    }
+    return res.blob();
+  },
 };
 
