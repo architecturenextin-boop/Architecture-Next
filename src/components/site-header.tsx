@@ -214,20 +214,30 @@ export function SiteHeader({ action }: SiteHeaderProps) {
       }}
     >
       {/* Phone-style Live Enrollment Header Notification (Mobile & Laptop) */}
-      <div className="border-b border-border/50 bg-muted/40 px-3 py-1.5 text-xs text-foreground backdrop-blur-md transition-colors">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 sm:px-4">
-          <div className="flex items-center gap-2 overflow-hidden">
+      <div className="border-b border-border/50 bg-muted/40 px-2.5 py-1 sm:px-4 sm:py-1.5 text-xs text-foreground backdrop-blur-md transition-colors">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden">
             {/* Pulsing live dot */}
             <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
 
-            {/* Notification / Speaker Icon ("like hear") */}
-            <Volume2 className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
+            {/* Notification / Speaker Icon */}
+            <Volume2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary shrink-0" aria-hidden="true" />
 
-            {/* Accurate Count & Real Live Enrolled Message */}
-            <div className="flex items-center gap-2 text-xs truncate">
+            {/* Mobile (Maximum Optimized): 69+ Name enrolled */}
+            <div className="flex items-center gap-1.5 text-[11px] truncate sm:hidden">
+              <span className="font-bold text-foreground shrink-0">
+                {accurateCount}+
+              </span>
+              <span className="truncate text-foreground/90">
+                <strong className="font-semibold text-foreground">{currentStudent}</strong> enrolled
+              </span>
+            </div>
+
+            {/* Desktop / Tablet (>= sm): 69+ Enrolled · Name just enrolled */}
+            <div className="hidden sm:flex items-center gap-2 text-xs truncate">
               <span className="font-semibold text-foreground shrink-0">
                 {accurateCount}+ Enrolled
               </span>
