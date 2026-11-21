@@ -123,6 +123,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 import { Toaster } from "sonner";
 import { WhatsAppWidget } from "@/components/whatsapp-widget";
+import { LiveEnrollmentToast } from "@/components/live-enrollment-toast";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
@@ -136,6 +137,7 @@ function RootComponent() {
         <HeadContent />
         <Outlet />
         <WhatsAppWidget />
+        <LiveEnrollmentToast />
         <Toaster position="top-right" richColors />
       </QueryClientProvider>
     </GoogleOAuthProvider>
