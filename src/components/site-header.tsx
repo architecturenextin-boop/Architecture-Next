@@ -42,8 +42,8 @@ export function SiteHeader({ action }: SiteHeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [accurateCount, setAccurateCount] = useState<number>(96);
-  const [currentStudent, setCurrentStudent] = useState<string>("Ramees");
-  const [realStudents, setRealStudents] = useState<string[]>([
+  const [studentList, setStudentList] = useState<string[]>([
+    "Mohamed",
     "Ramees",
     "Dini",
     "Malu",
@@ -51,7 +51,21 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     "Shahul",
     "Imayavarman",
     "Viswa",
+    "Fasalu",
+    "Nandhana",
+    "Aparna",
+    "Arun",
+    "Jithin",
+    "Sneha",
+    "Rahul",
+    "Devika",
+    "Kavya",
+    "Sreerag",
+    "Bilal",
+    "Fathima",
   ]);
+  const [studentIndex, setStudentIndex] = useState<number>(0);
+  const addedUserRef = useRef<string | null>(null);
   const lastScrollY = useRef(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -64,8 +78,20 @@ export function SiteHeader({ action }: SiteHeaderProps) {
       if (!active) return;
       if (stats.activeCount) setAccurateCount(stats.activeCount);
       if (stats.recentStudents && stats.recentStudents.length > 0) {
-        setRealStudents(stats.recentStudents);
-        setCurrentStudent(stats.latestStudent || stats.recentStudents[0]);
+        setStudentList((prev) => {
+          const combined = [...stats.recentStudents, ...prev];
+          const seen = new Set<string>();
+          const unique: string[] = [];
+          for (const name of combined) {
+            const trimmed = name.trim();
+            const lower = trimmed.toLowerCase();
+            if (trimmed && !seen.has(lower) && lower !== "admin" && lower !== "learner") {
+              seen.add(lower);
+              unique.push(trimmed);
+            }
+          }
+          return unique.length > 0 ? unique : prev;
+        });
       }
     });
     return () => {
@@ -73,29 +99,32 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     };
   }, []);
 
-  // Priority: If current user logs in or is authenticated, show their name FIRST!
+  // Include the current logged in user in the learner rotation pool (only once, never lock cycling)
   useEffect(() => {
     const rawName = profile?.first_name || profile?.full_name || profile?.username || user?.name || "";
     const myFirstName = rawName.trim().split(/\s+/)[0];
-    if (myFirstName && myFirstName.toLowerCase() !== "admin" && myFirstName.toLowerCase() !== "learner") {
-      setCurrentStudent(myFirstName);
-      setRealStudents((prev) => [
-        myFirstName,
-        ...prev.filter((n) => n.toLowerCase() !== myFirstName.toLowerCase()),
-      ]);
+    if (
+      myFirstName &&
+      myFirstName.toLowerCase() !== "admin" &&
+      myFirstName.toLowerCase() !== "learner" &&
+      addedUserRef.current !== myFirstName.toLowerCase()
+    ) {
+      addedUserRef.current = myFirstName.toLowerCase();
+      setStudentList((prev) => {
+        const filtered = prev.filter((n) => n.toLowerCase() !== myFirstName.toLowerCase());
+        return [myFirstName, ...filtered];
+      });
     }
-  }, [profile, user]);
+  }, [profile?.first_name, profile?.full_name, profile?.username, user?.name]);
 
-  // Smoothly cycle real enrolled students every 6 seconds
+  // Smoothly cycle real enrolled & registered students every 3.5 seconds across all learners
   useEffect(() => {
-    if (realStudents.length === 0) return;
-    let idx = 0;
+    if (studentList.length === 0) return;
     const interval = setInterval(() => {
-      idx = (idx + 1) % realStudents.length;
-      setCurrentStudent(realStudents[idx]);
-    }, 6000);
+      setStudentIndex((prev) => (prev + 1) % studentList.length);
+    }, 3500);
     return () => clearInterval(interval);
-  }, [realStudents]);
+  }, [studentList.length]);
 
   // Listen for real-time live enrollment events
   useEffect(() => {
@@ -105,7 +134,8 @@ export function SiteHeader({ action }: SiteHeaderProps) {
       if (name) {
         const first = name.trim().split(/\s+/)[0];
         if (first) {
-          setCurrentStudent(first);
+          setStudentList((prev) => [first, ...prev.filter((n) => n.toLowerCase() !== first.toLowerCase())]);
+          setStudentIndex(0);
           setAccurateCount((prev) => prev + 1);
         }
       }
@@ -197,6 +227,8 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     { href: "/#testimonials", label: "Testimonials", icon: MessageSquareQuote, isAnchor: true },
     { href: "/#faq", label: "FAQ", icon: HelpCircle, isAnchor: true },
   ];
+
+  const currentStudent = studentList[studentIndex % studentList.length] || "Ramees";
 
   return (
     <header
