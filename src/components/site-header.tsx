@@ -74,6 +74,19 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     };
   }, []);
 
+  // Priority: If current user logs in or is authenticated, show their name FIRST!
+  useEffect(() => {
+    const rawName = profile?.first_name || profile?.full_name || profile?.username || user?.name || "";
+    const myFirstName = rawName.trim().split(/\s+/)[0];
+    if (myFirstName && myFirstName.toLowerCase() !== "admin" && myFirstName.toLowerCase() !== "learner") {
+      setCurrentStudent(myFirstName);
+      setRealStudents((prev) => [
+        myFirstName,
+        ...prev.filter((n) => n.toLowerCase() !== myFirstName.toLowerCase()),
+      ]);
+    }
+  }, [profile, user]);
+
   // Smoothly cycle real enrolled students every 6 seconds
   useEffect(() => {
     if (realStudents.length === 0) return;
