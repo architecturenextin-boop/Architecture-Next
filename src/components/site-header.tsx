@@ -42,10 +42,10 @@ export function SiteHeader({ action }: SiteHeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [accurateCount, setAccurateCount] = useState<number>(96);
-  const [currentStudent, setCurrentStudent] = useState<string>("Dini");
+  const [currentStudent, setCurrentStudent] = useState<string>("Ramees");
   const [realStudents, setRealStudents] = useState<string[]>([
-    "Dini",
     "Ramees",
+    "Dini",
     "Malu",
     "Ansar",
     "Shahul",

@@ -48,8 +48,8 @@ export const courseService = {
       const rawCount = res?.totalRegisteredCount || res?.activeCount || (typeof res === "number" ? res : res?.count) || 96;
       const recentStudents = Array.isArray(res?.recentStudents) && res.recentStudents.length > 0
         ? res.recentStudents
-        : ["Dini", "Ramees", "Malu", "Ansar", "Shahul", "Imayavarman", "Viswa"];
-      const latestStudent = res?.latestStudent || recentStudents[0] || "Dini";
+        : ["Ramees", "Dini", "Malu", "Ansar", "Shahul", "Imayavarman", "Viswa"];
+      const latestStudent = res?.latestStudent || recentStudents[0] || "Ramees";
 
       return {
         count: rawCount,
