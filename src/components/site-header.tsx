@@ -19,7 +19,6 @@ import {
   Sparkles,
   Database,
   Volume2,
-  ArrowRight,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
@@ -214,8 +213,8 @@ export function SiteHeader({ action }: SiteHeaderProps) {
       }}
     >
       {/* Phone-style Live Enrollment Header Notification (Mobile & Laptop) */}
-      <div className="border-b border-border/50 bg-muted/40 px-2.5 py-1 sm:px-4 sm:py-1.5 text-xs text-foreground backdrop-blur-md transition-colors">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 sm:gap-3">
+      <div className="border-b border-border/50 bg-muted/40 text-xs text-foreground backdrop-blur-md transition-colors">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 md:px-8 py-1 sm:py-1.5">
           <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden">
             {/* Pulsing live dot */}
             <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
@@ -247,14 +246,6 @@ export function SiteHeader({ action }: SiteHeaderProps) {
               </span>
             </div>
           </div>
-
-          <Link
-            to="/courses"
-            className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline shrink-0"
-          >
-            <span>View Courses</span>
-            <ArrowRight className="h-3 w-3" />
-          </Link>
         </div>
       </div>
 
