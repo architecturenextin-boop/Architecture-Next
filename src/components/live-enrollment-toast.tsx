@@ -17,11 +17,15 @@ export interface LiveEnrollmentToastProps {
   wsUrl?: string;
   /** Toast display duration in milliseconds (default: 3000ms) */
   duration?: number;
+  /** Initial sample name shown on first load (default: "Rahul") */
+  initialName?: string;
+  /** Delay in milliseconds before showing the initial enrollment notification (default: 1000ms) */
+  initialDelay?: number;
 }
 
 /**
- * Global helper to imperatively trigger a live enrollment notification
- * Useful for simulated events or direct app dispatches.
+ * Global helper to imperatively trigger a live enrollment notification.
+ * Call triggerLiveEnrollment("Rahul") anywhere in the app or browser console.
  */
 export function triggerLiveEnrollment(studentName: string) {
   if (typeof window !== "undefined") {
@@ -35,12 +39,14 @@ export function triggerLiveEnrollment(studentName: string) {
 
 /**
  * Minimal Apple-style floating live enrollment pill notification.
- * Appears top-center with green pulse dot + 'Live' and auto-hides after 3 seconds.
+ * Appears top-center with a green pulsing dot + 'Live' and auto-hides after 3 seconds.
  */
 export function LiveEnrollmentToast({
   socket,
   wsUrl,
   duration = 3000,
+  initialName = "Rahul",
+  initialDelay = 1000,
 }: LiveEnrollmentToastProps) {
   const [current, setCurrent] = useState<{ id: number; firstName: string } | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -57,14 +63,25 @@ export function LiveEnrollmentToast({
     // Replace current name smoothly without stacking
     setCurrent({ id: Date.now(), firstName });
 
-    // Auto-hide after 3 seconds
+    // Auto-hide after 3 seconds with smooth fade-out
     timerRef.current = setTimeout(() => {
       setCurrent(null);
     }, duration);
   };
 
+  // 1. Initial appearance on page load so visitors immediately see the live notification
   useEffect(() => {
-    // 1. Listen via passed socket prop or global window.socket
+    if (!initialName) return;
+    const initialTimer = setTimeout(() => {
+      showEnrollment(initialName);
+    }, initialDelay);
+
+    return () => clearTimeout(initialTimer);
+  }, [initialName, initialDelay]);
+
+  // 2. Real-time event subscriptions (WebSockets / Socket.IO / CustomEvent)
+  useEffect(() => {
+    // A. Listen via passed socket prop or global window.socket (Socket.IO)
     const activeSocket = socket || (typeof window !== "undefined" ? (window as any).socket : null);
     const handleSocketEvent = (data: LiveEnrollmentPayload) => {
       showEnrollment(data?.studentName || data?.name);
@@ -74,14 +91,14 @@ export function LiveEnrollmentToast({
       activeSocket.on("enrollment_created", handleSocketEvent);
     }
 
-    // 2. Listen via browser CustomEvent for interoperability
+    // B. Listen via browser CustomEvent for easy triggering across the frontend
     const handleCustomEvent = (event: Event) => {
       const custom = event as CustomEvent<LiveEnrollmentPayload>;
       showEnrollment(custom.detail?.studentName || custom.detail?.name);
     };
     window.addEventListener("enrollment_created", handleCustomEvent);
 
-    // 3. Connect via standard WebSocket if URL is provided
+    // C. Connect via standard WebSocket if URL is provided
     let ws: WebSocket | null = null;
     if (wsUrl) {
       try {
@@ -93,11 +110,11 @@ export function LiveEnrollmentToast({
               showEnrollment(data.studentName || data.name || data.data?.studentName);
             }
           } catch {
-            // Non-JSON message ignored
+            // Non-JSON messages safely ignored
           }
         };
       } catch {
-        // Safe fallback if ws connection fails
+        // Fallback gracefully if WebSocket server is unreachable
       }
     }
 
@@ -119,20 +136,20 @@ export function LiveEnrollmentToast({
     <div
       aria-live="polite"
       aria-atomic="true"
-      className="pointer-events-none fixed top-4 inset-x-0 z-[100] flex justify-center px-4"
+      className="pointer-events-none fixed top-5 inset-x-0 z-[100] flex justify-center px-4"
     >
       <AnimatePresence mode="wait">
         {current && (
           <motion.div
             key={current.id}
-            initial={{ opacity: 0, y: -16, scale: 0.96 }}
+            initial={{ opacity: 0, y: -24, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.96 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{
-              duration: 0.25,
-              ease: [0.16, 1, 0.3, 1], // Apple-style smooth deceleration
+              duration: 0.35,
+              ease: [0.16, 1, 0.3, 1], // Apple fluid deceleration curve
             }}
-            className="inline-flex max-w-[90vw] items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3.5 py-1.5 text-xs sm:text-sm font-medium text-foreground shadow-md backdrop-blur-xl transition-colors dark:bg-card/85 dark:border-border/80"
+            className="pointer-events-none inline-flex max-w-[92vw] items-center gap-2.5 rounded-full border border-border/70 bg-background/85 px-4 py-2 text-xs sm:text-sm font-medium text-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl transition-colors dark:border-border/80 dark:bg-card/90"
           >
             {/* Green Pulsing Dot + Live Badge */}
             <div className="flex items-center gap-1.5 shrink-0">
@@ -145,7 +162,7 @@ export function LiveEnrollmentToast({
               </span>
             </div>
 
-            {/* Subtle separator */}
+            {/* Apple-style subtle divider */}
             <span className="h-3 w-px bg-border/80 shrink-0" aria-hidden="true" />
 
             {/* Notification Text */}
