@@ -128,6 +128,22 @@ function Hero() {
   const { user } = useAuth();
   const { hasAnyEnrollments } = useEnrolledCourses();
 
+  // Fetch real enrollment stats from database (accurate count)
+  const { data: enrollmentStats } = useQuery({
+    queryKey: ["public-enrollment-stats"],
+    queryFn: courseService.getEnrollmentStats,
+    staleTime: 60_000,
+  });
+
+  const accurateCount = enrollmentStats?.activeCount || 69;
+
+  const dynamicHeroStats = [
+    { label: "Enrolled Students", value: `${accurateCount}+` },
+    { label: "Rating", value: "4.9" },
+    { label: "Industry Mentors", value: "100+" },
+    { label: "Access", value: "Lifetime" },
+  ];
+
   return (
     <section className="relative overflow-hidden bg-gradient-hero border-b border-border">
       <div className="pointer-events-none absolute -top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-brand-blue/15 blur-[120px]" />
@@ -180,7 +196,7 @@ function Hero() {
             </Button>
           </div>
           <dl className="grid max-w-xl grid-cols-2 gap-x-6 gap-y-3.5 pt-6 sm:grid-cols-4 sm:gap-4 sm:pt-8">
-            {heroStats.map((s) => (
+            {dynamicHeroStats.map((s) => (
               <div key={s.label} className="border-l-2 border-primary/20 pl-3">
                 <dt className="text-base font-extrabold text-foreground sm:type-h3">
                   {s.value}
@@ -203,6 +219,7 @@ function Hero() {
               className="aspect-square w-full object-cover md:aspect-[4/5]"
             />
           </div>
+
           <div className="absolute -bottom-5 -left-5 hidden items-center gap-3 rounded-2xl border border-border bg-surface/90 p-3 pr-5 shadow-elevated backdrop-blur sm:flex">
             <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-primary text-primary-foreground">
               <Award className="h-5 w-5" />

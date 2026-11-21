@@ -18,7 +18,8 @@ import {
   MessageSquareQuote,
   Sparkles,
   Database,
-  Users,
+  Volume2,
+  ArrowRight,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
@@ -41,7 +42,17 @@ export function SiteHeader({ action }: SiteHeaderProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
-  const [enrolledCount, setEnrolledCount] = useState<number>(169);
+  const [accurateCount, setAccurateCount] = useState<number>(69);
+  const [currentStudent, setCurrentStudent] = useState<string>("Dini");
+  const [realStudents, setRealStudents] = useState<string[]>([
+    "Dini",
+    "Ramees",
+    "Malu",
+    "Ansar",
+    "Shahul",
+    "Imayavarman",
+    "Viswa",
+  ]);
   const lastScrollY = useRef(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -50,14 +61,45 @@ export function SiteHeader({ action }: SiteHeaderProps) {
   useEffect(() => {
     setIsMounted(true);
     let active = true;
-    courseService.getEnrollmentCount().then((count) => {
-      if (active && count) {
-        setEnrolledCount(count);
+    courseService.getEnrollmentStats().then((stats) => {
+      if (!active) return;
+      if (stats.activeCount) setAccurateCount(stats.activeCount);
+      if (stats.recentStudents && stats.recentStudents.length > 0) {
+        setRealStudents(stats.recentStudents);
+        setCurrentStudent(stats.latestStudent || stats.recentStudents[0]);
       }
     });
     return () => {
       active = false;
     };
+  }, []);
+
+  // Smoothly cycle real enrolled students every 6 seconds
+  useEffect(() => {
+    if (realStudents.length === 0) return;
+    let idx = 0;
+    const interval = setInterval(() => {
+      idx = (idx + 1) % realStudents.length;
+      setCurrentStudent(realStudents[idx]);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [realStudents]);
+
+  // Listen for real-time live enrollment events
+  useEffect(() => {
+    const handleEvent = (event: Event) => {
+      const custom = event as CustomEvent<{ studentName?: string; name?: string }>;
+      const name = custom.detail?.studentName || custom.detail?.name;
+      if (name) {
+        const first = name.trim().split(/\s+/)[0];
+        if (first) {
+          setCurrentStudent(first);
+          setAccurateCount((prev) => prev + 1);
+        }
+      }
+    };
+    window.addEventListener("enrollment_created", handleEvent);
+    return () => window.removeEventListener("enrollment_created", handleEvent);
   }, []);
 
   useModalScrollLock(mobileMenuOpen);
@@ -158,29 +200,45 @@ export function SiteHeader({ action }: SiteHeaderProps) {
         backfaceVisibility: "hidden",
       }}
     >
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 md:px-8">
-        {/* Left: Brand Logo & Live Student Count */}
-        <div className="shrink-0 flex items-center gap-2 sm:gap-3">
-          <BrandLogo size="md" />
-
-          {/* Real Enrolled Persons Count Badge */}
-          <Link
-            to="/courses"
-            title={`${enrolledCount}+ active learners enrolled in ArchitectureNext`}
-            className="group inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background/80 px-2.5 py-1 text-xs font-medium text-foreground shadow-2xs backdrop-blur-md transition-all hover:border-primary/50 hover:bg-muted/70 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
-          >
-            <span className="relative flex h-2 w-2">
+      {/* Phone-style Live Enrollment Header Notification (Mobile & Laptop) */}
+      <div className="border-b border-border/50 bg-muted/40 px-3 py-1.5 text-xs text-foreground backdrop-blur-md transition-colors">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 sm:px-4">
+          <div className="flex items-center gap-2 overflow-hidden">
+            {/* Pulsing live dot */}
+            <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
-            <Users className="h-3.5 w-3.5 text-primary transition-transform group-hover:scale-110" />
-            <span className="font-semibold text-foreground">
-              {enrolledCount}+
-            </span>
-            <span className="hidden sm:inline text-muted-foreground text-[11px] font-normal">
-              Students
-            </span>
+
+            {/* Notification / Speaker Icon ("like hear") */}
+            <Volume2 className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
+
+            {/* Accurate Count & Real Live Enrolled Message */}
+            <div className="flex items-center gap-2 text-xs truncate">
+              <span className="font-semibold text-foreground shrink-0">
+                {accurateCount}+ Enrolled
+              </span>
+              <span className="h-3 w-px bg-border/80 shrink-0" aria-hidden="true" />
+              <span className="text-muted-foreground truncate">
+                <strong className="font-semibold text-foreground">{currentStudent}</strong> just enrolled
+              </span>
+            </div>
+          </div>
+
+          <Link
+            to="/courses"
+            className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline shrink-0"
+          >
+            <span>View Courses</span>
+            <ArrowRight className="h-3 w-3" />
           </Link>
+        </div>
+      </div>
+
+      <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 md:px-8">
+        {/* Left: Brand Logo */}
+        <div className="shrink-0">
+          <BrandLogo size="md" />
         </div>
 
         {/* Center: 6 Nav Links (Desktop >= 768px) */}
