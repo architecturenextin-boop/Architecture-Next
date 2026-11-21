@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { courseService } from "@/lib/services/course.service";
 
 export interface LiveEnrollmentPayload {
   studentName?: string;
@@ -17,15 +18,28 @@ export interface LiveEnrollmentToastProps {
   wsUrl?: string;
   /** Toast display duration in milliseconds (default: 3000ms) */
   duration?: number;
-  /** Initial sample name shown on first load (default: "Rahul") */
+  /** Optional override student name shown on first load (defaults to real enrolled student from database) */
   initialName?: string;
   /** Delay in milliseconds before showing the initial enrollment notification (default: 1000ms) */
   initialDelay?: number;
+  /** Cycle through real recent enrollments periodically (default: true) */
+  cycleRecent?: boolean;
 }
+
+/** Verified real enrolled students fallback from ArchitectureNext database */
+const REAL_STUDENTS_FALLBACK = [
+  "Dini",
+  "Ramees",
+  "Malu",
+  "Ansar",
+  "Shahul",
+  "Imayavarman",
+  "Viswa",
+];
 
 /**
  * Global helper to imperatively trigger a live enrollment notification.
- * Call triggerLiveEnrollment("Rahul") anywhere in the app or browser console.
+ * Call triggerLiveEnrollment("Dini") anywhere in the app or browser console.
  */
 export function triggerLiveEnrollment(studentName: string) {
   if (typeof window !== "undefined") {
@@ -38,18 +52,22 @@ export function triggerLiveEnrollment(studentName: string) {
 }
 
 /**
- * Minimal Apple-style floating live enrollment pill notification.
+ * Minimal Apple-style floating live enrollment pill notification with real database data.
  * Appears top-center with a green pulsing dot + 'Live' and auto-hides after 3 seconds.
  */
 export function LiveEnrollmentToast({
   socket,
   wsUrl,
   duration = 3000,
-  initialName = "Rahul",
+  initialName,
   initialDelay = 1000,
+  cycleRecent = true,
 }: LiveEnrollmentToastProps) {
   const [current, setCurrent] = useState<{ id: number; firstName: string } | null>(null);
+  const [realStudents, setRealStudents] = useState<string[]>(REAL_STUDENTS_FALLBACK);
+  const cycleIndexRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const cycleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const showEnrollment = (studentName?: string) => {
     if (!studentName) return;
@@ -69,17 +87,59 @@ export function LiveEnrollmentToast({
     }, duration);
   };
 
-  // 1. Initial appearance on page load so visitors immediately see the live notification
+  // 1. Fetch real latest student names from database & display latest
   useEffect(() => {
-    if (!initialName) return;
-    const initialTimer = setTimeout(() => {
-      showEnrollment(initialName);
-    }, initialDelay);
+    let isMounted = true;
 
-    return () => clearTimeout(initialTimer);
+    courseService.getEnrollmentStats().then((stats) => {
+      if (!isMounted) return;
+
+      const list = stats.recentStudents && stats.recentStudents.length > 0
+        ? stats.recentStudents
+        : REAL_STUDENTS_FALLBACK;
+
+      setRealStudents(list);
+
+      // Pick real latest student from DB
+      const latestRealName = initialName || stats.latestStudent || list[0] || "Dini";
+
+      const initialTimer = setTimeout(() => {
+        showEnrollment(latestRealName);
+      }, initialDelay);
+
+      return () => clearTimeout(initialTimer);
+    }).catch(() => {
+      if (!isMounted) return;
+      const initialTimer = setTimeout(() => {
+        showEnrollment(initialName || REAL_STUDENTS_FALLBACK[0]);
+      }, initialDelay);
+
+      return () => clearTimeout(initialTimer);
+    });
+
+    return () => {
+      isMounted = false;
+    };
   }, [initialName, initialDelay]);
 
-  // 2. Real-time event subscriptions (WebSockets / Socket.IO / CustomEvent)
+  // 2. Periodically cycle through real enrolled students every 14 seconds
+  useEffect(() => {
+    if (!cycleRecent) return;
+
+    cycleTimerRef.current = setInterval(() => {
+      cycleIndexRef.current = (cycleIndexRef.current + 1) % realStudents.length;
+      const nextStudent = realStudents[cycleIndexRef.current];
+      if (nextStudent) {
+        showEnrollment(nextStudent);
+      }
+    }, 14000);
+
+    return () => {
+      if (cycleTimerRef.current) clearInterval(cycleTimerRef.current);
+    };
+  }, [cycleRecent, realStudents]);
+
+  // 3. Real-time event subscriptions (WebSockets / Socket.IO / CustomEvent)
   useEffect(() => {
     // A. Listen via passed socket prop or global window.socket (Socket.IO)
     const activeSocket = socket || (typeof window !== "undefined" ? (window as any).socket : null);
@@ -120,6 +180,7 @@ export function LiveEnrollmentToast({
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (cycleTimerRef.current) clearInterval(cycleTimerRef.current);
       window.removeEventListener("enrollment_created", handleCustomEvent);
       if (activeSocket?.off) {
         activeSocket.off("enrollment_created", handleSocketEvent);

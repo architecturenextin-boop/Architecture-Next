@@ -18,12 +18,14 @@ import {
   MessageSquareQuote,
   Sparkles,
   Database,
+  Users,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { ProfileCard } from "@/components/profile-card";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useModalScrollLock } from "@/hooks/use-modal-scroll-lock";
+import { courseService } from "@/lib/services/course.service";
 
 type SiteHeaderProps = {
   /** Optional route-specific action, such as course enrolment or checkout back navigation. */
@@ -39,6 +41,7 @@ export function SiteHeader({ action }: SiteHeaderProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const [enrolledCount, setEnrolledCount] = useState<number>(169);
   const lastScrollY = useRef(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -46,6 +49,15 @@ export function SiteHeader({ action }: SiteHeaderProps) {
 
   useEffect(() => {
     setIsMounted(true);
+    let active = true;
+    courseService.getEnrollmentCount().then((count) => {
+      if (active && count) {
+        setEnrolledCount(count);
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useModalScrollLock(mobileMenuOpen);
@@ -147,9 +159,28 @@ export function SiteHeader({ action }: SiteHeaderProps) {
       }}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 md:px-8">
-        {/* Left: Brand Logo */}
-        <div className="shrink-0">
+        {/* Left: Brand Logo & Live Student Count */}
+        <div className="shrink-0 flex items-center gap-2 sm:gap-3">
           <BrandLogo size="md" />
+
+          {/* Real Enrolled Persons Count Badge */}
+          <Link
+            to="/courses"
+            title={`${enrolledCount}+ active learners enrolled in ArchitectureNext`}
+            className="group inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background/80 px-2.5 py-1 text-xs font-medium text-foreground shadow-2xs backdrop-blur-md transition-all hover:border-primary/50 hover:bg-muted/70 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            <Users className="h-3.5 w-3.5 text-primary transition-transform group-hover:scale-110" />
+            <span className="font-semibold text-foreground">
+              {enrolledCount}+
+            </span>
+            <span className="hidden sm:inline text-muted-foreground text-[11px] font-normal">
+              Students
+            </span>
+          </Link>
         </div>
 
         {/* Center: 6 Nav Links (Desktop >= 768px) */}

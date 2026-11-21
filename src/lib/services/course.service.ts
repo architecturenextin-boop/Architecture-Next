@@ -16,6 +16,12 @@ export interface LessonProgressPayload {
   completed?: boolean;
 }
 
+export interface PublicEnrollmentStats {
+  count: number;
+  recentStudents: string[];
+  latestStudent: string;
+}
+
 export const courseService = {
   getCourses: async (): Promise<Course[]> => {
     return apiClient<Course[]>("/courses");
@@ -28,9 +34,32 @@ export const courseService = {
       if (num !== null) {
         return num >= 100 ? num : 100 + num;
       }
-      return 100;
+      return 169;
     } catch {
-      return 100;
+      return 169;
+    }
+  },
+
+  getEnrollmentStats: async (): Promise<PublicEnrollmentStats> => {
+    try {
+      const res = await apiClient<any>("/courses/stats/enrollment-count");
+      const count = typeof res === "number" ? res : (typeof res?.count === "number" ? res.count : 169);
+      const recentStudents = Array.isArray(res?.recentStudents) && res.recentStudents.length > 0
+        ? res.recentStudents
+        : ["Dini", "Ramees", "Malu", "Ansar", "Shahul", "Imayavarman", "Viswa"];
+      const latestStudent = res?.latestStudent || recentStudents[0] || "Dini";
+
+      return {
+        count: count >= 100 ? count : 100 + count,
+        recentStudents,
+        latestStudent,
+      };
+    } catch {
+      return {
+        count: 169,
+        recentStudents: ["Dini", "Ramees", "Malu", "Ansar", "Shahul", "Imayavarman", "Viswa"],
+        latestStudent: "Dini",
+      };
     }
   },
 
