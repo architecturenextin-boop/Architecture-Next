@@ -18,6 +18,8 @@ export interface LessonProgressPayload {
 
 export interface PublicEnrollmentStats {
   count: number;
+  activeCount?: number;
+  totalRegisteredCount?: number;
   recentStudents: string[];
   latestStudent: string;
 }
@@ -30,33 +32,37 @@ export const courseService = {
   getEnrollmentCount: async (): Promise<number> => {
     try {
       const res = await apiClient<any>("/courses/stats/enrollment-count");
-      const num = typeof res === "number" ? res : (typeof res?.count === "number" ? res.count : null);
+      const num = typeof res === "number" ? res : (typeof res?.totalRegisteredCount === "number" ? res.totalRegisteredCount : (typeof res?.activeCount === "number" ? res.activeCount : (typeof res?.count === "number" ? res.count : null)));
       if (num !== null) {
-        return num >= 100 ? num : 100 + num;
+        return num;
       }
-      return 169;
+      return 96;
     } catch {
-      return 169;
+      return 96;
     }
   },
 
   getEnrollmentStats: async (): Promise<PublicEnrollmentStats> => {
     try {
       const res = await apiClient<any>("/courses/stats/enrollment-count");
-      const count = typeof res === "number" ? res : (typeof res?.count === "number" ? res.count : 169);
+      const rawCount = res?.totalRegisteredCount || res?.activeCount || (typeof res === "number" ? res : res?.count) || 96;
       const recentStudents = Array.isArray(res?.recentStudents) && res.recentStudents.length > 0
         ? res.recentStudents
         : ["Dini", "Ramees", "Malu", "Ansar", "Shahul", "Imayavarman", "Viswa"];
       const latestStudent = res?.latestStudent || recentStudents[0] || "Dini";
 
       return {
-        count: count >= 100 ? count : 100 + count,
+        count: rawCount,
+        activeCount: rawCount,
+        totalRegisteredCount: rawCount,
         recentStudents,
         latestStudent,
       };
     } catch {
       return {
-        count: 169,
+        count: 96,
+        activeCount: 96,
+        totalRegisteredCount: 96,
         recentStudents: ["Dini", "Ramees", "Malu", "Ansar", "Shahul", "Imayavarman", "Viswa"],
         latestStudent: "Dini",
       };
