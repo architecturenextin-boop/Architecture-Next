@@ -214,48 +214,37 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     >
       {/* Phone-style Live Enrollment Header Notification with Architectural Grid Theme */}
       <div
-        className="relative h-[22px] border-b border-brand-blue/10 bg-[#f8faff] dark:bg-[#0c1222] text-[10px] sm:text-[11px] text-foreground backdrop-blur-md transition-colors overflow-hidden"
+        className="relative h-[24px] border-b border-brand-blue/10 bg-[#f8faff] dark:bg-[#0c1222] text-xs text-foreground backdrop-blur-md transition-colors overflow-hidden"
         style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(41, 67, 152, 0.05) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(41, 67, 152, 0.05) 1px, transparent 1px)
+            linear-gradient(to right, rgba(41, 67, 152, 0.06) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(41, 67, 152, 0.06) 1px, transparent 1px)
           `,
-          backgroundSize: "11px 11px",
+          backgroundSize: "8px 8px",
         }}
       >
         {/* Subtle Brand Theme Gradient Wash */}
-        <div className="absolute inset-0 bg-gradient-to-r from-brand-blue/4 via-brand-purple/4 to-brand-blue/4 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-blue/3 via-brand-purple/3 to-brand-blue/3 pointer-events-none" />
 
         <div className="relative mx-auto flex h-full max-w-7xl items-center justify-between gap-1.5 sm:gap-4 px-4 sm:px-6 md:px-8">
-          <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden">
-            {/* Pulsing live dot */}
-            <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden="true">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-hidden">
+            {/* Live Indicator: Emerald dot with soft mint aura */}
+            <span className="relative flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500/15 shrink-0" aria-hidden="true">
+              <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
             </span>
 
             {/* Notification / Speaker Icon in Brand Color */}
-            <Volume2 className="h-2.5 w-2.5 text-brand-blue/80 dark:text-brand-lilac shrink-0" aria-hidden="true" />
+            <Volume2 className="h-3 w-3 text-brand-blue dark:text-brand-lilac shrink-0" aria-hidden="true" />
 
-            {/* Mobile (Maximum Optimized & Slim): 96+ Already In · Name joined the learning fam! */}
-            <div className="flex items-center gap-1.5 text-[10px] truncate sm:hidden">
-              <span className="font-bold text-brand-blue dark:text-brand-lilac shrink-0">
+            {/* Notification Text (High Contrast & Maximum Legibility) */}
+            <div className="flex items-center gap-2 text-xs truncate">
+              <span className="font-bold text-slate-900 dark:text-white shrink-0 tracking-tight">
                 {accurateCount}+ Already In
               </span>
-              <span className="h-2.5 w-px bg-brand-blue/15 shrink-0" aria-hidden="true" />
-              <span className="truncate text-foreground/90">
-                <strong className="font-semibold text-brand-blue dark:text-foreground">{currentStudent}</strong> joined the learning fam!
-              </span>
-            </div>
-
-            {/* Desktop / Tablet (>= sm): 96+ Already In · Name joined the learning fam! */}
-            <div className="hidden sm:flex items-center gap-2 text-[11px] truncate">
-              <span className="inline-flex items-center rounded-sm bg-brand-blue/8 dark:bg-brand-blue/20 px-1.5 py-0.2 font-bold text-brand-blue dark:text-brand-lilac shrink-0">
-                {accurateCount}+ Already In
-              </span>
-              <span className="h-2.5 w-px bg-brand-blue/15 shrink-0" aria-hidden="true" />
-              <span className="text-muted-foreground truncate">
-                <strong className="font-semibold text-brand-blue dark:text-foreground">{currentStudent}</strong> joined the learning fam!
+              <span className="h-3 w-px bg-slate-300 dark:bg-slate-700 shrink-0" aria-hidden="true" />
+              <span className="truncate text-slate-600 dark:text-slate-300 font-medium">
+                <strong className="font-bold text-slate-900 dark:text-white">{currentStudent}</strong> joined the learning fam!
               </span>
             </div>
           </div>
