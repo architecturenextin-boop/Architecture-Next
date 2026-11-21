@@ -217,10 +217,10 @@ export function SiteHeader({ action }: SiteHeaderProps) {
         className="relative border-b border-brand-blue/20 bg-[#f4f7fc] dark:bg-[#0c1222] text-[10px] sm:text-xs leading-none text-foreground backdrop-blur-md transition-colors overflow-hidden"
         style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(41, 67, 152, 0.08) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(41, 67, 152, 0.08) 1px, transparent 1px)
+            linear-gradient(to right, rgba(41, 67, 152, 0.13) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(41, 67, 152, 0.13) 1px, transparent 1px)
           `,
-          backgroundSize: "16px 16px",
+          backgroundSize: "8px 8px",
         }}
       >
         {/* Subtle Brand Theme Gradient Wash */}
