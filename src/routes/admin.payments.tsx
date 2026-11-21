@@ -133,11 +133,11 @@ function PaymentsPage() {
         </p>
       </div>
 
-      {/* KPI Cards - Detailed Payment & Entry Analytics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {/* KPI Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Net Revenue</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Revenue</span>
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-success/10 text-success">
               <IndianRupee className="h-5 w-5" />
             </div>
@@ -145,55 +145,34 @@ function PaymentsPage() {
           <div className="mt-2 font-display text-2xl font-bold text-foreground">
             ₹{realNetRevenue.toLocaleString()}
           </div>
-          <div className="text-xs text-muted-foreground mt-0.5">From {paidOrders.length} paying learners</div>
-        </div>
-
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 p-5 shadow-soft">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Manual / Free</span>
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-              <Gift className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-2 font-display text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-            {manualOrders.length}
-          </div>
-          <div className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">
-            ₹{manualWaivedValue.toLocaleString()} waived / free access
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 dark:bg-purple-500/10 p-5 shadow-soft">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">Coupons Used</span>
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400">
-              <Tag className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-2 font-display text-2xl font-bold text-purple-700 dark:text-purple-300">
-            {couponOrders.length}
-          </div>
-          <div className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-0.5">
-            ₹{totalCouponDiscounts.toLocaleString()} saved ({uniqueCoupons.length} codes)
-          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">From {paidOrders.length} paying customers ({manualOrders.length} free)</div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Accesses</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Completed Orders</span>
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
               <CheckCircle2 className="h-5 w-5" />
             </div>
           </div>
-          <div className="mt-2 font-display text-2xl font-bold text-foreground">
-            {completedPayments.length}
-          </div>
-          <div className="text-xs text-muted-foreground mt-0.5">{paidOrders.length} paid + {manualCompleted.length} free</div>
+          <div className="mt-2 font-display text-2xl font-bold text-foreground">{completedPayments.length}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{paidOrders.length} paid • {manualOrders.length} free • {couponOrders.length} coupons</div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pending Orders</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Average Order</span>
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent/10 text-accent">
+              <CreditCard className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-2 font-display text-2xl font-bold text-foreground">₹{avgOrderValue.toLocaleString()}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Per paying customer</div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pending / Initiated</span>
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-amber-500/10 text-amber-600">
               <Clock className="h-5 w-5" />
             </div>
@@ -203,7 +182,7 @@ function PaymentsPage() {
         </div>
       </div>
 
-      {/* Filter and Search Bar with Manual & Coupons Filters */}
+      {/* Filter and Search Bar with Free & Coupons Filters */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -215,21 +194,21 @@ function PaymentsPage() {
             All ({payments.length})
           </button>
           <button
-            onClick={() => setStatusFilter("paid")}
-            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer inline-flex items-center gap-1.5 ${
-              statusFilter === "paid" ? "bg-primary text-primary-foreground shadow-xs font-bold" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            onClick={() => setStatusFilter("completed")}
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+              statusFilter === "completed" ? "bg-primary text-primary-foreground shadow-xs" : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
-            <CreditCard className="h-3 w-3" /> Paid Gateway ({paidOrders.length})
+            Completed ({completedPayments.length})
           </button>
           <button
             onClick={() => setStatusFilter("manual")}
             className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer inline-flex items-center gap-1.5 ${
               statusFilter === "manual" ? "bg-emerald-600 text-white shadow-xs font-bold" : "bg-card border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
             }`}
-            title="Filter 100% Free manual entries"
+            title="Filter free manual entries"
           >
-            <Gift className="h-3 w-3" /> Manual Entry (Free) ({manualOrders.length})
+            <Gift className="h-3 w-3" /> Free ({manualOrders.length})
           </button>
           <button
             onClick={() => setStatusFilter("coupon")}
@@ -238,15 +217,7 @@ function PaymentsPage() {
             }`}
             title="Filter coupon applied transactions"
           >
-            <Tag className="h-3 w-3" /> Coupons Entry ({couponOrders.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter("completed")}
-            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
-              statusFilter === "completed" ? "bg-primary text-primary-foreground shadow-xs" : "bg-card border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Completed ({completedPayments.length})
+            <Tag className="h-3 w-3" /> Coupons ({couponOrders.length})
           </button>
           <button
             onClick={() => setStatusFilter("pending")}
@@ -322,12 +293,12 @@ function PaymentsPage() {
                     {r.status === "completed" ? (
                       <button
                         type="button"
-                        onClick={() => toast.success(`Order ${r.orderId} verified and captured.`)}
+                        onClick={() => toast.success(isManual ? `Order ${r.orderId} is free.` : `Order ${r.orderId} verified and captured.`)}
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0 cursor-pointer ${
                           isManual ? "bg-emerald-500/15 text-emerald-600" : "bg-success/15 text-success"
                         }`}
                       >
-                        {isManual ? "Free Access" : "Completed"}
+                        {isManual ? "Free" : "Completed"}
                       </button>
                     ) : r.status === "pending" ? (
                       <button
@@ -492,9 +463,9 @@ function PaymentsPage() {
                                   ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25"
                                   : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
                               }`}
-                              title={isManual ? "Manual Free Access granted" : "Payment successful & captured"}
+                              title={isManual ? "Manual Free access granted" : "Payment successful & captured"}
                             >
-                              <CheckCircle2 className="h-3 w-3" /> {isManual ? "Free Access" : "Completed"}
+                              <CheckCircle2 className="h-3 w-3" /> {isManual ? "Free" : "Completed"}
                             </button>
                           ) : r.status === "pending" ? (
                             <button
@@ -855,7 +826,7 @@ function PaymentsPage() {
                           ? "bg-amber-500/15 text-amber-600" 
                           : "bg-destructive/15 text-destructive"
                       }`}>
-                        {isManual ? "Free Access" : selectedPayment.status}
+                        {isManual ? "Free" : selectedPayment.status}
                       </span>
                     </div>
 

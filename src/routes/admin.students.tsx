@@ -420,8 +420,8 @@ function StudentsPage() {
         </div>
       </div>
 
-      {/* KPI Stats Cards - Enhanced with Free / Manual Entry Analytics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {/* KPI Stats Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Users</span>
@@ -444,17 +444,6 @@ function StudentsPage() {
           <div className="text-xs text-muted-foreground mt-0.5">Enrolled in ≥ 1 course</div>
         </div>
 
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 p-5 shadow-soft">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Free / Manual</span>
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-              <Gift className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-2 font-display text-2xl font-bold text-emerald-700 dark:text-emerald-300">{freeStudentsCount}</div>
-          <div className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">Manual entry &amp; 100% free grants</div>
-        </div>
-
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Enrollments</span>
@@ -463,7 +452,7 @@ function StudentsPage() {
             </div>
           </div>
           <div className="mt-2 font-display text-2xl font-bold">{totalEnrollments}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Active course accesses</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{totalEnrollments} active ({freeStudentsCount} free access)</div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
@@ -511,7 +500,7 @@ function StudentsPage() {
             }`}
             title="Manual entry and free course access"
           >
-            <Gift className="h-3 w-3" /> Free Access ({freeStudentsCount})
+            <Gift className="h-3 w-3" /> Free ({freeStudentsCount})
           </button>
           <button
             onClick={() => setRoleFilter("paid")}
@@ -641,36 +630,13 @@ function StudentsPage() {
                       </div>
                     )}
                     <div className="flex items-center justify-between pt-1">
-                      {(() => {
-                        const free = isStudentFree(r);
-                        const paid = isStudentPaid(r);
-                        if (coursesCount === 0) {
-                          return (
-                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium bg-muted text-muted-foreground">
-                              <BookOpen className="h-3 w-3" /> 0 Courses
-                            </span>
-                          );
-                        }
-                        if (free && !paid) {
-                          return (
-                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                              <Gift className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"} (Free)
-                            </span>
-                          );
-                        }
-                        if (paid && !free) {
-                          return (
-                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold bg-primary/10 text-primary border border-primary/20">
-                              <CreditCard className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"} (Paid)
-                            </span>
-                          );
-                        }
-                        return (
-                          <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
-                            <Sparkles className="h-3 w-3" /> {coursesCount} Courses (Free + Paid)
-                          </span>
-                        );
-                      })()}
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                          coursesCount > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        <BookOpen className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"}
+                      </span>
                       <span className="text-[11px]">Joined {date}</span>
                     </div>
                   </div>
@@ -779,38 +745,15 @@ function StudentsPage() {
                           </div>
                         </td>
 
-                        {/* Courses Count & Access Type (Free vs Paid) */}
+                        {/* Courses Count */}
                         <td className="px-5 py-3.5">
-                          {(() => {
-                            const free = isStudentFree(r);
-                            const paid = isStudentPaid(r);
-                            if (coursesCount === 0) {
-                              return (
-                                <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
-                                  <BookOpen className="h-3 w-3" /> 0 Courses
-                                </span>
-                              );
-                            }
-                            if (free && !paid) {
-                              return (
-                                <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                                  <Gift className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"} (Free)
-                                </span>
-                              );
-                            }
-                            if (paid && !free) {
-                              return (
-                                <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                                  <CreditCard className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"} (Paid)
-                                </span>
-                              );
-                            }
-                            return (
-                              <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
-                                <Sparkles className="h-3 w-3" /> {coursesCount} Courses (Free + Paid)
-                              </span>
-                            );
-                          })()}
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold ${
+                              coursesCount > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            <BookOpen className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"}
+                          </span>
                         </td>
 
                         {/* Onboarded Status */}
