@@ -27,6 +27,9 @@ import {
   Circle,
   Clock,
   PlayCircle,
+  Gift,
+  CreditCard,
+  Sparkles,
 } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
@@ -44,7 +47,7 @@ export const Route = createFileRoute("/admin/students")({
 
 function StudentsPage() {
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "enrolled" | "student" | "admin">("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | "enrolled" | "free" | "paid" | "student" | "admin">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
@@ -324,7 +327,34 @@ function StudentsPage() {
     });
   };
 
-  // Filter students based on search and role/enrollment
+  // Helper to check if a student has Free / Manual entry enrollments
+  const isStudentFree = (s: any) => {
+    if (s.hasFreeAccess) return true;
+    const enrollments = s.enrollments || [];
+    return enrollments.some(
+      (en: any) =>
+        en.isManual ||
+        en.isFree ||
+        !en.payment_id ||
+        en.payment?.gateway === "manual" ||
+        Number(en.payment?.finalAmount) === 0 ||
+        (en.payment?.orderId && String(en.payment.orderId).startsWith("MANUAL_"))
+    );
+  };
+
+  // Helper to check if a student has Paid enrollments
+  const isStudentPaid = (s: any) => {
+    if (s.hasPaidAccess) return true;
+    const enrollments = s.enrollments || [];
+    return enrollments.some(
+      (en: any) =>
+        en.payment &&
+        en.payment?.gateway !== "manual" &&
+        Number(en.payment?.finalAmount) > 0
+    );
+  };
+
+  // Filter students based on search and role/enrollment/free status
   const filteredStudents = useMemo(() => {
     return students.filter((s: any) => {
       const matchSearch =
@@ -340,6 +370,10 @@ function StudentsPage() {
           ? true
           : roleFilter === "enrolled"
           ? coursesCount > 0
+          : roleFilter === "free"
+          ? isStudentFree(s)
+          : roleFilter === "paid"
+          ? isStudentPaid(s)
           : roleFilter === "student"
           ? s.role !== "admin"
           : s.role === "admin";
@@ -365,6 +399,8 @@ function StudentsPage() {
   const enrolledStudents = students.filter(
     (s: any) => (s.coursesCount ?? s.enrollments?.length ?? 0) > 0
   ).length;
+  const freeStudentsCount = students.filter(isStudentFree).length;
+  const paidStudentsCount = students.filter(isStudentPaid).length;
   const totalEnrollments = students.reduce(
     (acc: number, s: any) => acc + (s.coursesCount ?? s.enrollments?.length ?? 0),
     0
@@ -379,13 +415,13 @@ function StudentsPage() {
         <div>
           <h1 className="font-display text-3xl font-bold">Students &amp; Users</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage registered learners, active course enrollments, profile updates, and system roles.
+            Manage registered learners, active course enrollments, free manual grants, profile updates, and system roles.
           </p>
         </div>
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* KPI Stats Cards - Enhanced with Free / Manual Entry Analytics */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Users</span>
@@ -406,6 +442,17 @@ function StudentsPage() {
           </div>
           <div className="mt-2 font-display text-2xl font-bold">{enrolledStudents}</div>
           <div className="text-xs text-muted-foreground mt-0.5">Enrolled in ≥ 1 course</div>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 p-5 shadow-soft">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Free / Manual</span>
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+              <Gift className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-2 font-display text-2xl font-bold text-emerald-700 dark:text-emerald-300">{freeStudentsCount}</div>
+          <div className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">Manual entry &amp; 100% free grants</div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
@@ -431,7 +478,7 @@ function StudentsPage() {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Filter and Search Bar with Top Free Filter */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -454,6 +501,28 @@ function StudentsPage() {
             title="Course purchased & enrolled learners"
           >
             Enrolled Learners ({enrolledStudents})
+          </button>
+          <button
+            onClick={() => setRoleFilter("free")}
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer inline-flex items-center gap-1.5 ${
+              roleFilter === "free"
+                ? "bg-emerald-600 text-white shadow-xs font-bold"
+                : "bg-card border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+            }`}
+            title="Manual entry and free course access"
+          >
+            <Gift className="h-3 w-3" /> Free Access ({freeStudentsCount})
+          </button>
+          <button
+            onClick={() => setRoleFilter("paid")}
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer inline-flex items-center gap-1.5 ${
+              roleFilter === "paid"
+                ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            }`}
+            title="Paid gateway enrollments"
+          >
+            <CreditCard className="h-3 w-3" /> Paid ({paidStudentsCount})
           </button>
           <button
             onClick={() => setRoleFilter("student")}
@@ -572,13 +641,36 @@ function StudentsPage() {
                       </div>
                     )}
                     <div className="flex items-center justify-between pt-1">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold ${
-                          coursesCount > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        <BookOpen className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"}
-                      </span>
+                      {(() => {
+                        const free = isStudentFree(r);
+                        const paid = isStudentPaid(r);
+                        if (coursesCount === 0) {
+                          return (
+                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium bg-muted text-muted-foreground">
+                              <BookOpen className="h-3 w-3" /> 0 Courses
+                            </span>
+                          );
+                        }
+                        if (free && !paid) {
+                          return (
+                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                              <Gift className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"} (Free)
+                            </span>
+                          );
+                        }
+                        if (paid && !free) {
+                          return (
+                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold bg-primary/10 text-primary border border-primary/20">
+                              <CreditCard className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"} (Paid)
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
+                            <Sparkles className="h-3 w-3" /> {coursesCount} Courses (Free + Paid)
+                          </span>
+                        );
+                      })()}
                       <span className="text-[11px]">Joined {date}</span>
                     </div>
                   </div>
@@ -687,15 +779,38 @@ function StudentsPage() {
                           </div>
                         </td>
 
-                        {/* Courses Count */}
+                        {/* Courses Count & Access Type (Free vs Paid) */}
                         <td className="px-5 py-3.5">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold ${
-                              coursesCount > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            <BookOpen className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"}
-                          </span>
+                          {(() => {
+                            const free = isStudentFree(r);
+                            const paid = isStudentPaid(r);
+                            if (coursesCount === 0) {
+                              return (
+                                <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+                                  <BookOpen className="h-3 w-3" /> 0 Courses
+                                </span>
+                              );
+                            }
+                            if (free && !paid) {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                                  <Gift className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"} (Free)
+                                </span>
+                              );
+                            }
+                            if (paid && !free) {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                                  <CreditCard className="h-3 w-3" /> {coursesCount} {coursesCount === 1 ? "Course" : "Courses"} (Paid)
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
+                                <Sparkles className="h-3 w-3" /> {coursesCount} Courses (Free + Paid)
+                              </span>
+                            );
+                          })()}
                         </td>
 
                         {/* Onboarded Status */}
@@ -1382,10 +1497,43 @@ function StudentsPage() {
                           {/* Course Header */}
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-sm text-foreground truncate">
                                   {en.course?.title || courseDetail?.title || "Course"}
                                 </span>
+                                {(() => {
+                                  const isManualFree =
+                                    en.isManual ||
+                                    en.isFree ||
+                                    !en.payment_id ||
+                                    !en.payment ||
+                                    en.payment?.gateway === "manual" ||
+                                    Number(en.payment?.finalAmount) === 0 ||
+                                    (en.payment?.orderId && String(en.payment.orderId).startsWith("MANUAL_"));
+
+                                  if (isManualFree) {
+                                    return (
+                                      <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider inline-flex items-center gap-1 shrink-0">
+                                        <Gift className="h-3 w-3" /> Free • Manual Entry
+                                      </span>
+                                    );
+                                  }
+
+                                  const hasCoupon = Boolean(en.payment?.couponCode || en.payment?.coupon?.code);
+                                  if (hasCoupon) {
+                                    return (
+                                      <span className="rounded-full bg-purple-500/15 border border-purple-500/30 px-2.5 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider inline-flex items-center gap-1 shrink-0">
+                                        <Sparkles className="h-3 w-3" /> Coupon: {en.payment?.couponCode || en.payment?.coupon?.code}
+                                      </span>
+                                    );
+                                  }
+
+                                  return (
+                                    <span className="rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wider inline-flex items-center gap-1 shrink-0">
+                                      <CreditCard className="h-3 w-3" /> Paid Online
+                                    </span>
+                                  );
+                                })()}
                                 <span className="rounded-full bg-success/15 px-2.5 py-0.5 text-[10px] font-bold text-success uppercase shrink-0">
                                   {en.status || "active"}
                                 </span>
@@ -1565,19 +1713,30 @@ function StudentsPage() {
                   </div>
                 )}
 
-                {/* Grant Instant Course Access */}
+                {/* Grant Free Course Access (Manual Enrollment) */}
                 <div className="mt-3 pt-4 border-t border-border space-y-2">
-                  <span className="text-xs font-semibold text-foreground block">Grant Instant Course Access</span>
-                  <div className="flex flex-col sm:flex-row gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Gift className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      Grant Free Course Access (Manual Enrollment)
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full">
+                      100% Free / Admin Granted
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Enroll this student directly without payment. Will be tracked in records as a Free Manual Entry.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
                     <select
                       value={enrollCourseId}
                       onChange={(e) => setEnrollCourseId(e.target.value)}
                       className="flex-1 rounded-xl border border-input bg-surface px-3 py-2 text-xs shadow-soft outline-none focus:ring-2 focus:ring-ring"
                     >
-                      <option value="">Select course to enroll...</option>
+                      <option value="">Select course to enroll for free...</option>
                       {courses.map((c: any) => (
                         <option key={c.id} value={c.id}>
-                          {c.title} (₹{c.price})
+                          {c.title} (Value: ₹{c.price})
                         </option>
                       ))}
                     </select>
@@ -1596,7 +1755,7 @@ function StudentsPage() {
                                 coursesCount: (selectedStudent.coursesCount || 0) + 1,
                                 enrollments: [
                                   ...(selectedStudent.enrollments || []),
-                                  { ...newEnroll, course: courseObj },
+                                  { ...newEnroll, course: courseObj, isManual: true, isFree: true },
                                 ],
                               });
                               setEnrollCourseId("");
@@ -1604,9 +1763,9 @@ function StudentsPage() {
                           }
                         );
                       }}
-                      className="bg-gradient-primary text-primary-foreground text-xs font-semibold h-9 shrink-0 cursor-pointer"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold h-9 shrink-0 cursor-pointer shadow-xs gap-1.5"
                     >
-                      <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Enroll Student
+                      <Gift className="h-3.5 w-3.5" /> Grant Free Access
                     </Button>
                   </div>
                 </div>

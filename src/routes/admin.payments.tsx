@@ -1,7 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { adminService } from "@/lib/services/admin.service";
-import { Loader2, Search, CreditCard, ArrowUpRight, CheckCircle2, Clock, AlertTriangle, IndianRupee, Eye, X, BookOpen, User, Calendar, Mail, Phone, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  CreditCard,
+  ArrowUpRight,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  IndianRupee,
+  Eye,
+  X,
+  BookOpen,
+  User,
+  Calendar,
+  Mail,
+  Phone,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  Gift,
+  Tag,
+  Sparkles,
+} from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,7 +37,7 @@ export const Route = createFileRoute("/admin/payments")({
 
 function PaymentsPage() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "pending" | "failed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "pending" | "failed" | "manual" | "coupon" | "paid">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
@@ -34,7 +56,7 @@ function PaymentsPage() {
     },
   });
 
-  // Filter payments
+  // Filter payments with Manual & Coupon entry capabilities
   const filteredPayments = useMemo(() => {
     return payments.filter((p: any) => {
       const matchSearch =
@@ -43,11 +65,23 @@ function PaymentsPage() {
         p.studentEmail.toLowerCase().includes(search.toLowerCase()) ||
         p.courseTitle.toLowerCase().includes(search.toLowerCase()) ||
         (p.orderId || "").toLowerCase().includes(search.toLowerCase()) ||
-        (p.paymentId || "").toLowerCase().includes(search.toLowerCase());
+        (p.paymentId || "").toLowerCase().includes(search.toLowerCase()) ||
+        (p.couponCode || "").toLowerCase().includes(search.toLowerCase());
 
-      const matchStatus = statusFilter === "all" || p.status === statusFilter;
+      const isManual = p.isManual || p.gateway === "manual" || (p.orderId && String(p.orderId).startsWith("MANUAL_"));
+      const isCoupon = p.isCoupon || Boolean(p.couponCode || p.coupon?.code || p.couponId);
+      const isPaid = !isManual && Number(p.finalAmount ?? p.amount) > 0;
 
-      return matchSearch && matchStatus;
+      let matchFilter = true;
+      if (statusFilter === "all") matchFilter = true;
+      else if (statusFilter === "completed") matchFilter = p.status === "completed";
+      else if (statusFilter === "pending") matchFilter = p.status === "pending";
+      else if (statusFilter === "failed") matchFilter = p.status === "failed";
+      else if (statusFilter === "manual") matchFilter = isManual;
+      else if (statusFilter === "coupon") matchFilter = isCoupon;
+      else if (statusFilter === "paid") matchFilter = isPaid;
+
+      return matchSearch && matchFilter;
     });
   }, [payments, search, statusFilter]);
 
@@ -62,62 +96,104 @@ function PaymentsPage() {
     return filteredPayments.slice(start, start + pageSize);
   }, [filteredPayments, currentPage, pageSize]);
 
-  // Aggregate Metrics
+  // Comprehensive Analytics Breakdown ("Analyzing Current")
   const completedPayments = payments.filter((p: any) => p.status === "completed");
-  const totalRevenue = completedPayments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+
+  // 1. Real Paid Gateway Transactions (Excludes free manual entries from revenue)
+  const paidOrders = completedPayments.filter(
+    (p: any) => !p.isManual && p.gateway !== "manual" && !String(p.orderId || "").startsWith("MANUAL_") && Number(p.finalAmount ?? p.amount) > 0
+  );
+  const realNetRevenue = paidOrders.reduce((sum: number, p: any) => sum + (Number(p.finalAmount ?? p.amount) || 0), 0);
+
+  // 2. Manual / Free Admin Grants Analytics
+  const manualOrders = payments.filter(
+    (p: any) => p.isManual || p.gateway === "manual" || String(p.orderId || "").startsWith("MANUAL_")
+  );
+  const manualCompleted = manualOrders.filter((p: any) => p.status === "completed");
+  const manualWaivedValue = manualOrders.reduce((sum: number, p: any) => sum + (Number(p.originalAmount ?? p.amount) || 0), 0);
+
+  // 3. Coupons Redemptions Analytics
+  const couponOrders = payments.filter(
+    (p: any) => p.isCoupon || Boolean(p.couponCode || p.coupon?.code || p.couponId)
+  );
+  const totalCouponDiscounts = couponOrders.reduce((sum: number, p: any) => sum + (Number(p.discountAmount) || 0), 0);
+  const uniqueCoupons = Array.from(new Set(couponOrders.map((p: any) => p.couponCode || p.coupon?.code).filter(Boolean)));
+
   const pendingCount = payments.filter((p: any) => p.status === "pending").length;
-  const avgOrderValue = completedPayments.length > 0 ? Math.round(totalRevenue / completedPayments.length) : 0;
+  const failedCount = payments.filter((p: any) => p.status === "failed").length;
+  const avgOrderValue = paidOrders.length > 0 ? Math.round(realNetRevenue / paidOrders.length) : 0;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-display text-3xl font-bold">Payments & Transactions</h1>
+        <h1 className="font-display text-3xl font-bold">Payments &amp; Transactions</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Real-time transaction history, revenue analytics, and gateway order logs.
+          Real-time transaction history, paid gateway analytics, free manual entries, and coupon redemption tracking.
         </p>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* KPI Cards - Detailed Payment & Entry Analytics */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Revenue</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Net Revenue</span>
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-success/10 text-success">
               <IndianRupee className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-2 font-display text-2xl font-bold text-foreground">
-            ₹{totalRevenue.toLocaleString()}
+            ₹{realNetRevenue.toLocaleString()}
           </div>
-          <div className="text-xs text-muted-foreground mt-0.5">From {completedPayments.length} successful sales</div>
+          <div className="text-xs text-muted-foreground mt-0.5">From {paidOrders.length} paying learners</div>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 p-5 shadow-soft">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Manual / Free</span>
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+              <Gift className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-2 font-display text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+            {manualOrders.length}
+          </div>
+          <div className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">
+            ₹{manualWaivedValue.toLocaleString()} waived / free access
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 dark:bg-purple-500/10 p-5 shadow-soft">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">Coupons Used</span>
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400">
+              <Tag className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-2 font-display text-2xl font-bold text-purple-700 dark:text-purple-300">
+            {couponOrders.length}
+          </div>
+          <div className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-0.5">
+            ₹{totalCouponDiscounts.toLocaleString()} saved ({uniqueCoupons.length} codes)
+          </div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Completed Orders</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Accesses</span>
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
               <CheckCircle2 className="h-5 w-5" />
             </div>
           </div>
-          <div className="mt-2 font-display text-2xl font-bold text-foreground">{completedPayments.length}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">100% verified transactions</div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Average Order</span>
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent/10 text-accent">
-              <CreditCard className="h-5 w-5" />
-            </div>
+          <div className="mt-2 font-display text-2xl font-bold text-foreground">
+            {completedPayments.length}
           </div>
-          <div className="mt-2 font-display text-2xl font-bold text-foreground">₹{avgOrderValue.toLocaleString()}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Per paying customer</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{paidOrders.length} paid + {manualCompleted.length} free</div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pending / Initiated</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pending Orders</span>
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-amber-500/10 text-amber-600">
               <Clock className="h-5 w-5" />
             </div>
@@ -127,40 +203,66 @@ function PaymentsPage() {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Filter and Search Bar with Manual & Coupons Filters */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setStatusFilter("all")}
-            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-              statusFilter === "all" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+              statusFilter === "all" ? "bg-primary text-primary-foreground shadow-xs" : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
             All ({payments.length})
           </button>
           <button
+            onClick={() => setStatusFilter("paid")}
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer inline-flex items-center gap-1.5 ${
+              statusFilter === "paid" ? "bg-primary text-primary-foreground shadow-xs font-bold" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <CreditCard className="h-3 w-3" /> Paid Gateway ({paidOrders.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter("manual")}
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer inline-flex items-center gap-1.5 ${
+              statusFilter === "manual" ? "bg-emerald-600 text-white shadow-xs font-bold" : "bg-card border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+            }`}
+            title="Filter 100% Free manual entries"
+          >
+            <Gift className="h-3 w-3" /> Manual Entry (Free) ({manualOrders.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter("coupon")}
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer inline-flex items-center gap-1.5 ${
+              statusFilter === "coupon" ? "bg-purple-600 text-white shadow-xs font-bold" : "bg-card border border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
+            }`}
+            title="Filter coupon applied transactions"
+          >
+            <Tag className="h-3 w-3" /> Coupons Entry ({couponOrders.length})
+          </button>
+          <button
             onClick={() => setStatusFilter("completed")}
-            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-              statusFilter === "completed" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+              statusFilter === "completed" ? "bg-primary text-primary-foreground shadow-xs" : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
             Completed ({completedPayments.length})
           </button>
           <button
             onClick={() => setStatusFilter("pending")}
-            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-              statusFilter === "pending" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+              statusFilter === "pending" ? "bg-primary text-primary-foreground shadow-xs" : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
             Pending ({pendingCount})
           </button>
           <button
             onClick={() => setStatusFilter("failed")}
-            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-              statusFilter === "failed" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+              statusFilter === "failed" ? "bg-primary text-primary-foreground shadow-xs" : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
-            Failed ({payments.filter((p: any) => p.status === "failed").length})
+            Failed ({failedCount})
           </button>
         </div>
 
@@ -193,7 +295,8 @@ function PaymentsPage() {
             {paginatedPayments.map((r: any) => {
               const date = r.created_at ? new Date(r.created_at).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "N/A";
               const currSymbol = r.currency === "INR" || !r.currency ? "₹" : r.currency;
-              const isManual = r.gateway === "manual";
+              const isManual = r.isManual || r.gateway === "manual" || (r.orderId && String(r.orderId).startsWith("MANUAL_"));
+              const isCoupon = r.isCoupon || Boolean(r.couponCode);
               return (
                 <article key={r.id} className="rounded-2xl border border-border bg-card p-4 shadow-soft space-y-3">
                   <div className="flex items-start justify-between gap-2">
@@ -201,24 +304,30 @@ function PaymentsPage() {
                       <span className="font-mono text-[11px] font-bold text-foreground block truncate">
                         {r.orderId}
                       </span>
-                      <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md inline-block mt-0.5 ${
-                        isManual
-                          ? "bg-purple-500/10 text-purple-600 border border-purple-500/20"
-                          : r.gateway === "COUPON"
-                          ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                          : "bg-muted text-muted-foreground"
-                      }`}>
-                        {isManual ? "Direct Enrollment" : r.gateway || "Razorpay"}
-                      </span>
+                      {isManual ? (
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md inline-flex items-center gap-1 mt-0.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                          <Gift className="h-2.5 w-2.5" /> Manual Entry (Free)
+                        </span>
+                      ) : isCoupon ? (
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md inline-flex items-center gap-1 mt-0.5 bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25">
+                          <Tag className="h-2.5 w-2.5" /> Coupon: {r.couponCode}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md inline-block mt-0.5 bg-muted text-muted-foreground">
+                          {r.gateway || "Razorpay"}
+                        </span>
+                      )}
                     </div>
 
                     {r.status === "completed" ? (
                       <button
                         type="button"
                         onClick={() => toast.success(`Order ${r.orderId} verified and captured.`)}
-                        className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-success/15 text-success shrink-0 cursor-pointer"
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0 cursor-pointer ${
+                          isManual ? "bg-emerald-500/15 text-emerald-600" : "bg-success/15 text-success"
+                        }`}
                       >
-                        Completed
+                        {isManual ? "Free Access" : "Completed"}
                       </button>
                     ) : r.status === "pending" ? (
                       <button
@@ -247,16 +356,27 @@ function PaymentsPage() {
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    <div>
-                      <span className="font-display font-bold text-base text-foreground">
-                        {currSymbol}{Number(r.finalAmount ?? r.amount).toLocaleString()}
-                      </span>
-                      {r.discountAmount > 0 && (
-                        <span className="ml-1.5 text-[11px] text-muted-foreground line-through">
-                          {currSymbol}{Number(r.originalAmount ?? (r.amount + r.discountAmount)).toLocaleString()}
+                    {isManual ? (
+                      <div>
+                        <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md text-xs uppercase tracking-wider">
+                          <Gift className="h-3 w-3" /> Free (₹0)
                         </span>
-                      )}
-                    </div>
+                        <span className="ml-1.5 text-[11px] text-muted-foreground line-through">
+                          {currSymbol}{Number(r.originalAmount || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <span className="font-display font-bold text-base text-foreground">
+                          {currSymbol}{Number(r.finalAmount ?? r.amount).toLocaleString()}
+                        </span>
+                        {r.discountAmount > 0 && (
+                          <span className="ml-1.5 text-[11px] text-muted-foreground line-through">
+                            {currSymbol}{Number(r.originalAmount ?? (r.amount + r.discountAmount)).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -304,7 +424,8 @@ function PaymentsPage() {
                   {paginatedPayments.map((r: any) => {
                     const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : "N/A";
                     const currSymbol = r.currency === "INR" || !r.currency ? "₹" : r.currency;
-                    const isManual = r.gateway === "manual";
+                    const isManual = r.isManual || r.gateway === "manual" || (r.orderId && String(r.orderId).startsWith("MANUAL_"));
+                    const isCoupon = r.isCoupon || Boolean(r.couponCode);
                     const initial = (r.studentName || r.studentEmail || "L")[0].toUpperCase();
 
                     return (
@@ -335,15 +456,19 @@ function PaymentsPage() {
                             </div>
                             <div className="flex items-center gap-1.5 text-muted-foreground font-mono text-[11px]">
                               <span className="truncate max-w-[180px]">{r.orderId}</span>
-                              <span className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
-                                isManual
-                                  ? "bg-purple-500/10 text-purple-600"
-                                  : r.gateway === "COUPON"
-                                  ? "bg-emerald-500/10 text-emerald-600"
-                                  : "bg-muted text-muted-foreground"
-                              }`}>
-                                {isManual ? "Direct" : r.gateway || "Razorpay"}
-                              </span>
+                              {isManual ? (
+                                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 inline-flex items-center gap-1">
+                                  <Gift className="h-2.5 w-2.5" /> Manual (Free)
+                                </span>
+                              ) : isCoupon ? (
+                                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25 inline-flex items-center gap-1">
+                                  <Tag className="h-2.5 w-2.5" /> {r.couponCode}
+                                </span>
+                              ) : (
+                                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                  {r.gateway || "Razorpay"}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -361,11 +486,15 @@ function PaymentsPage() {
                           {r.status === "completed" ? (
                             <button
                               type="button"
-                              onClick={() => toast.success(`Payment verified! Order ${r.orderId} was captured successfully.`)}
-                              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-                              title="Payment successful & captured"
+                              onClick={() => toast.success(isManual ? `Order ${r.orderId} granted for free.` : `Payment verified! Order ${r.orderId} was captured successfully.`)}
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors cursor-pointer ${
+                                isManual
+                                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25"
+                                  : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
+                              }`}
+                              title={isManual ? "Manual Free Access granted" : "Payment successful & captured"}
                             >
-                              <CheckCircle2 className="h-3 w-3" /> Completed
+                              <CheckCircle2 className="h-3 w-3" /> {isManual ? "Free Access" : "Completed"}
                             </button>
                           ) : r.status === "pending" ? (
                             <button
@@ -397,15 +526,33 @@ function PaymentsPage() {
                         </td>
 
                         {/* Amount */}
-                        <td className="px-5 py-3.5 text-right font-display font-bold text-base text-foreground whitespace-nowrap">
-                          <div>
-                            <span>{currSymbol}{Number(r.finalAmount ?? r.amount).toLocaleString()}</span>
-                            {r.discountAmount > 0 && (
-                              <span className="block text-[11px] text-muted-foreground line-through font-normal">
-                                {currSymbol}{Number(r.originalAmount ?? (r.amount + r.discountAmount)).toLocaleString()}
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                          {isManual ? (
+                            <div>
+                              <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md text-xs uppercase tracking-wider">
+                                <Gift className="h-3 w-3" /> Free (₹0)
                               </span>
-                            )}
-                          </div>
+                              <span className="block text-[11px] text-muted-foreground line-through font-normal mt-0.5">
+                                {currSymbol}{Number(r.originalAmount || 0).toLocaleString()}
+                              </span>
+                            </div>
+                          ) : (
+                            <div>
+                              <span className="font-display font-bold text-base text-foreground">
+                                {currSymbol}{Number(r.finalAmount ?? r.amount).toLocaleString()}
+                              </span>
+                              {r.discountAmount > 0 && (
+                                <div className="flex items-center justify-end gap-1 text-[11px] font-normal">
+                                  <span className="text-muted-foreground line-through">
+                                    {currSymbol}{Number(r.originalAmount ?? (r.amount + r.discountAmount)).toLocaleString()}
+                                  </span>
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                    (-{currSymbol}{Number(r.discountAmount).toLocaleString()})
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* Action */}
@@ -661,53 +808,87 @@ function PaymentsPage() {
               tabIndex={0}
               className="flex-1 min-h-0 modal-scroll-container p-6 space-y-4 text-xs focus:outline-none"
             >
-              <div className="rounded-2xl bg-muted/20 p-4 border border-border flex items-center justify-between">
-                <div>
-                  <span className="text-muted-foreground block">Amount Paid</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-display text-2xl font-extrabold text-foreground">
-                      {selectedPayment.currency === "INR" || !selectedPayment.currency ? "₹" : selectedPayment.currency}
-                      {Number(selectedPayment.finalAmount ?? selectedPayment.amount).toLocaleString()}
-                    </span>
-                    {selectedPayment.discountAmount > 0 && (
-                      <span className="text-xs text-muted-foreground line-through">
-                        {selectedPayment.currency === "INR" || !selectedPayment.currency ? "₹" : selectedPayment.currency}
-                        {Number(selectedPayment.originalAmount ?? (selectedPayment.amount + selectedPayment.discountAmount)).toLocaleString()}
+              {(() => {
+                const isManual = selectedPayment.isManual || selectedPayment.gateway === "manual" || (selectedPayment.orderId && String(selectedPayment.orderId).startsWith("MANUAL_"));
+                const isCoupon = selectedPayment.isCoupon || Boolean(selectedPayment.couponCode);
+                const curr = selectedPayment.currency === "INR" || !selectedPayment.currency ? "₹" : selectedPayment.currency;
+
+                return (
+                  <>
+                    <div className="rounded-2xl bg-muted/20 p-4 border border-border flex items-center justify-between">
+                      <div>
+                        <span className="text-muted-foreground block">
+                          {isManual ? "Tuition Fee Status" : "Amount Paid"}
+                        </span>
+                        <div className="flex items-baseline gap-2">
+                          {isManual ? (
+                            <span className="font-display text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1.5">
+                              <Gift className="h-6 w-6" /> FREE (100% Waived)
+                            </span>
+                          ) : (
+                            <span className="font-display text-2xl font-extrabold text-foreground">
+                              {curr}{Number(selectedPayment.finalAmount ?? selectedPayment.amount).toLocaleString()}
+                            </span>
+                          )}
+                          {Number(selectedPayment.originalAmount) > 0 && (
+                            <span className="text-xs text-muted-foreground line-through">
+                              {curr}{Number(selectedPayment.originalAmount).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        {isManual ? (
+                          <span className="inline-block mt-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 rounded">
+                            Direct Admin Free Enrollment • No Payment Required
+                          </span>
+                        ) : isCoupon ? (
+                          <span className="inline-block mt-1 text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-500/15 border border-purple-500/25 px-2 py-0.5 rounded">
+                            Coupon Applied: {selectedPayment.couponCode} (-{curr}{Number(selectedPayment.discountAmount).toLocaleString()})
+                          </span>
+                        ) : null}
+                      </div>
+                      <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+                        isManual
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25"
+                          : selectedPayment.status === "completed" 
+                          ? "bg-success/15 text-success" 
+                          : selectedPayment.status === "pending" 
+                          ? "bg-amber-500/15 text-amber-600" 
+                          : "bg-destructive/15 text-destructive"
+                      }`}>
+                        {isManual ? "Free Access" : selectedPayment.status}
                       </span>
-                    )}
-                  </div>
-                  {selectedPayment.couponCode && (
-                    <span className="inline-block mt-1 text-[11px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                      Coupon Applied: {selectedPayment.couponCode}
-                    </span>
-                  )}
-                </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
-                  selectedPayment.status === "completed" 
-                    ? "bg-success/15 text-success" 
-                    : selectedPayment.status === "pending" 
-                    ? "bg-amber-500/15 text-amber-600" 
-                    : "bg-destructive/15 text-destructive"
-                }`}>
-                  {selectedPayment.status}
-                </span>
-              </div>
+                    </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-border p-3">
-                  <span className="text-muted-foreground block font-medium">Gateway / Method</span>
-                  <span className="font-semibold text-foreground text-xs uppercase">
-                    {selectedPayment.gateway === "manual" ? "Direct / Admin Enrollment" : selectedPayment.gateway || "Razorpay"}
-                  </span>
-                </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-border p-3">
+                        <span className="text-muted-foreground block font-medium">Gateway / Method</span>
+                        <span className="font-semibold text-foreground text-xs uppercase inline-flex items-center gap-1">
+                          {isManual ? (
+                            <>
+                              <Gift className="h-3.5 w-3.5 text-emerald-600" />
+                              Manual Entry (Free Grant)
+                            </>
+                          ) : isCoupon ? (
+                            <>
+                              <Tag className="h-3.5 w-3.5 text-purple-600" />
+                              Coupon ({selectedPayment.couponCode})
+                            </>
+                          ) : (
+                            selectedPayment.gateway || "Razorpay"
+                          )}
+                        </span>
+                      </div>
 
-                <div className="rounded-xl border border-border p-3">
-                  <span className="text-muted-foreground block font-medium">Order ID</span>
-                  <span className="font-mono font-semibold text-foreground text-xs break-all">
-                    {selectedPayment.orderId}
-                  </span>
-                </div>
-              </div>
+                      <div className="rounded-xl border border-border p-3">
+                        <span className="text-muted-foreground block font-medium">Order ID</span>
+                        <span className="font-mono font-semibold text-foreground text-xs break-all">
+                          {selectedPayment.orderId}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
 
               <div className="rounded-xl border border-border p-3">
                 <span className="text-muted-foreground block font-medium">Payment ID</span>
