@@ -19,6 +19,43 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
+    <!-- JSON-LD Structured Data for Google Rich Snippets & Sitelinks -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "EducationalOrganization",
+          "@id": "https://www.architecturenext.in/#organization",
+          "name": "ArchitectureNext",
+          "url": "https://www.architecturenext.in",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://www.architecturenext.in/icon-512.png",
+            "width": 512,
+            "height": 512
+          },
+          "image": "https://www.architecturenext.in/og-image.png",
+          "description": "Professional architecture and interior design courses in Kerala — AutoCAD, SketchUp, Photoshop, AI workflows, and internship certification.",
+          "address": {
+            "@type": "PostalAddress",
+            "addressRegion": "Kerala",
+            "addressCountry": "IN"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.architecturenext.in/#website",
+          "url": "https://www.architecturenext.in",
+          "name": "ArchitectureNext",
+          "publisher": {
+            "@id": "https://www.architecturenext.in/#organization"
+          }
+        }
+      ]
+    }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
