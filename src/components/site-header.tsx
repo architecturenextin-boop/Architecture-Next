@@ -212,9 +212,21 @@ export function SiteHeader({ action }: SiteHeaderProps) {
         backfaceVisibility: "hidden",
       }}
     >
-      {/* Phone-style Live Enrollment Header Notification (Mobile & Laptop) */}
-      <div className="border-b border-border/50 bg-muted/40 text-xs text-foreground backdrop-blur-md transition-colors">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 md:px-8 py-1 sm:py-1.5">
+      {/* Phone-style Live Enrollment Header Notification with Architectural Grid Theme */}
+      <div
+        className="relative border-b border-brand-blue/20 bg-[#f4f7fc] dark:bg-[#0c1222] text-xs text-foreground backdrop-blur-md transition-colors overflow-hidden"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(41, 67, 152, 0.08) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(41, 67, 152, 0.08) 1px, transparent 1px)
+          `,
+          backgroundSize: "16px 16px",
+        }}
+      >
+        {/* Subtle Brand Theme Gradient Wash */}
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-blue/6 via-brand-purple/6 to-brand-blue/6 pointer-events-none" />
+
+        <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 md:px-8 py-1 sm:py-1.5">
           <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden">
             {/* Pulsing live dot */}
             <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
@@ -222,27 +234,27 @@ export function SiteHeader({ action }: SiteHeaderProps) {
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
 
-            {/* Notification / Speaker Icon */}
-            <Volume2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary shrink-0" aria-hidden="true" />
+            {/* Notification / Speaker Icon in Brand Color */}
+            <Volume2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-brand-blue dark:text-brand-lilac shrink-0" aria-hidden="true" />
 
             {/* Mobile (Maximum Optimized): 69+ Name enrolled */}
             <div className="flex items-center gap-1.5 text-[11px] truncate sm:hidden">
-              <span className="font-bold text-foreground shrink-0">
+              <span className="font-bold text-brand-blue dark:text-brand-lilac shrink-0">
                 {accurateCount}+
               </span>
               <span className="truncate text-foreground/90">
-                <strong className="font-semibold text-foreground">{currentStudent}</strong> enrolled
+                <strong className="font-semibold text-brand-blue dark:text-foreground">{currentStudent}</strong> enrolled
               </span>
             </div>
 
             {/* Desktop / Tablet (>= sm): 69+ Enrolled · Name just enrolled */}
             <div className="hidden sm:flex items-center gap-2 text-xs truncate">
-              <span className="font-semibold text-foreground shrink-0">
+              <span className="inline-flex items-center rounded-md bg-brand-blue/10 dark:bg-brand-blue/25 px-1.5 py-0.5 font-bold text-brand-blue dark:text-brand-lilac shrink-0">
                 {accurateCount}+ Enrolled
               </span>
-              <span className="h-3 w-px bg-border/80 shrink-0" aria-hidden="true" />
+              <span className="h-3 w-px bg-brand-blue/20 shrink-0" aria-hidden="true" />
               <span className="text-muted-foreground truncate">
-                <strong className="font-semibold text-foreground">{currentStudent}</strong> just enrolled
+                <strong className="font-semibold text-brand-blue dark:text-foreground">{currentStudent}</strong> just enrolled
               </span>
             </div>
           </div>
