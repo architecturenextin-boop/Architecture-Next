@@ -564,7 +564,8 @@ function StudentsPage() {
             {paginatedStudents.map((r: any) => {
               const coursesCount = r.coursesCount || 0;
               const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : "N/A";
-              const initial = (r.full_name || r.email || "L")[0].toUpperCase();
+              const studentDisplayName = r.full_name || [r.first_name, r.last_name].filter(Boolean).join(" ") || r.username || r.email || "Learner";
+              const initial = studentDisplayName[0].toUpperCase();
 
               return (
                 <article key={r.id} className="rounded-2xl border border-border bg-card p-4 shadow-soft space-y-3">
@@ -575,7 +576,7 @@ function StudentsPage() {
                       </div>
                       <div className="min-w-0">
                         <span className="font-semibold text-foreground block truncate">
-                          {r.full_name || "Learner"}
+                          {studentDisplayName}
                         </span>
                         <span className="text-[11px] text-muted-foreground font-mono block">
                           ID: {r.id.substring(0, 8)}...
@@ -696,7 +697,8 @@ function StudentsPage() {
                   {paginatedStudents.map((r: any) => {
                     const coursesCount = r.coursesCount || 0;
                     const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : "N/A";
-                    const initial = (r.full_name || r.email || "L")[0].toUpperCase();
+                    const studentDisplayName = r.full_name || [r.first_name, r.last_name].filter(Boolean).join(" ") || r.username || r.email || "Learner";
+                    const initial = studentDisplayName[0].toUpperCase();
 
                     return (
                       <tr key={r.id} className="hover:bg-muted/20 transition-colors">
@@ -709,7 +711,7 @@ function StudentsPage() {
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <span className="font-semibold text-foreground block truncate">
-                                  {r.full_name || "Learner"}
+                                  {studentDisplayName}
                                 </span>
                                 {r.role === "admin" && (
                                   <span className="rounded-full px-2 py-0.2 text-[9px] font-bold uppercase tracking-wider bg-purple-500/15 text-purple-600 border border-purple-500/20 shrink-0">

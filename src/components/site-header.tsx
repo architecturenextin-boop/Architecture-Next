@@ -76,7 +76,10 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     let active = true;
     courseService.getEnrollmentStats().then((stats) => {
       if (!active) return;
-      if (stats.activeCount) setAccurateCount(stats.activeCount);
+      const countVal = stats.totalRegisteredCount ?? stats.activeCount ?? stats.count;
+      if (typeof countVal === "number" && countVal > 0) {
+        setAccurateCount(countVal);
+      }
       if (stats.recentStudents && stats.recentStudents.length > 0) {
         setStudentList((prev) => {
           const combined = [...stats.recentStudents, ...prev];
@@ -92,6 +95,8 @@ export function SiteHeader({ action }: SiteHeaderProps) {
           }
           return unique.length > 0 ? unique : prev;
         });
+        // Immediately start with the newest / last student from the database
+        setStudentIndex(0);
       }
     });
     return () => {
@@ -99,8 +104,11 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     };
   }, []);
 
-  // Include the current logged in user in the learner rotation pool (only once, never lock cycling)
+  // Include the current logged in user in the learner rotation pool (only if student, only once, never lock cycling)
   useEffect(() => {
+    const userRole = (profile?.role || user?.role || "").toLowerCase();
+    if (userRole === "admin") return;
+
     const rawName = profile?.first_name || profile?.full_name || profile?.username || user?.name || "";
     const myFirstName = rawName.trim().split(/\s+/)[0];
     if (
@@ -115,7 +123,7 @@ export function SiteHeader({ action }: SiteHeaderProps) {
         return [myFirstName, ...filtered];
       });
     }
-  }, [profile?.first_name, profile?.full_name, profile?.username, user?.name]);
+  }, [profile?.first_name, profile?.full_name, profile?.username, profile?.role, user?.name, user?.role]);
 
   // Smoothly cycle real enrolled & registered students every 3.5 seconds across all learners
   useEffect(() => {
