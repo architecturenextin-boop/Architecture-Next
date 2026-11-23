@@ -463,7 +463,7 @@ function PaymentsPage() {
                                   ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25"
                                   : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
                               }`}
-                              title={isManual ? "Manual Free access granted" : "Payment successful & captured"}
+                              title={isManual ? "Manual Free grant" : "Payment successful & captured"}
                             >
                               <CheckCircle2 className="h-3 w-3" /> {isManual ? "Free" : "Completed"}
                             </button>

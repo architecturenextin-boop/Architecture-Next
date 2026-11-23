@@ -154,6 +154,11 @@ export function SiteHeader({ action }: SiteHeaderProps) {
 
   useModalScrollLock(mobileMenuOpen);
 
+  const mobileMenuOpenRef = useRef(mobileMenuOpen);
+  useEffect(() => {
+    mobileMenuOpenRef.current = mobileMenuOpen;
+  }, [mobileMenuOpen]);
+
   // Track scroll position for frosted-glass & scroll direction for hide/show effect (desktop only)
   useEffect(() => {
     let ticking = false;
@@ -168,7 +173,7 @@ export function SiteHeader({ action }: SiteHeaderProps) {
           setIsScrolled(currentScrollY > 15);
 
           // On mobile screens (< 768px), ALWAYS keep navbar visible to prevent iOS address-bar shivering
-          if (window.innerWidth < 768 || mobileMenuOpen) {
+          if (window.innerWidth < 768 || mobileMenuOpenRef.current) {
             setIsVisible(true);
             lastScrollY.current = currentScrollY;
             ticking = false;
@@ -202,7 +207,7 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [mobileMenuOpen]);
+  }, []);
 
   const name = profile?.full_name || "Learner";
   const email = profile?.email || user?.email || "";
@@ -213,6 +218,20 @@ export function SiteHeader({ action }: SiteHeaderProps) {
     setMobileMenuOpen(false);
     await signOut();
     navigate({ to: "/" });
+  };
+
+  const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    setMobileMenuOpen(false);
+    if (href.startsWith("/#") && (window.location.pathname === "/" || window.location.pathname === "")) {
+      e.preventDefault();
+      const targetId = href.replace("/#", "");
+      setTimeout(() => {
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 150);
+    }
   };
 
   // Close on Escape key
@@ -357,16 +376,12 @@ export function SiteHeader({ action }: SiteHeaderProps) {
             ref={triggerRef}
             type="button"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
-            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation-drawer"
-            className="flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border/70 bg-card/80 text-foreground shadow-xs transition-colors hover:bg-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
+            className="flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border/70 bg-card/80 text-foreground shadow-xs transition-colors hover:bg-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden cursor-pointer active:scale-95"
           >
-            {mobileMenuOpen ? (
-              <X className="h-5 w-5 transition-transform duration-200" aria-hidden="true" />
-            ) : (
-              <Menu className="h-5 w-5 transition-transform duration-200" aria-hidden="true" />
-            )}
+            <Menu className="h-5 w-5 transition-transform duration-200" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -375,13 +390,13 @@ export function SiteHeader({ action }: SiteHeaderProps) {
       {isMounted &&
         createPortal(
           <div
-            className={`fixed inset-0 z-50 md:hidden transition-all duration-300 ${
-              mobileMenuOpen ? "visible pointer-events-auto" : "invisible pointer-events-none"
+            className={`fixed inset-0 z-50 md:hidden transition-[visibility] duration-300 ${
+              mobileMenuOpen ? "visible pointer-events-auto" : "invisible pointer-events-none delay-300"
             }`}
           >
             {/* Backdrop overlay */}
             <div
-              className={`fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 ${
+              className={`fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 cursor-pointer ${
                 mobileMenuOpen ? "opacity-100" : "opacity-0"
               }`}
               onClick={() => setMobileMenuOpen(false)}
@@ -395,18 +410,18 @@ export function SiteHeader({ action }: SiteHeaderProps) {
               role="dialog"
               aria-modal="true"
               aria-label="Site Navigation"
-              className={`fixed inset-y-0 right-0 z-50 w-full max-w-[340px] sm:max-w-[380px] bg-background/98 dark:bg-card/98 backdrop-blur-2xl border-l border-border/80 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out ${
+              className={`fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[340px] sm:max-w-[380px] bg-background/98 dark:bg-card/98 backdrop-blur-2xl border-l border-border/80 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out ${
                 mobileMenuOpen ? "translate-x-0" : "translate-x-full"
               }`}
             >
               {/* Top Drawer Header with Brand Logo and Close Button */}
-              <div className="flex items-center justify-between p-5 border-b border-border/60 shrink-0">
+              <div className="flex h-16 items-center justify-between px-5 border-b border-border/60 shrink-0">
                 <BrandLogo size="sm" />
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
                   aria-label="Close navigation menu"
-                  className="grid h-10 w-10 place-items-center rounded-xl bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95 transition-all cursor-pointer"
+                  className="flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-border/70 bg-card/80 text-foreground shadow-xs hover:bg-muted hover:text-primary active:scale-95 transition-all cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -439,7 +454,7 @@ export function SiteHeader({ action }: SiteHeaderProps) {
                       {item.isAnchor ? (
                         <a
                           href={item.href}
-                          onClick={() => setMobileMenuOpen(false)}
+                          onClick={(e) => handleAnchorClick(e, item.href)}
                           className="flex min-h-[46px] items-center gap-3.5 rounded-xl px-4 py-2.5 text-sm sm:text-base font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-muted/80"
                         >
                           <item.icon className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />

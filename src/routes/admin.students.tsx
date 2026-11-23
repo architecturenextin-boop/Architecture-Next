@@ -452,7 +452,7 @@ function StudentsPage() {
             </div>
           </div>
           <div className="mt-2 font-display text-2xl font-bold">{totalEnrollments}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">{totalEnrollments} active ({freeStudentsCount} free access)</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{totalEnrollments} active ({freeStudentsCount} free)</div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">

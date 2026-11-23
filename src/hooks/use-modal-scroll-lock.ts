@@ -27,7 +27,9 @@ export function useModalScrollLock(
 
     document.body.style.overflow = "hidden";
     document.body.style.overscrollBehavior = "contain";
-    document.documentElement.style.overflow = "hidden";
+    if (typeof window !== "undefined" && window.innerWidth >= 768) {
+      document.documentElement.style.overflow = "hidden";
+    }
     document.body.classList.add("modal-open");
     document.body.setAttribute("data-modal-open", "true");
 
@@ -78,7 +80,9 @@ export function useModalScrollLock(
     return () => {
       document.body.style.overflow = prevBodyOverflow;
       document.body.style.overscrollBehavior = prevBodyOverscroll;
-      document.documentElement.style.overflow = prevHtmlOverflow;
+      if (typeof window !== "undefined" && window.innerWidth >= 768) {
+        document.documentElement.style.overflow = prevHtmlOverflow;
+      }
       document.body.style.paddingRight = prevPaddingRight;
       document.body.classList.remove("modal-open");
       document.body.removeAttribute("data-modal-open");
