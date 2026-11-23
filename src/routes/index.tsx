@@ -43,7 +43,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Learn architecture and interior design from practising architects — BIM, Revit, SketchUp, 3D visualisation and AI design workflows, live projects, internship certificate and lifetime access. Online and classroom training in Kozhikode, Kerala.",
+          "Learn architecture and interior design from practising architects — AutoCAD, SketchUp, 3D visualisation and AI design workflows, live projects, internship certificate and lifetime access. Online and classroom training in Kozhikode, Kerala.",
       },
       { name: "keywords", content: KEYWORDS },
       {
@@ -53,7 +53,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "BIM, Revit, 3D visualisation and AI design courses taught by practising architects, with live projects, internship certification and lifetime access.",
+          "Architectural design, 3D visualisation and AI design courses taught by practising architects, with live projects, internship certification and lifetime access.",
       },
       { property: "og:url", content: SITE_URL + "/" },
       { property: "og:image", content: OG_IMAGE },
@@ -213,7 +213,7 @@ function Hero() {
           <div className="relative overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-elevated">
             <img
               src={heroImg}
-              alt="Architecture student working on BIM and design drawings"
+              alt="Architecture student working on architectural and design drawings"
               width={1280}
               height={1280}
               className="aspect-square w-full object-cover md:aspect-[4/5]"

@@ -12,21 +12,21 @@ import { KEYWORDS, OG_IMAGE, SITE_URL, breadcrumbJsonLd } from "@/lib/seo";
 export const Route = createFileRoute("/courses/")({
   head: () => ({
     meta: [
-      { title: "Architecture, BIM & Interior Design Courses in Kerala | ArchitectureNext" },
+      { title: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
       {
         name: "description",
         content:
-          "Explore ArchitectureNext courses — BIM and Revit, SketchUp with Lumion 3D rendering, plan presentation and animation, parametric design and AI design workflows. See curriculum, fees, live projects and internship certification.",
+          "Explore ArchitectureNext courses — SketchUp with Lumion 3D rendering, plan presentation and animation, parametric design and AI design workflows. See curriculum, fees, live projects and internship certification.",
       },
       { name: "keywords", content: KEYWORDS },
       {
         property: "og:title",
-        content: "Architecture, BIM & Interior Design Courses in Kerala",
+        content: "Architecture & Interior Design Courses in Kerala",
       },
       {
         property: "og:description",
         content:
-          "BIM, Revit, 3D rendering, parametric design and AI workflow courses with live projects and internship certification.",
+          "Architectural design, 3D rendering, parametric design and AI workflow courses with live projects and internship certification.",
       },
       { property: "og:url", content: SITE_URL + "/courses" },
       { property: "og:image", content: OG_IMAGE },
@@ -94,7 +94,7 @@ function CoursesCatalogPage() {
             </h1>
 
             <p className="mt-4 max-w-2xl mx-auto text-base text-muted-foreground md:text-lg">
-              Master industry-standard design tools, BIM workflows, AI spatial ideation, and project
+              Master industry-standard design tools, architectural workflows, AI spatial ideation, and project
               execution with practical, project-based courses led by practising architects.
             </p>
           </div>
@@ -150,7 +150,7 @@ function CoursesCatalogPage() {
                   idx === 0
                     ? "3 POWERFUL COURSES"
                     : idx === 1
-                      ? "BIM MASTERCLASS"
+                      ? "ARCHITECTURE MASTERCLASS"
                       : idx === 2
                         ? "3D RENDERING SUITE"
                         : "AI DESIGN WORKFLOW"

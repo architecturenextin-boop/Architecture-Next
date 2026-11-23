@@ -164,7 +164,7 @@ function SignupPage() {
               ArchitectureNext
             </span>
             <p className="text-sm font-semibold leading-tight text-white/95 drop-shadow-sm">
-              Start your architecture &amp; BIM learning journey
+              Start your architecture &amp; interior design learning journey
             </p>
           </div>
         </div>

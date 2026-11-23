@@ -17,7 +17,7 @@ export const mentors: Mentor[] = [
     name: "Nikhil AP",
     title: "Architectural Designer | Design Mentor | Founder of Architecture Next",
     experience: "18+ years experience",
-    bio: "Nikhil AP is an Architectural Designer, design consultant, and Founder of ArchitectureNext with extensive experience across residential, commercial, and hospitality projects. He bridges the gap between academic learning and industry expectations through practical, project-based education.\n\nHis courses focus on developing studio-ready professionals by teaching CAD/BIM workflows, 3D visualization, AI-powered design tools, and presentation techniques.",
+    bio: "Nikhil AP is an Architectural Designer, design consultant, and Founder of ArchitectureNext with extensive experience across residential, commercial, and hospitality projects. He bridges the gap between academic learning and industry expectations through practical, project-based education.\n\nHis courses focus on developing studio-ready professionals by teaching CAD workflows, architectural drafting, 3D visualization, AI-powered design tools, and presentation techniques.",
     image: instructorImg,
     stats: [
       { label: "Students mentored", value: "10K+" },
@@ -29,7 +29,7 @@ export const mentors: Mentor[] = [
     name: "Keerthana R",
     title: "Architectural Designer | Software Trainer & Mentor",
     bio: "Keerthana R is an Architectural Designer and Software Trainer at Architecture Next, specializing in architectural design, 3D visualization, interior design, and industry-oriented software training. She mentors students in developing practical design skills and mastering essential architectural tools through hands-on learning and real-world applications.",
-    expertise: "AutoCAD, Revit Architecture, 3ds Max, V-Ray, SketchUp, Lumion, D5 Render, Photoshop, Interior Design, and Vastu. Space Planning, Design Concept Development, and Practical Project Mentoring",
+    expertise: "AutoCAD, SketchUp, 3ds Max, V-Ray, Lumion, D5 Render, Photoshop, Interior Design, and Vastu. Space Planning, Design Concept Development, and Practical Project Mentoring",
     image: keerthanaImg,
   },
   {
@@ -141,7 +141,7 @@ export const faqs = [
   },
   {
     q: "What software and tools will I learn?",
-    a: "You'll work hands-on with Revit, BIM coordination workflows, AutoCAD, SketchUp and presentation tools used across leading architectural practices.",
+    a: "You'll work hands-on with AutoCAD, SketchUp, 3ds Max, Lumion, Photoshop and presentation tools used across leading architectural practices.",
   },
   {
     q: "Will I build a real portfolio?",

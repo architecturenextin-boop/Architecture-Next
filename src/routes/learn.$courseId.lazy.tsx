@@ -1555,7 +1555,7 @@ function LearnPage() {
                   if (ext === "dwg") {
                     fileIcon = <Layers className="h-10 w-10 text-emerald-500" />;
                     fileTypeLabel = "AutoCAD Drawing (DWG)";
-                    descriptionLabel = "This AutoCAD drawing template file can be downloaded and opened directly in AutoCAD, Revit, or compatible CAD software.";
+                    descriptionLabel = "This AutoCAD drawing template file can be downloaded and opened directly in AutoCAD or compatible CAD software.";
                     downloadBtnLabel = "Download AutoCAD Drawing";
                   } else if (ext === "psd") {
                     fileIcon = <Palette className="h-10 w-10 text-sky-500" />;
@@ -1781,7 +1781,7 @@ function LearnPage() {
                     Enjoying this lesson? Get full lifetime access today.
                   </h3>
                   <p className="text-xs text-muted-foreground max-w-xl">
-                    Enroll now to unlock all {flatLessons.length} lessons, CAD & BIM exercise files, personal feedback, and your verified certificate of completion.
+                    Enroll now to unlock all {flatLessons.length} lessons, CAD & architectural exercise files, personal feedback, and your verified certificate of completion.
                   </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">

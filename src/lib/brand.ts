@@ -6,7 +6,7 @@ export const brand = {
   shortName: "ArchitectureNext",
   tagline: "Designing Future Architects Through Real Experience.",
   description:
-    "Premium architecture internship program. Learn directly from practicing architects through real projects, BIM workflows, mentorship, and portfolio-driven education.",
+    "Premium architecture internship program. Learn directly from practicing architects through real projects, modern design workflows, mentorship, and portfolio-driven education.",
   logoUrl,
   contact: {
     email: "architecturenextin@gmail.com",

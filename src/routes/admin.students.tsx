@@ -1201,7 +1201,7 @@ function StudentsPage() {
                       <Input
                         value={editForm.goal}
                         onChange={(e) => setEditForm({ ...editForm, goal: e.target.value })}
-                        placeholder="e.g. Switch careers, Revit & BIM mastery..."
+                        placeholder="e.g. Switch careers, design mastery..."
                         className="h-9 text-xs bg-card"
                       />
                     </div>

@@ -1645,7 +1645,7 @@ function CourseForm({ initial, isPending, onSubmit }: { initial?: any; isPending
                   <Input
                     value={outcome.title}
                     onChange={(e) => handleUpdateOutcome(outcome.id, e.target.value)}
-                    placeholder="e.g. BIM & Revit workflows"
+                    placeholder="e.g. Architectural & CAD workflows"
                     className="flex-1 h-9 bg-surface font-semibold text-sm"
                   />
                   <Button
@@ -1701,7 +1701,7 @@ function CourseForm({ initial, isPending, onSubmit }: { initial?: any; isPending
               value={highlights} 
               onChange={(e) => setHighlights(e.target.value)} 
               rows={4} 
-              placeholder="e.g.&#10;HD Video Lessons &amp; Practice Files&#10;Downloadable CAD/BIM Resource Packs"
+              placeholder="e.g.&#10;HD Video Lessons &amp; Practice Files&#10;Downloadable CAD Resource Packs"
               className="mt-1.5 w-full rounded-xl border border-input bg-surface px-3 py-2 text-sm leading-relaxed shadow-soft outline-none focus:ring-2 focus:ring-ring" 
             />
           </label>
@@ -1716,7 +1716,7 @@ function CourseForm({ initial, isPending, onSubmit }: { initial?: any; isPending
           <Input 
             value={toolsCovered} 
             onChange={(e) => setToolsCovered(e.target.value)} 
-            placeholder="AutoCAD, Revit, 3ds Max, Adobe Photoshop, Rhino, Lumion, Enscape" 
+            placeholder="AutoCAD, SketchUp, 3ds Max, Adobe Photoshop, Rhino, Lumion, Enscape" 
             className="mt-1.5 bg-surface" 
           />
         </label>
@@ -1879,7 +1879,7 @@ function AddLessonForm({ onAdd }: { onAdd: (title: string) => void }) {
       <Input 
         value={title} 
         onChange={(e) => setTitle(e.target.value)} 
-        placeholder="Add lesson name (e.g. Revit Workspace settings)" 
+        placeholder="Add lesson name (e.g. Workspace settings)" 
         className="h-8 text-xs flex-1 bg-card"
         onKeyDown={(e) => {
           if (e.key === "Enter") {

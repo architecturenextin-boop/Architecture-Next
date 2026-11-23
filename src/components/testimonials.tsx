@@ -73,7 +73,7 @@ export function Testimonials() {
         </h2>
         <p className="text-xs sm:text-sm md:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
           Hear from students and junior architects who transformed their presentation workflows,
-          BIM coordination, and portfolio quality with ArchitectureNext.
+          3D architectural visualization, and portfolio quality with ArchitectureNext.
         </p>
 
         {/* Social Proof Badges */}

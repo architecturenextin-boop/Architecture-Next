@@ -181,7 +181,7 @@ function AuthPage() {
               ArchitectureNext
             </span>
             <p className="text-sm font-semibold leading-tight text-white/95 drop-shadow-sm">
-              Master BIM workflows, design &amp; verified certification
+              Master design workflows, presentation &amp; verified certification
             </p>
           </div>
         </div>

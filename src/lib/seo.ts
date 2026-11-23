@@ -9,8 +9,8 @@ export const OG_IMAGE = `${SITE_URL}/og-image.png`;
 export const KEYWORDS = [
   "architecture course in Kerala",
   "architecture internship Kozhikode",
-  "BIM course Kerala",
-  "Revit training",
+  "architecture design course Kerala",
+  "interior design training",
   "3D visualisation course",
   "interior design course Kerala",
   "architecture LMS",
@@ -41,7 +41,7 @@ export const organizationJsonLd = {
   areaServed: "Kerala, India",
   knowsAbout: [
     "Architecture",
-    "BIM and Revit",
+    "Architectural design",
     "3D visualisation",
     "Interior design",
     "AI design workflows",

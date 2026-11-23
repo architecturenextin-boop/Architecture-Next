@@ -47,7 +47,7 @@ export const Route = createFileRoute("/courses/$courseId")({
         {
           name: "description",
           content:
-            "View the full architecture course curriculum, project briefs, software modules, fees and internship certificate details. Learn BIM, Revit, 3D visualisation and AI workflows from practising architects.",
+            "View the full architecture course curriculum, project briefs, software modules, fees and internship certificate details. Learn architectural drafting, 3D visualisation and AI workflows from practising architects.",
         },
         { property: "og:image", content: OG_IMAGE },
         { name: "twitter:image", content: OG_IMAGE },
@@ -181,7 +181,7 @@ function CourseDetailPage() {
       ? course.highlights
       : [
           "HD Video Lessons & Practice Files",
-          "Downloadable CAD/BIM Resource Packs",
+          "Downloadable CAD Resource Packs",
           "Lifetime Access & Certificate of Completion",
         ];
 
@@ -209,7 +209,7 @@ function CourseDetailPage() {
           const [title] = item.split(":");
           return title.trim();
         })
-      : ["BIM & CAD Workflows", "Visualisation & Detailing", "Industry Best Practices"];
+      : ["Architectural & CAD Workflows", "Visualisation & Detailing", "Industry Best Practices"];
 
   const courseModules = course?.modules || [];
 
@@ -576,7 +576,7 @@ function CourseDetailPage() {
                 <div className="max-w-4xl text-base leading-8 text-muted-foreground">
                   <p className={showMoreAbout ? "" : "line-clamp-5 whitespace-pre-line"}>
                     {course.description ||
-                      "Master architectural design, BIM workflows, 3D visualisation, construction detailing, and AI-powered design tools through a structured, project-oriented learning experience."}
+                      "Master architectural design, CAD workflows, 3D visualisation, construction detailing, and AI-powered design tools through a structured, project-oriented learning experience."}
                   </p>
 
                   {course.description && course.description.length > 200 && (

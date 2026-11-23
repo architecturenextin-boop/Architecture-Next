@@ -14,7 +14,6 @@ function formatSlugToTitle(slug: string): string {
     .map((word) => {
       const lower = word.toLowerCase();
       if (lower === "ai") return "AI";
-      if (lower === "bim") return "BIM";
       if (lower === "3d") return "3D";
       if (lower === "cad") return "CAD";
       return word.charAt(0).toUpperCase() + word.slice(1);

@@ -36,8 +36,8 @@ export const Route = createFileRoute("/dashboard/testimonials")({
 
 const PROMPT_SUGGESTIONS = [
   {
-    label: "BIM Workflow",
-    text: "The practical BIM modeling and live project workflows completely boosted my confidence in handling real-world construction deliverables.",
+    label: "Design Workflow",
+    text: "The practical 3D modeling and live project workflows completely boosted my confidence in handling real-world construction deliverables.",
   },
   {
     label: "Clear Lessons",
@@ -49,7 +49,7 @@ const PROMPT_SUGGESTIONS = [
   },
   {
     label: "Career Boost",
-    text: "Transitioning to computational BIM design was smooth and efficient with the specialized exercises and drawing sheets covered in this course.",
+    text: "Transitioning to computational architectural design was smooth and efficient with the specialized exercises and drawing sheets covered in this course.",
   },
 ];
 
@@ -215,7 +215,7 @@ function StudentTestimonialsPage() {
             </h1>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed pl-9 sm:pl-0">
-            Share feedback on your courses and BIM learning journey.
+            Share feedback on your courses and architectural learning journey.
           </p>
         </div>
 
