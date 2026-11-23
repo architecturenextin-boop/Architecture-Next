@@ -32,24 +32,24 @@ export const courseService = {
   getEnrollmentCount: async (): Promise<number> => {
     try {
       const res = await apiClient<any>("/courses/stats/enrollment-count");
-      const num = typeof res === "number" ? res : (typeof res?.totalRegisteredCount === "number" ? res.totalRegisteredCount : (typeof res?.activeCount === "number" ? res.activeCount : (typeof res?.count === "number" ? res.count : null)));
+      const num = typeof res === "number" ? res : (typeof res?.totalAllUsers === "number" ? res.totalAllUsers : (typeof res?.totalRegisteredCount === "number" ? res.totalRegisteredCount : (typeof res?.activeCount === "number" ? res.activeCount : (typeof res?.count === "number" ? res.count : null))));
       if (num !== null) {
         return num;
       }
-      return 96;
+      return 102;
     } catch {
-      return 96;
+      return 102;
     }
   },
 
   getEnrollmentStats: async (): Promise<PublicEnrollmentStats> => {
     try {
       const res = await apiClient<any>("/courses/stats/enrollment-count");
-      const rawCount = res?.totalRegisteredCount || res?.activeCount || (typeof res === "number" ? res : res?.count) || 96;
+      const rawCount = res?.totalAllUsers || res?.totalRegisteredCount || res?.activeCount || (typeof res === "number" ? res : res?.count) || 102;
       const recentStudents = Array.isArray(res?.recentStudents) && res.recentStudents.length > 0
         ? res.recentStudents
-        : ["Dini", "Ramees", "Malu", "Ansar", "Shahul", "Imayavarman", "Viswa"];
-      const latestStudent = res?.latestStudent || recentStudents[0] || "Dini";
+        : ["elsa", "rex", "akhil", "Hanish", "Ashraf", "MOHAMED", "Dini", "Ramees", "Malu", "Ansar"];
+      const latestStudent = res?.latestStudent || recentStudents[0] || "elsa";
 
       return {
         count: rawCount,
@@ -60,11 +60,11 @@ export const courseService = {
       };
     } catch {
       return {
-        count: 96,
-        activeCount: 96,
-        totalRegisteredCount: 96,
-        recentStudents: ["Dini", "Ramees", "Malu", "Ansar", "Shahul", "Imayavarman", "Viswa"],
-        latestStudent: "Dini",
+        count: 102,
+        activeCount: 102,
+        totalRegisteredCount: 102,
+        recentStudents: ["elsa", "rex", "akhil", "Hanish", "Ashraf", "MOHAMED", "Dini", "Ramees", "Malu", "Ansar"],
+        latestStudent: "elsa",
       };
     }
   },
