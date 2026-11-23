@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { courseService } from "@/lib/services/course.service";
+import { usePublicEnrollmentStats } from "@/hooks/use-public-enrollment-stats";
 
 export interface LiveEnrollmentPayload {
   studentName?: string;
@@ -87,40 +87,29 @@ export function LiveEnrollmentToast({
     }, duration);
   };
 
-  // 1. Fetch real latest student names from database & display latest
+  const { data: stats } = usePublicEnrollmentStats();
+  const initialFiredRef = useRef(false);
+
+  // 1. Sync real latest student names from database & display latest once
   useEffect(() => {
-    let isMounted = true;
+    if (!stats || initialFiredRef.current) return;
+    initialFiredRef.current = true;
 
-    courseService.getEnrollmentStats().then((stats) => {
-      if (!isMounted) return;
+    const list = stats.recentStudents && stats.recentStudents.length > 0
+      ? stats.recentStudents
+      : REAL_STUDENTS_FALLBACK;
 
-      const list = stats.recentStudents && stats.recentStudents.length > 0
-        ? stats.recentStudents
-        : REAL_STUDENTS_FALLBACK;
+    setRealStudents(list);
 
-      setRealStudents(list);
+    // Pick real latest student from DB
+    const latestRealName = initialName || stats.latestStudent || list[0] || "Dini";
 
-      // Pick real latest student from DB
-      const latestRealName = initialName || stats.latestStudent || list[0] || "Dini";
+    const initialTimer = setTimeout(() => {
+      showEnrollment(latestRealName);
+    }, initialDelay);
 
-      const initialTimer = setTimeout(() => {
-        showEnrollment(latestRealName);
-      }, initialDelay);
-
-      return () => clearTimeout(initialTimer);
-    }).catch(() => {
-      if (!isMounted) return;
-      const initialTimer = setTimeout(() => {
-        showEnrollment(initialName || REAL_STUDENTS_FALLBACK[0]);
-      }, initialDelay);
-
-      return () => clearTimeout(initialTimer);
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [initialName, initialDelay]);
+    return () => clearTimeout(initialTimer);
+  }, [stats, initialName, initialDelay]);
 
   // 2. Periodically cycle through real enrolled students every 14 seconds
   useEffect(() => {

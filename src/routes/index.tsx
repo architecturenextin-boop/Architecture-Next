@@ -34,6 +34,11 @@ import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/lib/services/course.service";
 import { useAuth } from "@/hooks/use-auth";
 import { useEnrolledCourses } from "@/hooks/use-enrolled-courses";
+import { usePublicEnrollmentStats } from "@/hooks/use-public-enrollment-stats";
+import heroImgWebp from "@/assets/hero-learner.webp";
+import heroImgMobileWebp from "@/assets/hero-learner-mobile.webp";
+import heroImgAvif from "@/assets/hero-learner.avif";
+import heroImgMobileAvif from "@/assets/hero-learner-mobile.avif";
 import heroImg from "@/assets/hero-learner.jpeg";
 
 export const Route = createFileRoute("/")({
@@ -59,7 +64,18 @@ export const Route = createFileRoute("/")({
       { property: "og:image", content: OG_IMAGE },
       { name: "twitter:image", content: OG_IMAGE },
     ],
-    links: [{ rel: "canonical", href: SITE_URL + "/" }],
+    links: [
+      { rel: "canonical", href: SITE_URL + "/" },
+      {
+        rel: "preload",
+        as: "image",
+        href: heroImgAvif,
+        type: "image/avif",
+        imageSrcSet: `${heroImgMobileAvif} 716w, ${heroImgAvif} 1156w`,
+        imageSizes: "(max-width: 768px) 358px, 578px",
+        fetchPriority: "high",
+      } as any,
+    ],
     scripts: [{ type: "application/ld+json", children: JSON.stringify(faqJsonLd) }],
   }),
   component: Landing,
@@ -129,11 +145,7 @@ function Hero() {
   const { hasAnyEnrollments } = useEnrolledCourses();
 
   // Fetch real enrollment stats from database (accurate count)
-  const { data: enrollmentStats } = useQuery({
-    queryKey: ["public-enrollment-stats"],
-    queryFn: courseService.getEnrollmentStats,
-    staleTime: 60_000,
-  });
+  const { data: enrollmentStats } = usePublicEnrollmentStats();
 
   const accurateCount = enrollmentStats?.activeCount || 69;
 
@@ -211,13 +223,27 @@ function Hero() {
         <div className="relative animate-fade-up [animation-delay:120ms]">
           <div className="absolute -inset-6 rounded-[2rem] bg-gradient-primary opacity-25 blur-3xl" />
           <div className="relative overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-elevated">
-            <img
-              src={heroImg}
-              alt="Architecture student working on architectural and design drawings"
-              width={1280}
-              height={1280}
-              className="aspect-square w-full object-cover md:aspect-[4/5]"
-            />
+            <picture>
+              <source
+                type="image/avif"
+                srcSet={`${heroImgMobileAvif} 716w, ${heroImgAvif} 1156w`}
+                sizes="(max-width: 768px) 358px, 578px"
+              />
+              <source
+                type="image/webp"
+                srcSet={`${heroImgMobileWebp} 716w, ${heroImgWebp} 1156w`}
+                sizes="(max-width: 768px) 358px, 578px"
+              />
+              <img
+                src={heroImgWebp}
+                alt="Architecture student working on architectural and design drawings"
+                width={578}
+                height={723}
+                fetchPriority="high"
+                decoding="async"
+                className="aspect-square w-full object-cover md:aspect-[4/5]"
+              />
+            </picture>
           </div>
 
           <div className="absolute -bottom-5 -left-5 hidden items-center gap-3 rounded-2xl border border-border bg-surface/90 p-3 pr-5 shadow-elevated backdrop-blur sm:flex">
@@ -545,8 +571,10 @@ function Instructor() {
                   <img
                     src={m.image}
                     alt={m.name}
-                    width={800}
-                    height={1000}
+                    width={380}
+                    height={475}
+                    loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover object-top"
                   />
                 </div>

@@ -1,0 +1,796 @@
+{
+  "timestamp": "2026-11-23T14:43:21.333Z",
+  "desktopProd": {
+    "fcp": 992,
+    "lcp": 1100,
+    "lcpElement": {
+      "tagName": "IMG",
+      "id": "",
+      "className": "aspect-square w-full object-cover md:aspect-[4/5]",
+      "src": "http://127.0.0.1:4173/assets/hero-learner-CCk--kT7.webp",
+      "outerHTML": "<img alt=\"Architecture student working on architectural and design drawings\" width=\"578\" height=\"723\" fetchpriority=\"high\" decoding=\"async\" class=\"aspect-square w-full object-cover md:aspect-[4/5]\" sr"
+    },
+    "cls": 0.0005261475775241574,
+    "clsEntries": [
+      {
+        "value": 0.00046249681016951455,
+        "sources": [
+          {
+            "node": "NAV",
+            "currentRect": {
+              "x": 400.84375,
+              "y": 42,
+              "width": 567.78125,
+              "height": 44,
+              "top": 42,
+              "right": 968.625,
+              "bottom": 86,
+              "left": 400.84375
+            },
+            "previousRect": {
+              "x": 411.421875,
+              "y": 42,
+              "width": 550.875,
+              "height": 44,
+              "top": 42,
+              "right": 962.296875,
+              "bottom": 86,
+              "left": 411.421875
+            }
+          },
+          {
+            "node": "DIV",
+            "currentRect": {
+              "x": 1117.65625,
+              "y": 26,
+              "width": 201.34375,
+              "height": 88,
+              "top": 26,
+              "right": 1319,
+              "bottom": 114,
+              "left": 1117.65625
+            },
+            "previousRect": {
+              "x": 1121.921875,
+              "y": 26,
+              "width": 197.078125,
+              "height": 88,
+              "top": 26,
+              "right": 1319,
+              "bottom": 114,
+              "left": 1121.921875
+            }
+          },
+          {
+            "node": "ASIDE",
+            "currentRect": {
+              "x": 1034.609375,
+              "y": 688,
+              "width": 307.390625,
+              "height": 56,
+              "top": 688,
+              "right": 1342,
+              "bottom": 744,
+              "left": 1034.609375
+            },
+            "previousRect": {
+              "x": 1039.609375,
+              "y": 688,
+              "width": 301.609375,
+              "height": 56,
+              "top": 688,
+              "right": 1341.21875,
+              "bottom": 744,
+              "left": 1039.609375
+            }
+          },
+          {
+            "node": "SPAN",
+            "currentRect": {
+              "x": 1274.22412109375,
+              "y": 676.22412109375,
+              "width": 79.5517578125,
+              "height": 79.55181884765625,
+              "top": 676.22412109375,
+              "right": 1353.77587890625,
+              "bottom": 755.7759399414062,
+              "left": 1274.22412109375
+            },
+            "previousRect": {
+              "x": 1266.011474609375,
+              "y": 676.22412109375,
+              "width": 79.5517578125,
+              "height": 79.55181884765625,
+              "top": 676.22412109375,
+              "right": 1345.563232421875,
+              "bottom": 755.7759399414062,
+              "left": 1266.011474609375
+            }
+          }
+        ]
+      },
+      {
+        "value": 0.00002299503034570483,
+        "sources": [
+          {
+            "node": "#text",
+            "currentRect": {
+              "x": 224.953125,
+              "y": 3.5,
+              "width": 185.078125,
+              "height": 15,
+              "top": 3.5,
+              "right": 410.03125,
+              "bottom": 18.5,
+              "left": 224.953125
+            },
+            "previousRect": {
+              "x": 224.953125,
+              "y": 3.5,
+              "width": 185.078125,
+              "height": 15,
+              "top": 3.5,
+              "right": 410.03125,
+              "bottom": 18.5,
+              "left": 224.953125
+            }
+          }
+        ]
+      },
+      {
+        "value": 0.000040655737008938046,
+        "sources": [
+          {
+            "node": "#text",
+            "currentRect": {
+              "x": 224.953125,
+              "y": 3.5,
+              "width": 160.953125,
+              "height": 15,
+              "top": 3.5,
+              "right": 385.90625,
+              "bottom": 18.5,
+              "left": 224.953125
+            },
+            "previousRect": {
+              "x": 224.953125,
+              "y": 3.5,
+              "width": 160.953125,
+              "height": 15,
+              "top": 3.5,
+              "right": 385.90625,
+              "bottom": 18.5,
+              "left": 224.953125
+            }
+          }
+        ]
+      }
+    ],
+    "longTasks": [
+      {
+        "startTime": 414.70000000298023,
+        "duration": 199,
+        "name": "self"
+      },
+      {
+        "startTime": 774.7999999970198,
+        "duration": 65,
+        "name": "self"
+      }
+    ],
+    "tbt": 164,
+    "navigationTiming": {
+      "dns": 0,
+      "tcp": 0,
+      "ssl": 0,
+      "ttfb": 15.399999991059303,
+      "download": 0.800000011920929,
+      "domContentLoaded": 398.09999999403954,
+      "loadEvent": 399.59999999403954,
+      "totalDuration": 399.59999999403954
+    }
+  },
+  "mobileProd": {
+    "fcp": 956,
+    "lcp": 1148,
+    "lcpElement": {
+      "tag": "H1",
+      "src": null,
+      "class": "type-display text-foreground"
+    },
+    "cls": 0,
+    "tbt": 139,
+    "ttfb": 2.6000000089406967,
+    "load": 602.5999999940395
+  },
+  "fast3GProd": {
+    "fcp": 1788,
+    "lcp": 2732,
+    "cls": 0.002979308120728391,
+    "tbt": 176,
+    "ttfb": 150.1000000089407,
+    "domContentLoaded": 1518.7000000029802,
+    "load": 1520.300000011921
+  },
+  "slow4GProd": {
+    "fcp": 1012,
+    "lcp": 1412,
+    "cls": 0.0026101475754887206,
+    "tbt": 123,
+    "ttfb": 100.1000000089407,
+    "domContentLoaded": 778.5,
+    "load": 780.5
+  },
+  "images": [
+    {
+      "src": "http://127.0.0.1:4173/assets/arch-next1-C9g-X_rG.png",
+      "currentSrc": "http://127.0.0.1:4173/assets/arch-next1-C9g-X_rG.png",
+      "naturalWidth": 388,
+      "naturalHeight": 79,
+      "renderedWidth": 177,
+      "renderedHeight": 36,
+      "loading": null,
+      "fetchPriority": null,
+      "isAboveFold": true,
+      "alt": "ArchitectureNext — School of Internship logo",
+      "classes": "h-7 sm:h-8 md:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]",
+      "fileSize": 30083,
+      "mimeType": "image/png",
+      "timing": {
+        "requestTime": 131381.430967,
+        "proxyStart": -1,
+        "proxyEnd": -1,
+        "dnsStart": -1,
+        "dnsEnd": -1,
+        "connectStart": -1,
+        "connectEnd": -1,
+        "sslStart": -1,
+        "sslEnd": -1,
+        "workerStart": -1,
+        "workerReady": -1,
+        "workerFetchStart": -1,
+        "workerRespondWithSettled": -1,
+        "sendStart": 0.411,
+        "sendEnd": 0.52,
+        "pushStart": 0,
+        "pushEnd": 0,
+        "receiveHeadersStart": 5.347,
+        "receiveHeadersEnd": 5.453
+      }
+    },
+    {
+      "src": "http://127.0.0.1:4173/assets/hero-learner-CCk--kT7.webp",
+      "currentSrc": "http://127.0.0.1:4173/assets/hero-learner-mobile-aiLOFPeV.avif",
+      "naturalWidth": 578,
+      "naturalHeight": 721,
+      "renderedWidth": 578,
+      "renderedHeight": 723,
+      "loading": null,
+      "fetchPriority": "high",
+      "isAboveFold": true,
+      "alt": "Architecture student working on architectural and design drawings",
+      "classes": "aspect-square w-full object-cover md:aspect-[4/5]",
+      "fileSize": 74978,
+      "mimeType": "image/avif",
+      "timing": {
+        "requestTime": 131381.28733,
+        "proxyStart": -1,
+        "proxyEnd": -1,
+        "dnsStart": -1,
+        "dnsEnd": -1,
+        "connectStart": -1,
+        "connectEnd": -1,
+        "sslStart": -1,
+        "sslEnd": -1,
+        "workerStart": -1,
+        "workerReady": -1,
+        "workerFetchStart": -1,
+        "workerRespondWithSettled": -1,
+        "sendStart": 0.459,
+        "sendEnd": 0.641,
+        "pushStart": 0,
+        "pushEnd": 0,
+        "receiveHeadersStart": 5.027,
+        "receiveHeadersEnd": 5.099
+      }
+    },
+    {
+      "src": "http://127.0.0.1:4173/assets/instructor-DIWsAra8.webp",
+      "currentSrc": "",
+      "naturalWidth": 0,
+      "naturalHeight": 0,
+      "renderedWidth": 378,
+      "renderedHeight": 473,
+      "loading": "lazy",
+      "fetchPriority": null,
+      "isAboveFold": false,
+      "alt": "Nikhil AP",
+      "classes": "h-full w-full object-cover object-top",
+      "fileSize": null,
+      "mimeType": null,
+      "timing": null
+    },
+    {
+      "src": "http://127.0.0.1:4173/assets/mentor-keerthana-BMW5H_D0.webp",
+      "currentSrc": "",
+      "naturalWidth": 0,
+      "naturalHeight": 0,
+      "renderedWidth": 378,
+      "renderedHeight": 473,
+      "loading": "lazy",
+      "fetchPriority": null,
+      "isAboveFold": false,
+      "alt": "Keerthana R",
+      "classes": "h-full w-full object-cover object-top",
+      "fileSize": null,
+      "mimeType": null,
+      "timing": null
+    },
+    {
+      "src": "http://127.0.0.1:4173/assets/mentor-sahala-DQxSdal8.webp",
+      "currentSrc": "",
+      "naturalWidth": 0,
+      "naturalHeight": 0,
+      "renderedWidth": 378,
+      "renderedHeight": 473,
+      "loading": "lazy",
+      "fetchPriority": null,
+      "isAboveFold": false,
+      "alt": "Sahala C.P.",
+      "classes": "h-full w-full object-cover object-top",
+      "fileSize": null,
+      "mimeType": null,
+      "timing": null
+    },
+    {
+      "src": "https://lh3.googleusercontent.com/a/ACg8ocLzj0NqEfFE7K1FS46g9u8JKFp1snAAgO5FqzipLl1WkFk_Vg=s96-c",
+      "currentSrc": "https://lh3.googleusercontent.com/a/ACg8ocLzj0NqEfFE7K1FS46g9u8JKFp1snAAgO5FqzipLl1WkFk_Vg=s96-c",
+      "naturalWidth": 96,
+      "naturalHeight": 96,
+      "renderedWidth": 40,
+      "renderedHeight": 40,
+      "loading": null,
+      "fetchPriority": null,
+      "isAboveFold": false,
+      "alt": "Rasi",
+      "classes": "h-full w-full object-cover",
+      "fileSize": 1318,
+      "mimeType": "image/png",
+      "timing": {
+        "requestTime": 131387.021188,
+        "proxyStart": -1,
+        "proxyEnd": -1,
+        "dnsStart": 0.105,
+        "dnsEnd": 14.541,
+        "connectStart": 15.358,
+        "connectEnd": 138.087,
+        "sslStart": 58.804,
+        "sslEnd": 138.058,
+        "workerStart": -0.6,
+        "workerReady": -0.428,
+        "workerFetchStart": -1,
+        "workerRespondWithSettled": -1,
+        "sendStart": 138.453,
+        "sendEnd": 138.583,
+        "pushStart": 0,
+        "pushEnd": 0,
+        "receiveHeadersStart": 218.637,
+        "receiveHeadersEnd": 218.939
+      }
+    },
+    {
+      "src": "http://127.0.0.1:4173/assets/arch-next1-C9g-X_rG.png",
+      "currentSrc": "http://127.0.0.1:4173/assets/arch-next1-C9g-X_rG.png",
+      "naturalWidth": 388,
+      "naturalHeight": 79,
+      "renderedWidth": 177,
+      "renderedHeight": 36,
+      "loading": null,
+      "fetchPriority": null,
+      "isAboveFold": false,
+      "alt": "ArchitectureNext — School of Internship",
+      "classes": "h-8 sm:h-9 w-auto object-contain brightness-0 invert opacity-95 hover:opacity-100 transition-opacity",
+      "fileSize": 30083,
+      "mimeType": "image/png",
+      "timing": {
+        "requestTime": 131381.430967,
+        "proxyStart": -1,
+        "proxyEnd": -1,
+        "dnsStart": -1,
+        "dnsEnd": -1,
+        "connectStart": -1,
+        "connectEnd": -1,
+        "sslStart": -1,
+        "sslEnd": -1,
+        "workerStart": -1,
+        "workerReady": -1,
+        "workerFetchStart": -1,
+        "workerRespondWithSettled": -1,
+        "sendStart": 0.411,
+        "sendEnd": 0.52,
+        "pushStart": 0,
+        "pushEnd": 0,
+        "receiveHeadersStart": 5.347,
+        "receiveHeadersEnd": 5.453
+      }
+    },
+    {
+      "src": "http://127.0.0.1:4173/assets/arch-next1-C9g-X_rG.png",
+      "currentSrc": "http://127.0.0.1:4173/assets/arch-next1-C9g-X_rG.png",
+      "naturalWidth": 388,
+      "naturalHeight": 79,
+      "renderedWidth": 0,
+      "renderedHeight": 0,
+      "loading": null,
+      "fetchPriority": null,
+      "isAboveFold": true,
+      "alt": "ArchitectureNext — School of Internship logo",
+      "classes": "h-6 sm:h-7 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]",
+      "fileSize": 30083,
+      "mimeType": "image/png",
+      "timing": {
+        "requestTime": 131381.430967,
+        "proxyStart": -1,
+        "proxyEnd": -1,
+        "dnsStart": -1,
+        "dnsEnd": -1,
+        "connectStart": -1,
+        "connectEnd": -1,
+        "sslStart": -1,
+        "sslEnd": -1,
+        "workerStart": -1,
+        "workerReady": -1,
+        "workerFetchStart": -1,
+        "workerRespondWithSettled": -1,
+        "sendStart": 0.411,
+        "sendEnd": 0.52,
+        "pushStart": 0,
+        "pushEnd": 0,
+        "receiveHeadersStart": 5.347,
+        "receiveHeadersEnd": 5.453
+      }
+    }
+  ],
+  "jsCoverage": [
+    {
+      "url": "http://127.0.0.1:4173/assets/vendor-radix-KZn7EEPL.js",
+      "totalBytes": 2354,
+      "usedBytes": 2354,
+      "unusedBytes": 0,
+      "unusedPercent": "0.0"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/vendor-lucide-5mRB18-M.js",
+      "totalBytes": 19090,
+      "usedBytes": 19090,
+      "unusedBytes": 0,
+      "unusedPercent": "0.0"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/vendor-gsap-a3sj5zmn.js",
+      "totalBytes": 114013,
+      "usedBytes": 114013,
+      "unusedBytes": 0,
+      "unusedPercent": "0.0"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/vendor-tanstack-RvZnbpl1.js",
+      "totalBytes": 116370,
+      "usedBytes": 116370,
+      "unusedBytes": 0,
+      "unusedPercent": "0.0"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/vendor-react-CfpB9CUp.js",
+      "totalBytes": 192950,
+      "usedBytes": 192950,
+      "unusedBytes": 0,
+      "unusedPercent": "0.0"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/index-GiVEvHZj.js",
+      "totalBytes": 208146,
+      "usedBytes": 208146,
+      "unusedBytes": 0,
+      "unusedPercent": "0.0"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/lenis-CmVXbI3P.js",
+      "totalBytes": 18807,
+      "usedBytes": 18807,
+      "unusedBytes": 0,
+      "unusedPercent": "0.0"
+    }
+  ],
+  "apiCalls": [
+    {
+      "url": "http://127.0.0.1:5000/api/v1/courses/stats/enrollment-count",
+      "method": "GET",
+      "status": 200,
+      "ttfb": 7041,
+      "duration": 7048,
+      "size": 1934,
+      "fromCache": false
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/testimonials",
+      "method": "GET",
+      "status": 200,
+      "ttfb": 5582,
+      "duration": 5587,
+      "size": 2592,
+      "fromCache": false
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/courses",
+      "method": "GET",
+      "status": 200,
+      "ttfb": 5988,
+      "duration": 5994,
+      "size": 7913,
+      "fromCache": false
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/courses/architecture-plan-presentation-animation",
+      "method": "GET",
+      "status": 200,
+      "ttfb": 5877,
+      "duration": 5886,
+      "size": 5230,
+      "fromCache": false
+    }
+  ],
+  "cwv": {},
+  "allRequests": [
+    {
+      "url": "http://127.0.0.1:4173/",
+      "type": "Document",
+      "status": 200,
+      "size": 2318,
+      "startTime": 131380.826094,
+      "finishTime": 131380.843413,
+      "duration": 17,
+      "ttfb": 16
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Sora:wght@600;700;800&display=swap",
+      "type": "Stylesheet",
+      "status": 200,
+      "size": 1489,
+      "startTime": 131380.854535,
+      "finishTime": 131381.179187,
+      "duration": 325,
+      "ttfb": 136
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/index-GiVEvHZj.js",
+      "type": "Script",
+      "status": 200,
+      "size": 56561,
+      "startTime": 131380.855774,
+      "finishTime": 131380.907679,
+      "duration": 52,
+      "ttfb": 15
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/vendor-react-CfpB9CUp.js",
+      "type": "Script",
+      "status": 200,
+      "size": 60945,
+      "startTime": 131380.855984,
+      "finishTime": 131380.907112,
+      "duration": 51,
+      "ttfb": 15
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/vendor-tanstack-RvZnbpl1.js",
+      "type": "Script",
+      "status": 200,
+      "size": 39106,
+      "startTime": 131380.856173,
+      "finishTime": 131380.906107,
+      "duration": 50,
+      "ttfb": 18
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/vendor-gsap-a3sj5zmn.js",
+      "type": "Script",
+      "status": 200,
+      "size": 45554,
+      "startTime": 131380.856336,
+      "finishTime": 131380.905807,
+      "duration": 49,
+      "ttfb": 17
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/vendor-radix-KZn7EEPL.js",
+      "type": "Script",
+      "status": 200,
+      "size": 1479,
+      "startTime": 131380.856513,
+      "finishTime": 131380.898286,
+      "duration": 42,
+      "ttfb": 12
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/vendor-lucide-5mRB18-M.js",
+      "type": "Script",
+      "status": 200,
+      "size": 7143,
+      "startTime": 131380.856622,
+      "finishTime": 131380.90854,
+      "duration": 52,
+      "ttfb": 10
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/styles-zWJZ5dFe.css",
+      "type": "Stylesheet",
+      "status": 200,
+      "size": 19699,
+      "startTime": 131380.856753,
+      "finishTime": 131380.904699,
+      "duration": 48,
+      "ttfb": 14
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/courses/stats/enrollment-count",
+      "type": "Other",
+      "status": 200,
+      "size": 0,
+      "startTime": 131381.29386,
+      "finishTime": 131381.295263,
+      "duration": 1,
+      "ttfb": 2
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/testimonials",
+      "type": "Other",
+      "status": 200,
+      "size": 0,
+      "startTime": 131381.426304,
+      "finishTime": 131381.427847,
+      "duration": 2,
+      "ttfb": 1
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/courses",
+      "type": "Other",
+      "status": 200,
+      "size": 0,
+      "startTime": 131381.428401,
+      "finishTime": 131381.430252,
+      "duration": 2,
+      "ttfb": 2
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/courses/architecture-plan-presentation-animation",
+      "type": "Other",
+      "status": 200,
+      "size": 0,
+      "startTime": 131381.434555,
+      "finishTime": 131381.43426,
+      "duration": 0,
+      "ttfb": 3
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/hero-learner-mobile-aiLOFPeV.avif",
+      "type": "Image",
+      "status": 200,
+      "size": 74978,
+      "startTime": 131381.286546,
+      "finishTime": 131381.29348,
+      "duration": 7,
+      "ttfb": 4
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/courses/stats/enrollment-count",
+      "type": "Fetch",
+      "status": 200,
+      "size": 1934,
+      "startTime": 131381.290123,
+      "finishTime": 131388.337878,
+      "duration": 7048,
+      "ttfb": 7041
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2",
+      "type": "Font",
+      "status": 200,
+      "size": 48288,
+      "startTime": 131381.304837,
+      "finishTime": 131381.584201,
+      "duration": 279,
+      "ttfb": 24
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/sora/v17/xMQ9uFFYT72X5wkB_18qmnndmSdSnh2BAfO5mnuyOo1lfiQwV6-x.woff2",
+      "type": "Font",
+      "status": 200,
+      "size": 25313,
+      "startTime": 131381.305681,
+      "finishTime": 131381.568507,
+      "duration": 263,
+      "ttfb": 33
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2",
+      "type": "Font",
+      "status": 200,
+      "size": 85107,
+      "startTime": 131381.397141,
+      "finishTime": 131381.591858,
+      "duration": 195,
+      "ttfb": 47
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/testimonials",
+      "type": "Fetch",
+      "status": 200,
+      "size": 2592,
+      "startTime": 131381.424809,
+      "finishTime": 131387.011679,
+      "duration": 5587,
+      "ttfb": 5582
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/courses",
+      "type": "Fetch",
+      "status": 200,
+      "size": 7913,
+      "startTime": 131381.425833,
+      "finishTime": 131387.420105,
+      "duration": 5994,
+      "ttfb": 5988
+    },
+    {
+      "url": "http://127.0.0.1:5000/api/v1/courses/architecture-plan-presentation-animation",
+      "type": "Fetch",
+      "status": 200,
+      "size": 5230,
+      "startTime": 131381.426588,
+      "finishTime": 131387.312412,
+      "duration": 5886,
+      "ttfb": 5877
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/arch-next1-C9g-X_rG.png",
+      "type": "Image",
+      "status": 200,
+      "size": 30083,
+      "startTime": 131381.42783,
+      "finishTime": 131381.437722,
+      "duration": 10,
+      "ttfb": 5
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/lenis-CmVXbI3P.js",
+      "type": "Script",
+      "status": 200,
+      "size": 5817,
+      "startTime": 131381.429237,
+      "finishTime": 131381.438878,
+      "duration": 10,
+      "ttfb": 7
+    },
+    {
+      "url": "http://127.0.0.1:4173/favicon.ico",
+      "type": "Other",
+      "status": 200,
+      "size": 3765,
+      "startTime": 131381.463433,
+      "finishTime": 131381.481423,
+      "duration": 18,
+      "ttfb": 17
+    },
+    {
+      "url": "https://lh3.googleusercontent.com/a/ACg8ocLzj0NqEfFE7K1FS46g9u8JKFp1snAAgO5FqzipLl1WkFk_Vg=s96-c",
+      "type": "Image",
+      "status": 200,
+      "size": 1318,
+      "startTime": 131387.020225,
+      "finishTime": 131387.241166,
+      "duration": 221,
+      "ttfb": 80
+    }
+  ]
+}

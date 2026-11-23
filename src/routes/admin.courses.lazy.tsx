@@ -100,8 +100,8 @@ function AdminCourses() {
         title: formData.title,
         tagline: formData.tagline || "",
         description: formData.description || "",
-        cover_url: formData.coverUrl || editing?.cover_url || "/course-cover.jpeg",
-        thumbnail_url: formData.coverUrl || editing?.cover_url || "/course-cover.jpeg",
+        cover_url: formData.coverUrl || editing?.cover_url || "/course-cover.webp",
+        thumbnail_url: formData.coverUrl || editing?.cover_url || "/course-cover.webp",
         certificate_url: formData.certificateUrl || formData.certificate_url || editing?.certificate_url || null,
         price: Number(formData.price),
         original_price: Number(formData.originalPrice) || editing?.original_price || Math.round(Number(formData.price) * 2.5),
@@ -1054,7 +1054,7 @@ function CourseForm({ initial, isPending, onSubmit }: { initial?: any; isPending
   const [level, setLevel] = useState(initial?.level ?? "Beginner");
   const [language, setLanguage] = useState(initial?.language ?? "Malayalam");
   const [totalDuration, setTotalDuration] = useState(initial?.total_duration ?? "2h 30m");
-  const [coverUrl, setCoverUrl] = useState(initial?.cover_url ?? "/course-cover.jpeg");
+  const [coverUrl, setCoverUrl] = useState(initial?.cover_url ?? "/course-cover.webp");
   const [previewVideoUrl, setPreviewVideoUrl] = useState(initial?.preview_video_url ?? "");
   const [rating, setRating] = useState(initial?.rating ?? 4.9);
   const [reviewCount, setReviewCount] = useState(initial?.review_count ?? 1240);

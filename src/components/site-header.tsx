@@ -25,7 +25,7 @@ import { ProfileCard } from "@/components/profile-card";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useModalScrollLock } from "@/hooks/use-modal-scroll-lock";
-import { courseService } from "@/lib/services/course.service";
+import { usePublicEnrollmentStats } from "@/hooks/use-public-enrollment-stats";
 
 type SiteHeaderProps = {
   /** Optional route-specific action, such as course enrolment or checkout back navigation. */
@@ -71,38 +71,37 @@ export function SiteHeader({ action }: SiteHeaderProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
 
+  const { data: stats } = usePublicEnrollmentStats();
+
   useEffect(() => {
     setIsMounted(true);
-    let active = true;
-    courseService.getEnrollmentStats().then((stats) => {
-      if (!active) return;
-      const countVal = stats.totalRegisteredCount ?? stats.activeCount ?? stats.count;
-      if (typeof countVal === "number" && countVal > 0) {
-        setAccurateCount(countVal);
-      }
-      if (stats.recentStudents && stats.recentStudents.length > 0) {
-        setStudentList((prev) => {
-          const combined = [...stats.recentStudents, ...prev];
-          const seen = new Set<string>();
-          const unique: string[] = [];
-          for (const name of combined) {
-            const trimmed = name.trim();
-            const lower = trimmed.toLowerCase();
-            if (trimmed && !seen.has(lower) && lower !== "admin" && lower !== "learner") {
-              seen.add(lower);
-              unique.push(trimmed);
-            }
-          }
-          return unique.length > 0 ? unique : prev;
-        });
-        // Immediately start with the newest / last student from the database
-        setStudentIndex(0);
-      }
-    });
-    return () => {
-      active = false;
-    };
   }, []);
+
+  useEffect(() => {
+    if (!stats) return;
+    const countVal = stats.totalRegisteredCount ?? stats.activeCount ?? stats.count;
+    if (typeof countVal === "number" && countVal > 0) {
+      setAccurateCount(countVal);
+    }
+    if (stats.recentStudents && stats.recentStudents.length > 0) {
+      setStudentList((prev) => {
+        const combined = [...stats.recentStudents, ...prev];
+        const seen = new Set<string>();
+        const unique: string[] = [];
+        for (const name of combined) {
+          const trimmed = name.trim();
+          const lower = trimmed.toLowerCase();
+          if (trimmed && !seen.has(lower) && lower !== "admin" && lower !== "learner") {
+            seen.add(lower);
+            unique.push(trimmed);
+          }
+        }
+        return unique.length > 0 ? unique : prev;
+      });
+      // Immediately start with the newest / last student from the database
+      setStudentIndex(0);
+    }
+  }, [stats]);
 
   // Include the current logged in user in the learner rotation pool (only if student, only once, never lock cycling)
   useEffect(() => {

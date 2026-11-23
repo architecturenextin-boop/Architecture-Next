@@ -136,57 +136,6 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Sora:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
-    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-    <script>
-      (function () {
-        function initLenis() {
-          if (typeof Lenis !== "undefined") {
-            const lenis = new Lenis({
-              duration: 1.2,
-              easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-              smooth: true,
-              prevent: (node) => {
-                try {
-                  return (
-                    document.body.classList.contains("modal-open") ||
-                    document.body.style.overflow === "hidden" ||
-                    Boolean(node?.hasAttribute?.("data-lenis-prevent")) ||
-                    Boolean(node?.closest?.("[data-lenis-prevent]")) ||
-                    Boolean(node?.closest?.(".modal-scroll-container")) ||
-                    Boolean(node?.closest?.(".modal-overlay")) ||
-                    Boolean(node?.closest?.("[role='dialog']")) ||
-                    Boolean(node?.closest?.(".fixed.inset-0"))
-                  );
-                } catch (_) {
-                  return false;
-                }
-              },
-            });
-
-            window.lenis = lenis;
-
-            if (typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined") {
-              lenis.on("scroll", ScrollTrigger.update);
-              gsap.ticker.add((time) => {
-                lenis.raf(time * 1000);
-              });
-            } else {
-              function raf(time) {
-                lenis.raf(time);
-                requestAnimationFrame(raf);
-              }
-              requestAnimationFrame(raf);
-            }
-          }
-        }
-
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", initLenis);
-        } else {
-          initLenis();
-        }
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

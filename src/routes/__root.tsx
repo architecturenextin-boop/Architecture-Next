@@ -108,12 +108,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap",
-      },
     ],
   }),
   component: RootComponent,
@@ -123,21 +117,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 import { Toaster } from "sonner";
 import { WhatsAppWidget } from "@/components/whatsapp-widget";
-import { GoogleOAuthProvider } from "@react-oauth/google";
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+import { useSmoothScroll } from "@/hooks/use-smooth-scroll";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useSmoothScroll();
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <QueryClientProvider client={queryClient}>
-        <HeadContent />
-        <Outlet />
-        <WhatsAppWidget />
-        <Toaster position="top-right" richColors />
-      </QueryClientProvider>
-    </GoogleOAuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <HeadContent />
+      <Outlet />
+      <WhatsAppWidget />
+      <Toaster position="top-right" richColors />
+    </QueryClientProvider>
   );
 }

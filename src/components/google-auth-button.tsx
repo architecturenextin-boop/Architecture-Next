@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
+import { GoogleOAuthProvider, GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { authService } from "@/lib/services/auth.service";
 import { dispatchAuthChange } from "@/hooks/use-auth";
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 interface GoogleAuthButtonProps {
   text?: "signin_with" | "signup_with" | "continue_with" | "signin";
@@ -16,7 +18,16 @@ interface GoogleAuthButtonProps {
   hideTrustBadge?: boolean;
 }
 
-export function GoogleAuthButton({
+export function GoogleAuthButton(props: GoogleAuthButtonProps) {
+  if (!GOOGLE_CLIENT_ID) return null;
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <GoogleAuthButtonInner {...props} />
+    </GoogleOAuthProvider>
+  );
+}
+
+function GoogleAuthButtonInner({
   text = "continue_with",
   shape = "rectangular",
   size = "large",

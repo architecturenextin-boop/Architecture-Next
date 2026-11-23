@@ -1,6 +1,6 @@
-import instructorImg from "@/assets/instructor.jpeg";
-import keerthanaImg from "@/assets/mentor-keerthana.jpeg";
-import sahalaImg from "@/assets/mentor-sahala.jpeg";
+import instructorImg from "@/assets/instructor.webp";
+import keerthanaImg from "@/assets/mentor-keerthana.webp";
+import sahalaImg from "@/assets/mentor-sahala.webp";
 
 export interface Mentor {
   name: string;
