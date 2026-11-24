@@ -4,7 +4,7 @@ import { faqs } from "./static-data";
 /** Canonical production origin used for SEO tags, structured data and the sitemap. */
 export const SITE_URL = "https://www.architecturenext.in";
 export const SITE_NAME = "ArchitectureNext";
-export const OG_IMAGE = `${SITE_URL}/og-image.png`;
+export const OG_IMAGE = `${SITE_URL}/og-image-v2.png`;
 
 export const KEYWORDS = [
   "architecture course in Kerala",
