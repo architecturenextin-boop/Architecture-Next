@@ -263,12 +263,15 @@ function Hero() {
 
 function TrustBar() {
   const items = [
-    { label: "AI Workflow" },
-    { label: "360 Rendering" },
-    { label: "Presentation" },
-    { label: "Animation" },
-    { label: "Portfolio" },
-    { label: "Skill Development" },
+    { label: "AI Integration" },
+    { label: "3D Modeling" },
+    { label: "2D Drafting" },
+    { label: "360 Visualisation" },
+    { label: "Architecture Presentation" },
+    { label: "Interactive Design" },
+    { label: "AATT" },
+    { label: "Live Project" },
+    { label: "Certification" },
   ];
 
   return (
@@ -285,10 +288,10 @@ function TrustBar() {
         ))}
       </div>
 
-      {/* Large Screens (>= md): Original elegant single-line typography with dots */}
-      <div className="mx-auto hidden max-w-7xl items-center justify-center gap-x-6 lg:gap-x-10 px-8 type-small font-semibold uppercase tracking-widest text-muted-foreground sm:text-sm md:flex">
+      {/* Large Screens (>= md): Original elegant typography with dots */}
+      <div className="mx-auto hidden max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:gap-x-7 px-8 type-small font-semibold uppercase tracking-widest text-muted-foreground sm:text-xs md:flex">
         {items.map((item, index) => (
-          <div key={item.label} className="flex items-center gap-x-6 lg:gap-x-10">
+          <div key={item.label} className="flex items-center gap-x-5 lg:gap-x-7">
             <span className="opacity-75 transition-opacity hover:opacity-100">{item.label}</span>
             {index < items.length - 1 && (
               <span className="h-1.5 w-1.5 rounded-full bg-primary/40" aria-hidden="true" />

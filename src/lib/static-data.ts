@@ -77,6 +77,18 @@ export const features = [
   },
 ];
 
+export const keyPillars = [
+  "AI Integration",
+  "3D Modeling",
+  "2D Drafting",
+  "360 Visualisation",
+  "Architecture Presentation",
+  "Interactive Design",
+  "AATT",
+  "Live Project",
+  "Certification",
+];
+
 export const pricingFeatures = [
   "Lifetime Access",
   "Internship Certificate",
