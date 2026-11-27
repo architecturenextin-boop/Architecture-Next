@@ -246,13 +246,13 @@ export function SiteHeader({ action }: SiteHeaderProps) {
   }, [mobileMenuOpen]);
 
   const navLinks = [
-    { to: "/", label: "Home", icon: Home, isAnchor: false },
+    { to: "/", label: "Home", icon: Home, isAnchor: false } as const,
     { to: "/courses", label: "Courses", icon: BookOpen, isAnchor: false },
-    { href: "/#features", label: "Program", icon: Layers, isAnchor: true },
-    { href: "/#instructor", label: "Mentor", icon: Award, isAnchor: true },
-    { href: "/#testimonials", label: "Testimonials", icon: MessageSquareQuote, isAnchor: true },
-    { href: "/#faq", label: "FAQ", icon: HelpCircle, isAnchor: true },
-  ];
+    { href: "/#features", label: "Program", icon: Layers, isAnchor: true } as const,
+    { href: "/#instructor", label: "Mentor", icon: Award, isAnchor: true } as const,
+    { href: "/#testimonials", label: "Testimonials", icon: MessageSquareQuote, isAnchor: true } as const,
+    { href: "/#faq", label: "FAQ", icon: HelpCircle, isAnchor: true } as const,
+  ] as const;
 
   const currentStudent = studentList[studentIndex % studentList.length] || "Ramees";
 

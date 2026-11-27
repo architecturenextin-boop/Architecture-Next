@@ -1,6 +1,21 @@
 import { brand } from "./brand";
 import { faqs } from "./static-data";
 
+let staticHeadStripped = false;
+
+/**
+ * index.html ships a static copy of the SEO tags (title, description, OG, canonical,
+ * JSON-LD) so non-JS crawlers and link previews see them before the bundle runs.
+ * React hoists the route-managed copies into <head>, which would leave two of each
+ * in the rendered DOM, so the static fallback carries `data-static-seo` and is
+ * removed once the app mounts. Call this from the root component effect.
+ */
+export function stripStaticHeadFallback() {
+  if (staticHeadStripped || typeof document === "undefined") return;
+  staticHeadStripped = true;
+  document.querySelectorAll("[data-static-seo]").forEach((tag) => tag.remove());
+}
+
 /** Canonical production origin used for SEO tags, structured data and the sitemap. */
 export const SITE_URL = "https://www.architecturenext.in";
 export const SITE_NAME = "ArchitectureNext";
@@ -10,6 +25,7 @@ export const KEYWORDS = [
   "architecture course in Kerala",
   "architecture internship Kozhikode",
   "architecture design course Kerala",
+  "interior design course Kozhikode",
   "interior design training",
   "3D visualisation course",
   "3D modeling architecture",

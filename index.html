@@ -3,42 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ArchitectureNext - Top Architecture & Interior Design Courses in Kerala</title>
+
+    <!--
+      Static SEO fallback.
+      Non-JS crawlers and link previews (WhatsApp, Facebook, LinkedIn) only read
+      this file, so the tags below must stay in the source HTML. React hoists the
+      route-managed copies into <head> on mount (see src/routes/__root.tsx), so
+      every tag here is marked data-static-seo and removed at boot by
+      stripStaticHeadFallback() in src/lib/seo.ts — the live DOM then holds
+      exactly one title, one description and one set of JSON-LD blocks.
+    -->
+    <title data-static-seo>Architecture &amp; Interior Design Courses in Kerala | ArchitectureNext</title>
     <meta
+      data-static-seo
       name="description"
-      content="ArchitectureNext offers expert-led architecture and interior design courses in Kerala — AutoCAD, SketchUp, 3ds Max, Photoshop, AI architectural workflows, and certification."
+      content="Learn architecture and interior design from practising architects — AutoCAD, SketchUp, 3D visualisation and AI design workflows, live projects, internship certificate and lifetime access. Online and classroom training in Kozhikode, Kerala."
     />
     <meta
+      data-static-seo
       name="keywords"
-      content="architecture courses kerala, interior design institute kochi, autocad training kerala, sketchup course, architecture ai workflow, architecturenext"
+      content="architecture course in Kerala, architecture internship Kozhikode, architecture design course Kerala, interior design course Kozhikode, interior design training, 3D visualisation course, 3D modeling architecture, 2D drafting AutoCAD, 360 visualisation, architecture presentation, interactive design, AATT architecture, live project architecture, architecture certification, AI integration architecture, interior design course Kerala, architecture LMS, SketchUp Lumion course, architecture portfolio mentorship"
     />
-    <link rel="canonical" href="https://www.architecturenext.in/" />
-    <meta name="theme-color" content="#294398" />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <meta name="google-site-verification" content="UJ2Bid-_LbdnAHxv-CYANhgD0ZobLSNhgV3-kEJactY" />
-    <meta name="google-site-verification" content="bDjIh6THNiueCjL6Le6CoazCVgPtnBlhZVPuh5_HrBg" />
+    <link data-static-seo rel="canonical" href="https://www.architecturenext.in/" />
+    <meta
+      data-static-seo
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+    <meta data-static-seo name="theme-color" content="#294398" />
 
     <!-- Open Graph / Facebook / WhatsApp -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.architecturenext.in/" />
-    <meta property="og:site_name" content="ArchitectureNext" />
-    <meta property="og:title" content="ArchitectureNext - Top Architecture & Interior Design Courses in Kerala" />
+    <meta data-static-seo property="og:type" content="website" />
+    <meta data-static-seo property="og:url" content="https://www.architecturenext.in/" />
+    <meta data-static-seo property="og:site_name" content="ArchitectureNext" />
     <meta
-      property="og:description"
-      content="Master AutoCAD, SketchUp, Photoshop, and AI design workflows with industry-recognized certification and live project mentoring."
+      data-static-seo
+      property="og:title"
+      content="Architecture &amp; Interior Design Courses in Kerala | ArchitectureNext"
     />
-    <meta property="og:image" content="https://www.architecturenext.in/og-image-v2.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta
+      data-static-seo
+      property="og:description"
+      content="Architectural design, 3D visualisation and AI design courses taught by practising architects, with live projects, internship certification and lifetime access."
+    />
+    <meta data-static-seo property="og:image" content="https://www.architecturenext.in/og-image-v2.png" />
+    <meta data-static-seo property="og:image:width" content="1200" />
+    <meta data-static-seo property="og:image:height" content="630" />
+    <meta
+      data-static-seo
+      property="og:image:alt"
+      content="ArchitectureNext — architecture and interior design courses in Kerala"
+    />
 
     <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ArchitectureNext - Top Architecture & Interior Design Courses in Kerala" />
+    <meta data-static-seo name="twitter:card" content="summary_large_image" />
     <meta
-      name="twitter:description"
-      content="Master AutoCAD, SketchUp, Photoshop, and AI design workflows with industry-recognized certification."
+      data-static-seo
+      name="twitter:title"
+      content="Architecture &amp; Interior Design Courses in Kerala | ArchitectureNext"
     />
-    <meta name="twitter:image" content="https://www.architecturenext.in/og-image-v2.png" />
+    <meta
+      data-static-seo
+      name="twitter:description"
+      content="Architectural design, 3D visualisation and AI design courses with live projects, internship certification and lifetime access."
+    />
+    <meta data-static-seo name="twitter:image" content="https://www.architecturenext.in/og-image-v2.png" />
+
+    <meta name="google-site-verification" content="UJ2Bid-_LbdnAHxv-CYANhgD0ZobLSNhgV3-kEJactY" />
+    <meta name="google-site-verification" content="bDjIh6THNiueCjL6Le6CoazCVgPtnBlhZVPuh5_HrBg" />
 
     <!-- Favicons & App Icons (Google Search guidelines: multiple of 48x48) -->
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -51,83 +83,89 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- JSON-LD Structured Data for Google Rich Snippets, Sitelinks & Knowledge Graph -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "EducationalOrganization",
-          "@id": "https://www.architecturenext.in/#organization",
-          "name": "ArchitectureNext",
-          "url": "https://www.architecturenext.in",
-          "logo": {
-            "@type": "ImageObject",
-            "url": "https://www.architecturenext.in/icon-512.png",
-            "width": 512,
-            "height": 512
+    <!--
+      JSON-LD for non-JS crawlers: same organisation address, phone and website
+      facts the app emits from src/lib/seo.ts, so both renders agree.
+    -->
+    <script data-static-seo type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "EducationalOrganization",
+            "@id": "https://www.architecturenext.in/#organization",
+            "name": "ArchitectureNext",
+            "alternateName": "Architecture Next School of Internship",
+            "url": "https://www.architecturenext.in/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://www.architecturenext.in/icon-512.png",
+              "width": 512,
+              "height": 512
+            },
+            "image": "https://www.architecturenext.in/og-image-v2.png",
+            "description": "Professional architecture and interior design courses in Kerala — AutoCAD, SketchUp, Photoshop, AI workflows, and internship certification.",
+            "email": "architecturenextin@gmail.com",
+            "telephone": "+91 88910 91894",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "First floor, HiLITE Business Park, Palazhi",
+              "addressLocality": "Kozhikode",
+              "addressRegion": "Kerala",
+              "postalCode": "673014",
+              "addressCountry": "IN"
+            },
+            "areaServed": "Kerala, India",
+            "sameAs": [
+              "https://www.instagram.com/architecturenext",
+              "https://www.linkedin.com/company/architecturenext"
+            ]
           },
-          "image": "https://www.architecturenext.in/og-image-v2.png",
-          "description": "Professional architecture and interior design courses in Kerala — AutoCAD, SketchUp, Photoshop, AI workflows, and internship certification.",
-          "address": {
-            "@type": "PostalAddress",
-            "addressRegion": "Kerala",
-            "addressCountry": "IN"
+          {
+            "@type": "WebSite",
+            "@id": "https://www.architecturenext.in/#website",
+            "url": "https://www.architecturenext.in/",
+            "name": "ArchitectureNext",
+            "publisher": {
+              "@id": "https://www.architecturenext.in/#organization"
+            },
+            "inLanguage": "en-IN"
           },
-          "sameAs": [
-            "https://www.instagram.com/architecturenext",
-            "https://www.linkedin.com/company/architecturenext"
-          ]
-        },
-        {
-          "@type": "WebSite",
-          "@id": "https://www.architecturenext.in/#website",
-          "url": "https://www.architecturenext.in",
-          "name": "ArchitectureNext",
-          "publisher": {
-            "@id": "https://www.architecturenext.in/#organization"
-          },
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": "https://www.architecturenext.in/courses?q={search_term_string}",
-            "query-input": "required name=search_term_string"
+          {
+            "@type": "ItemList",
+            "itemListElement": [
+              {
+                "@type": "SiteNavigationElement",
+                "position": 1,
+                "name": "Courses",
+                "description": "Browse all architecture and interior design courses",
+                "url": "https://www.architecturenext.in/courses"
+              },
+              {
+                "@type": "SiteNavigationElement",
+                "position": 2,
+                "name": "AutoCAD Tools & Techniques",
+                "description": "Master 2D & 3D architectural drafting in AutoCAD",
+                "url": "https://www.architecturenext.in/courses/AutoCADToolsandTechnique"
+              },
+              {
+                "@type": "SiteNavigationElement",
+                "position": 3,
+                "name": "Architecture Plan Presentation & Animation",
+                "description": "Create client presentations and 3D architectural animations",
+                "url": "https://www.architecturenext.in/courses/architecture-plan-presentation-animation"
+              },
+              {
+                "@type": "SiteNavigationElement",
+                "position": 4,
+                "name": "AI Master in AutoCAD, SketchUp, Photoshop",
+                "description": "Learn AI workflows for architectural design and visualisation",
+                "url": "https://www.architecturenext.in/courses/ai-mater-in-autocad-sketchup-photoshop-chatgpt-astra6"
+              }
+            ]
           }
-        },
-        {
-          "@type": "ItemList",
-          "itemListElement": [
-            {
-              "@type": "SiteNavigationElement",
-              "position": 1,
-              "name": "Courses",
-              "description": "Browse all architecture and interior design courses",
-              "url": "https://www.architecturenext.in/courses"
-            },
-            {
-              "@type": "SiteNavigationElement",
-              "position": 2,
-              "name": "AutoCAD Tools & Techniques",
-              "description": "Master 2D & 3D architectural drafting in AutoCAD",
-              "url": "https://www.architecturenext.in/courses/AutoCADToolsandTechnique"
-            },
-            {
-              "@type": "SiteNavigationElement",
-              "position": 3,
-              "name": "AI Master Architecture",
-              "description": "Learn cutting-edge AI workflows for architectural rendering and design",
-              "url": "https://www.architecturenext.in/courses/Ai_Mater_Architecture_mcp"
-            },
-            {
-              "@type": "SiteNavigationElement",
-              "position": 4,
-              "name": "Architecture Plan Presentation & Animation",
-              "description": "Create stunning client presentations and 3D architectural animations",
-              "url": "https://www.architecturenext.in/courses/architecture-plan-presentation-animation"
-            }
-          ]
-        }
-      ]
-    }
+        ]
+      }
     </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />

@@ -9,7 +9,14 @@ import {
 import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
-import { KEYWORDS, OG_IMAGE, SITE_URL, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
+import {
+  KEYWORDS,
+  OG_IMAGE,
+  SITE_URL,
+  organizationJsonLd,
+  stripStaticHeadFallback,
+  websiteJsonLd,
+} from "@/lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -71,8 +78,6 @@ function ErrorComponent({ error, reset }: { error: any; reset: () => void }) {
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
       { name: "description", content: "Learn architecture and interior design from practising architects — AutoCAD, SketchUp, 3D visualisation and AI design workflows, live projects, internship certificate and lifetime access. Online and classroom training in Kozhikode, Kerala." },
       { name: "author", content: "ArchitectureNext" },
@@ -122,6 +127,12 @@ import { useSmoothScroll } from "@/hooks/use-smooth-scroll";
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useSmoothScroll();
+
+  // Drop the pre-JS copy of the SEO tags from index.html once React has hoisted
+  // the route-managed ones, so the rendered DOM has no duplicate title/meta/JSON-LD.
+  useEffect(() => {
+    stripStaticHeadFallback();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
