@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { OG_IMAGE, SITE_URL } from "@/lib/seo";
 
-const PAGE_TITLE = "Course Curriculum, Projects & Fees | ArchitectureNext";
+const PAGE_TITLE = "Course Curriculum, Fees & Certification | ArchitectureNext";
 const PAGE_DESCRIPTION =
-  "View the full architecture course curriculum, project briefs, software modules, fees and internship certificate details. Learn architectural drafting, 3D visualisation and AI workflows from practising architects.";
+  "Course curriculum, projects, fees and internship certificate. Learn drafting, 3D visualisation and AI design workflows from practising architects.";
 
 export const Route = createFileRoute("/courses/$courseId")({
   head: ({ params }) => {

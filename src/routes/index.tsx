@@ -20,7 +20,14 @@ import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/footer";
 import { SiteHeader } from "@/components/site-header";
 import { Testimonials } from "@/components/testimonials";
-import { KEYWORDS, OG_IMAGE, SITE_URL, faqJsonLd } from "@/lib/seo";
+import {
+  KEYWORDS,
+  OG_IMAGE,
+  SITE_DESCRIPTION,
+  SITE_TITLE,
+  SITE_URL,
+  faqJsonLd,
+} from "@/lib/seo";
 import { brand } from "@/lib/brand";
 import {
   faqs,
@@ -44,17 +51,10 @@ import heroImg from "@/assets/hero-learner.jpeg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
-      {
-        name: "description",
-        content:
-          "Learn architecture and interior design from practising architects — AutoCAD, SketchUp, 3D visualisation and AI design workflows, live projects, internship certificate and lifetime access. Online and classroom training in Kozhikode, Kerala.",
-      },
+      { title: SITE_TITLE },
+      { name: "description", content: SITE_DESCRIPTION },
       { name: "keywords", content: KEYWORDS },
-      {
-        property: "og:title",
-        content: "Architecture & Interior Design Courses in Kerala | ArchitectureNext",
-      },
+      { property: "og:title", content: SITE_TITLE },
       {
         property: "og:description",
         content:

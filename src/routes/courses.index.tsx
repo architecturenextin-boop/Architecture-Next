@@ -12,17 +12,14 @@ import { KEYWORDS, OG_IMAGE, SITE_URL, breadcrumbJsonLd } from "@/lib/seo";
 export const Route = createFileRoute("/courses/")({
   head: () => ({
     meta: [
-      { title: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
+      { title: "Course Fees & Curriculum | ArchitectureNext Kozhikode" },
       {
         name: "description",
         content:
-          "Explore ArchitectureNext courses — SketchUp with Lumion 3D rendering, plan presentation and animation, parametric design and AI design workflows. See curriculum, fees, live projects and internship certification.",
+          "Compare every ArchitectureNext course — AutoCAD, SketchUp with Lumion, plan presentation and AI design workflows. See curriculum, fees and certification.",
       },
       { name: "keywords", content: KEYWORDS },
-      {
-        property: "og:title",
-        content: "Architecture & Interior Design Courses in Kerala",
-      },
+      { property: "og:title", content: "Course Fees & Curriculum | ArchitectureNext" },
       {
         property: "og:description",
         content:

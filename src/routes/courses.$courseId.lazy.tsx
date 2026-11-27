@@ -22,7 +22,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { CourseOfferNotification } from "@/components/course-offer-notification";
 import { SiteHeader } from "@/components/site-header";
@@ -36,7 +36,7 @@ import type { CourseWithContent, PublicTestimonial } from "@/lib/database.types"
 import certificateImg from "@/assets/certificate.webp";
 import certificateWebp from "@/assets/certificate.webp";
 import { useAuth } from "@/hooks/use-auth";
-import { OG_IMAGE } from "@/lib/seo";
+import { OG_IMAGE, breadcrumbJsonLd, courseJsonLd } from "@/lib/seo";
 import { getMediaUrl, isValidDuration } from "@/lib/utils";
 
 export const Route = createLazyFileRoute("/courses/$courseId")({
@@ -199,11 +199,34 @@ function CourseDetailPage() {
 
   const courseModules = course?.modules || [];
 
+  const schemaScript = course
+    ? JSON.stringify([
+        courseJsonLd(course),
+        breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Courses", path: "/courses" },
+          {
+            name: course.title || "Course",
+            path: `/courses/${encodeURIComponent(course.slug || course.id)}`,
+          },
+        ]),
+      ])
+    : "";
+
+  const courseTitle = course?.title;
+
   const totalLessons = courseModules.reduce(
     (total, module) => total + (module.lessons_safe?.length || 0),
     0,
   );
   const isPrebookCourse = totalLessons === 0;
+
+  // Per-course SERP title: the static route head can only see the URL param, so the
+  // real course name (fetched above) replaces it once available.
+  useEffect(() => {
+    if (!courseTitle) return;
+    document.title = `${courseTitle} | ArchitectureNext`;
+  }, [courseTitle]);
 
   const handleShare = async () => {
     try {
@@ -258,6 +281,11 @@ function CourseDetailPage() {
   return (
     <div className="min-h-screen bg-background pb-20 text-foreground selection:bg-primary selection:text-primary-foreground lg:pb-0">
       <SiteHeader />
+
+      {/* Course + Breadcrumb structured data built from the real API record */}
+      {schemaScript && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schemaScript }} />
+      )}
 
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b border-border bg-gradient-hero">

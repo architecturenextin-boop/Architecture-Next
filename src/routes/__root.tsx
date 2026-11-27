@@ -12,8 +12,11 @@ import appCss from "../styles.css?url";
 import {
   KEYWORDS,
   OG_IMAGE,
+  SITE_DESCRIPTION,
+  SITE_TITLE,
   SITE_URL,
   organizationJsonLd,
+  siteNavigationJsonLd,
   stripStaticHeadFallback,
   websiteJsonLd,
 } from "@/lib/seo";
@@ -78,15 +81,15 @@ function ErrorComponent({ error, reset }: { error: any; reset: () => void }) {
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
-      { title: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
-      { name: "description", content: "Learn architecture and interior design from practising architects — AutoCAD, SketchUp, 3D visualisation and AI design workflows, live projects, internship certificate and lifetime access. Online and classroom training in Kozhikode, Kerala." },
+      { title: SITE_TITLE },
+      { name: "description", content: SITE_DESCRIPTION },
       { name: "author", content: "ArchitectureNext" },
       { name: "keywords", content: KEYWORDS },
       { name: "robots", content: "index, follow, max-image-preview:large" },
       { name: "theme-color", content: "#294398" },
       { name: "geo.region", content: "IN-KL" },
       { name: "geo.placename", content: "Kozhikode, Kerala" },
-      { property: "og:title", content: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
+      { property: "og:title", content: SITE_TITLE },
       { property: "og:description", content: "Architectural design, 3D visualisation and AI design courses taught by practising architects, with live projects, internship certification and lifetime access." },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "ArchitectureNext" },
@@ -97,7 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image:height", content: "630" },
       { property: "og:image:alt", content: "ArchitectureNext — architecture and interior design courses in Kerala" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Architecture & Interior Design Courses in Kerala | ArchitectureNext" },
+      { name: "twitter:title", content: SITE_TITLE },
       { name: "twitter:description", content: "Architectural design, 3D visualisation and AI design courses with live projects, internship certification and lifetime access." },
       { name: "twitter:image", content: OG_IMAGE },
     ],
@@ -109,6 +112,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         type: "application/ld+json",
         children: JSON.stringify(websiteJsonLd),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(siteNavigationJsonLd),
       },
     ],
     links: [

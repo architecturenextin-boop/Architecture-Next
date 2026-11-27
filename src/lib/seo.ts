@@ -21,6 +21,15 @@ export const SITE_URL = "https://www.architecturenext.in";
 export const SITE_NAME = "ArchitectureNext";
 export const OG_IMAGE = `${SITE_URL}/og-image-v2.png`;
 
+/**
+ * Brand-first title (57 chars, inside Google's ~60-char desktop snippet) and a
+ * 150-char description, so the SERP snippet never truncates mid-sentence.
+ * Keep index.html in sync — it ships the same two strings as a pre-JS fallback.
+ */
+export const SITE_TITLE = "ArchitectureNext | Architecture & Interior Design Courses";
+export const SITE_DESCRIPTION =
+  "Master AutoCAD, SketchUp, Photoshop & AI workflows at ArchitectureNext, Kozhikode. Hands-on architecture & interior design courses with live projects.";
+
 export const KEYWORDS = [
   "architecture course in Kerala",
   "architecture internship Kozhikode",
@@ -64,6 +73,10 @@ export const organizationJsonLd = {
     addressCountry: "IN",
   },
   areaServed: "Kerala, India",
+  sameAs: [
+    "https://www.instagram.com/architecturenext",
+    "https://www.linkedin.com/company/architecturenext",
+  ],
   knowsAbout: [
     "Architecture",
     "Architectural design",
@@ -91,6 +104,106 @@ export const websiteJsonLd = {
   publisher: { "@id": `${SITE_URL}/#organization` },
   inLanguage: "en-IN",
 };
+
+/**
+ * SiteNavigationElement list: the site's primary destinations in one graph node.
+ * Google uses crawlable navigation like this (plus the header/footer links) as a
+ * signal when choosing sitelinks for branded searches.
+ */
+export const siteNavigationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  itemListElement: [
+    { name: "Home", url: `${SITE_URL}/` },
+    { name: "Courses", url: `${SITE_URL}/courses` },
+    {
+      name: "AutoCAD Tools & Techniques",
+      url: `${SITE_URL}/courses/AutoCADToolsandTechnique`,
+    },
+    {
+      name: "Architecture Plan Presentation & Animation",
+      url: `${SITE_URL}/courses/architecture-plan-presentation-animation`,
+    },
+    {
+      name: "AI Master in AutoCAD, SketchUp, Photoshop",
+      url: `${SITE_URL}/courses/Ai_Mater_Architecture_mcp`,
+    },
+  ].map((item, index) => ({
+    "@type": "SiteNavigationElement",
+    position: index + 1,
+    name: item.name,
+    url: item.url,
+  })),
+};
+
+/** Minimal course fields needed for Course structured data. */
+export type CourseSchemaInput = {
+  title?: string | null;
+  description?: string | null;
+  tagline?: string | null;
+  slug?: string | null;
+  id?: string | null;
+  price?: number | null;
+  currency?: string | null;
+  total_duration?: string | null;
+  total_lessons?: number | null;
+  thumbnail_url?: string | null;
+};
+
+/**
+ * Course schema built from the real API record — no invented ratings, review
+ * counts or prices. aggregateRating is deliberately omitted: the catalogue
+ * currently has zero published reviews, and Google requires ratings in markup
+ * to be genuine and visible on the page.
+ */
+export function courseJsonLd(course: CourseSchemaInput) {
+  const url = `${SITE_URL}/courses/${encodeURIComponent(course.slug || course.id || "")}`;
+  const price = Number(course.price ?? 0);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.title || "Architecture course",
+    description: course.description || course.tagline || undefined,
+    url,
+    image: course.thumbnail_url || OG_IMAGE,
+    inLanguage: "en-IN",
+    educationalLevel: "Beginner to advanced",
+    provider: {
+      "@type": "EducationalOrganization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: `${SITE_URL}/`,
+    },
+    hasCourseInstance: {
+      "@type": "CourseInstance",
+      courseMode: ["online", "onsite"],
+      location: {
+        "@type": "Place",
+        name: "ArchitectureNext, HiLITE Business Park",
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: "First floor, HiLITE Business Park, Palazhi",
+          addressLocality: "Kozhikode",
+          addressRegion: "Kerala",
+          postalCode: "673014",
+          addressCountry: "IN",
+        },
+      },
+    },
+    offers:
+      price > 0
+        ? {
+            "@type": "Offer",
+            category: "Paid",
+            price,
+            priceCurrency: "INR",
+            availability: "https://schema.org/InStock",
+            url,
+          }
+        : undefined,
+  };
+}
 
 export const faqJsonLd = {
   "@context": "https://schema.org",
